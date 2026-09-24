@@ -22,7 +22,8 @@ export const MediaCard: React.FC<MediaCardProps> = ({ item }) => {
     isInWatchlist, 
     toggleFavorite, 
     isFavorite,
-    watchHistory 
+    watchHistory,
+    detailItem 
   } = useWatch();
 
   const [isHovered, setIsHovered] = useState(false);
@@ -45,6 +46,9 @@ export const MediaCard: React.FC<MediaCardProps> = ({ item }) => {
           src={item.posterUrl}
           alt={item.title}
           loading="lazy"
+          style={{
+            viewTransitionName: detailItem?.id === item.id ? 'active-media-hero' : undefined
+          }}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
 

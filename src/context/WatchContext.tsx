@@ -32,6 +32,16 @@ interface WatchContextType {
   allMedia: MediaItem[];
 }
 
+export const withViewTransition = (fn: () => void) => {
+  if (typeof document !== 'undefined' && 'startViewTransition' in document) {
+    (document as any).startViewTransition(() => {
+      fn();
+    });
+  } else {
+    fn();
+  }
+};
+
 const WatchContext = createContext<WatchContextType | undefined>(undefined);
 
 export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -155,27 +165,41 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     apiService.syncWatchProgress(mediaId, currentTime, duration, episodeId).catch(() => {});
   };
 
+  const setTab = (tab: ViewTab) => {
+    withViewTransition(() => {
+      setCurrentTab(tab);
+    });
+  };
+
   const openDetail = (item: MediaItem) => {
-    setDetailItem(item);
+    withViewTransition(() => {
+      setDetailItem(item);
+    });
   };
 
   const closeDetail = () => {
-    setDetailItem(null);
+    withViewTransition(() => {
+      setDetailItem(null);
+    });
   };
 
   const openPlayer = (item: MediaItem, episode?: Episode) => {
-    setPlayerState({
-      isOpen: true,
-      item,
-      episode: episode || (item.seasons?.[0]?.episodes?.[0] || undefined)
+    withViewTransition(() => {
+      setPlayerState({
+        isOpen: true,
+        item,
+        episode: episode || (item.seasons?.[0]?.episodes?.[0] || undefined)
+      });
     });
   };
 
   const closePlayer = () => {
-    setPlayerState({
-      isOpen: false,
-      item: null,
-      episode: undefined
+    withViewTransition(() => {
+      setPlayerState({
+        isOpen: false,
+        item: null,
+        episode: undefined
+      });
     });
   };
 
@@ -211,7 +235,7 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     <WatchContext.Provider
       value={{
         currentTab,
-        setCurrentTab,
+        setCurrentTab: setTab,
         searchQuery,
         setSearchQuery,
         selectedGenre,
