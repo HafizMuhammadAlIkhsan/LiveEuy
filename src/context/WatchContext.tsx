@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { MediaItem, Episode, WatchProgress, ViewTab } from '../types';
 import { MOCK_MEDIA } from '../data/mockData';
+import { apiService } from '../services/api';
 
 interface WatchContextType {
   currentTab: ViewTab;
@@ -119,6 +120,7 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setWatchlist(prev =>
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
     );
+    apiService.toggleWatchlist(id).catch(() => {});
   };
 
   const isInWatchlist = (id: string) => watchlist.includes(id);
@@ -150,6 +152,7 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         episodeId
       }
     }));
+    apiService.syncWatchProgress(mediaId, currentTime, duration, episodeId).catch(() => {});
   };
 
   const openDetail = (item: MediaItem) => {

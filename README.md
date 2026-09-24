@@ -59,27 +59,45 @@
 
 ## 🛠️ Arsitektur Teknologi
 
+### Frontend (Client-side)
 - **Library UI**: React 18
 - **Bahasa**: TypeScript (Strict Mode)
-- **Styling**: Tailwind CSS 3.4 & PostCSS (Glassmorphism, Dark Theme `#08090d`, Custom Glow)
+- **Styling**: Tailwind CSS 3.4 & PostCSS (Glassmorphism, Dark Theme `#08090d`, Custom Ambient Glow)
 - **Ikon**: Lucide React
 - **Build Tool**: Vite 5
-- **Penyimpanan State**: React Context API + LocalStorage persistence (`liveeuy_watchlist`, `liveeuy_history`, `liveeuy_favorites`)
+- **Layer API**: `src/services/api.ts` (Automatic fallback to mock data if offline)
+- **Penyimpanan State**: React Context API + LocalStorage persistence
+
+### Backend & Dokumentasi API
+- **Framework**: Spring Boot 3.3.4 (Java 17+)
+- **Dokumentasi API**: SpringDoc OpenAPI & Swagger UI
+- **Spesifikasi Kontrak**: [`API_CONTRACT.md`](./API_CONTRACT.md)
+- **Interactive Swagger UI**: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
+- **OpenAPI Schema**: [http://localhost:8080/api-docs](http://localhost:8080/api-docs)
 
 ---
 
 ## 🚀 Panduan Memulai (Getting Started)
 
-### 1. Instalasi Dependensi
+### 1. Menjalankan Frontend (React + Vite)
 ```bash
 npm install
-```
-
-### 2. Jalankan Server Pengembangan (Dev Server)
-```bash
 npm run dev
 ```
 Buka browser pada URL yang ditampilkan di terminal (default: `http://localhost:3000`).
+
+### 2. Menjalankan Backend (Spring Boot + Swagger)
+```bash
+cd backend
+mvn spring-boot:run
+```
+*Atau menggunakan Docker:*
+```bash
+cd backend
+docker build -t liveeuy-backend .
+docker run -p 8080:8080 liveeuy-backend
+```
+Buka Swagger UI di: **http://localhost:8080/swagger-ui.html**
 
 ### 3. Build untuk Produksi
 ```bash

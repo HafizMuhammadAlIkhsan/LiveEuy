@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useWatch } from '../context/WatchContext';
 import { Review } from '../types';
+import { apiService } from '../services/api';
 
 export const DetailModal: React.FC = () => {
   const { 
@@ -57,21 +58,30 @@ export const DetailModal: React.FC = () => {
     setTimeout(() => setHasCopiedShare(false), 2000);
   };
 
-  const handleAddReview = (e: React.FormEvent) => {
+  const handleAddReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userComment.trim()) return;
 
+    const author = 'Anda (Penikmat Sinema)';
+    const comment = userComment.trim();
+
     const newRev: Review = {
       id: `rev-${Date.now()}`,
-      author: 'Anda (Penikmat Sinema)',
+      author,
       avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
       rating: userRating,
       date: 'Baru saja',
-      comment: userComment.trim()
+      comment
     };
 
     setReviewsList([newRev, ...reviewsList]);
     setUserComment('');
+
+    try {
+      await apiService.addReview(detailItem.id, author, userRating, comment);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   return (
