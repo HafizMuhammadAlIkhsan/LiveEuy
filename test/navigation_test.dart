@@ -12,7 +12,7 @@ void main() {
 
     await tester.pumpWidget(
       const ProviderScope(
-        child: StreamFlixApp(),
+        child: LiveEuyApp(),
       ),
     );
     await tester.pump(const Duration(milliseconds: 200));
