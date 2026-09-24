@@ -106,10 +106,10 @@ export const WatchlistView: React.FC = () => {
         </h2>
 
         {watchlistItems.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
             {watchlistItems.map(item => (
               <div key={item.id} className="relative group">
-                <MediaCard item={item} />
+                <MediaCard item={item} layout="grid" />
                 
                 {/* Remove from watchlist floating button */}
                 <button

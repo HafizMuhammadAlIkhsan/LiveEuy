@@ -26,7 +26,7 @@ const MainContent: React.FC = () => {
   });
 
   return (
-    <div className="min-h-screen bg-[#08090d] flex flex-col justify-between">
+    <div className="min-h-screen bg-[#08090d] flex flex-col justify-between pb-16 md:pb-0">
       <div>
         <Navbar />
 
