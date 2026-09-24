@@ -1,0 +1,122 @@
+# ==============================================================================
+# LiveEuy Project — Git Ignore Rules (Mobile Flutter & Backend Spring Boot)
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Flutter & Dart (Mobile Client)
+# ------------------------------------------------------------------------------
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+coverage/
+
+# Flutter Symbolication & Obfuscation mappings
+app.*.symbols
+app.*.map.json
+
+# ------------------------------------------------------------------------------
+# 2. Android Native Artifacts & Secrets
+# ------------------------------------------------------------------------------
+**/android/.gradle/
+**/android/**/build/
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
+**/android/local.properties
+**/android/captures/
+**/android/.cxx/
+
+# Android Keystores & Signing Keys (NEVER COMMIT PRODUCTION KEYS)
+*.keystore
+*.jks
+**/android/key.properties
+
+# ------------------------------------------------------------------------------
+# 3. iOS & macOS Native Artifacts
+# ------------------------------------------------------------------------------
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/.last_build_id
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/app.framework
+**/ios/Flutter/ephemeral/
+**/ios/**/Pods/
+**/ios/**/.symlinks/
+
+**/macos/Pods/
+**/macos/.symlinks/
+**/macos/Flutter/ephemeral/
+
+# Xcode user-specific data
+*.mode1v3
+*.mode2v3
+*.normal
+*.pbxuser
+*.perspectivev3
+xcuserdata/
+
+# ------------------------------------------------------------------------------
+# 4. Backend Spring Boot (Maven & Database)
+# ------------------------------------------------------------------------------
+backend/target/
+backend/**/target/
+backend/*.jar
+backend/*.war
+backend/*.log
+backend/.mvn/
+backend/.flattened-pom.xml
+
+# Local Docker volume / database dumps
+*.sql.gz
+*.sql.bak
+postgres_data/
+
+# ------------------------------------------------------------------------------
+# 5. IDEs & Editors
+# ------------------------------------------------------------------------------
+# IntelliJ IDEA / Android Studio
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# Visual Studio Code (Ignore local workspace states)
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# ------------------------------------------------------------------------------
+# 6. Operating System Files
+# ------------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ------------------------------------------------------------------------------
+# 7. Environment Variables & Secret Files
+# ------------------------------------------------------------------------------
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
