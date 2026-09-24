@@ -89,6 +89,19 @@ class MediaNotifier extends StateNotifier<MediaState> {
     }
     state = state.copyWith(continueWatching: list);
   }
+
+  void removeFromContinueWatching(String movieId) {
+    final list = List<Movie>.from(state.continueWatching);
+    list.removeWhere((m) => m.id == movieId);
+    state = state.copyWith(continueWatching: list);
+  }
+
+  void insertContinueWatching(Movie movie, {int index = 0}) {
+    final list = List<Movie>.from(state.continueWatching);
+    final clampedIndex = index.clamp(0, list.length);
+    list.insert(clampedIndex, movie);
+    state = state.copyWith(continueWatching: list);
+  }
 }
 
 final mediaProvider = StateNotifierProvider<MediaNotifier, MediaState>((ref) {

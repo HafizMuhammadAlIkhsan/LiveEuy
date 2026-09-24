@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/data/mock_data.dart';
@@ -52,11 +53,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  void _playVideo(Movie movie) {
+  void _playVideo(Movie movie, {double? startProgress}) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => VideoPlayerScreen(movie: movie),
+        builder: (_) => VideoPlayerScreen(
+          movie: movie,
+          startProgress: startProgress,
+        ),
       ),
     );
   }
@@ -242,14 +246,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 const SizedBox(height: 24),
 
                 // Lanjutkan Menonton (Continue Watching)
-                _buildSectionTitle(
-                  title: 'Lanjutkan Menonton',
-                  onSeeAll: () => widget.onNavigateTab(2),
-                ),
-                const SizedBox(height: 12),
-                _buildContinueWatchingRow(media.continueWatching),
-
-                const SizedBox(height: 28),
+                if (media.continueWatching.isNotEmpty) ...[
+                  _buildSectionTitle(
+                    title: 'Lanjutkan Menonton',
+                    onSeeAll: () => widget.onNavigateTab(2),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildContinueWatchingRow(media.continueWatching),
+                  const SizedBox(height: 28),
+                ],
 
                 // Top 10 Film di Indonesia Hari Ini
                 _buildSectionTitle(
@@ -737,7 +742,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildContinueWatchingRow(List<Movie> list) {
     return SizedBox(
-      height: 190,
+      height: 192,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
@@ -758,9 +763,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Video thumbnail with play button overlay
+                // 1. Video thumbnail with play button overlay -> TAPPING PLAYS AND RESUMES PROGRESS
                 GestureDetector(
-                  onTap: () => _playVideo(item),
+                  onTap: () => _playVideo(item, startProgress: item.continueWatchingProgress),
                   child: ClipRRect(
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
                     child: Stack(
@@ -812,48 +817,344 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                // 2. Bottom info bar -> TAPPING BAR OPENS DETAIL, TAPPING 3-DOTS OPENS FULL OPTIONS
+                Expanded(
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(14)),
+                      onTap: () => _openDetail(item),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(10, 6, 4, 6),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              item.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.outfit(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.onSurface,
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    item.title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.onSurface,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    item.durationOrSeasons,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 11,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              item.durationOrSeasons,
-                              style: GoogleFonts.inter(
-                                fontSize: 11,
+                            IconButton(
+                              icon: const Icon(
+                                Icons.more_vert_rounded,
                                 color: AppColors.textSecondary,
+                                size: 19,
                               ),
+                              splashRadius: 18,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                              tooltip: 'Pilihan lainnya',
+                              onPressed: () => _showContinueWatchingOptions(context, item, index),
                             ),
                           ],
                         ),
                       ),
-                      const Icon(
-                        Icons.more_vert_rounded,
-                        color: AppColors.textSecondary,
-                        size: 18,
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ],
             ),
           );
         },
+      ),
+    );
+  }
+
+  void _showContinueWatchingOptions(BuildContext context, Movie item, int itemIndex) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (bottomSheetContext) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceContainerHigh.withValues(alpha: 0.98),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border.all(color: AppColors.glassBorder),
+        ),
+        child: SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+              // Drag Handle
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceVariant,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Movie Preview Card Header
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: CachedNetworkImage(
+                      imageUrl: item.posterUrl,
+                      width: 50,
+                      height: 70,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(color: AppColors.surfaceContainerHighest),
+                      errorWidget: (context, url, err) => Container(color: AppColors.surfaceContainerHighest),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.outfit(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${item.durationOrSeasons} • ${(item.continueWatchingProgress * 100).toInt()}% selesai',
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(2),
+                          child: LinearProgressIndicator(
+                            value: item.continueWatchingProgress,
+                            backgroundColor: AppColors.surfaceContainerHighest,
+                            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryContainer),
+                            minHeight: 3.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Divider(color: AppColors.glassBorder, height: 1),
+              const SizedBox(height: 8),
+
+              // Action 1: Lanjutkan Menonton
+              _buildContinueOptionTile(
+                icon: Icons.play_arrow_rounded,
+                title: 'Lanjutkan Menonton',
+                subtitle: 'Mulai dari posisi terakhir (${(item.continueWatchingProgress * 100).toInt()}%)',
+                iconColor: AppColors.primaryContainer,
+                onTap: () {
+                  Navigator.pop(bottomSheetContext);
+                  _playVideo(item, startProgress: item.continueWatchingProgress);
+                },
+              ),
+
+              // Action 2: Lihat Info & Detail Tayangan
+              _buildContinueOptionTile(
+                icon: Icons.info_outline_rounded,
+                title: 'Lihat Detail & Episode',
+                subtitle: 'Sinopsis, daftar episode, pemain, dan ulasan',
+                onTap: () {
+                  Navigator.pop(bottomSheetContext);
+                  _openDetail(item);
+                },
+              ),
+
+              // Action 3: Unduh Offline
+              _buildContinueOptionTile(
+                icon: Icons.download_rounded,
+                title: 'Unduh Tayangan',
+                subtitle: 'Simpan ke perangkat untuk ditonton offline',
+                onTap: () {
+                  Navigator.pop(bottomSheetContext);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          const Icon(Icons.downloading_rounded, color: AppColors.tertiary, size: 20),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Mengunduh "${item.title}" untuk offline...',
+                              style: GoogleFonts.inter(fontSize: 13, color: AppColors.onSurface),
+                            ),
+                          ),
+                        ],
+                      ),
+                      backgroundColor: AppColors.surfaceContainerHigh,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                },
+              ),
+
+              // Action 4: Bagikan Tayangan
+              _buildContinueOptionTile(
+                icon: Icons.share_rounded,
+                title: 'Bagikan Tayangan',
+                subtitle: 'Salin tautan atau bagikan ke media sosial',
+                onTap: () {
+                  Navigator.pop(bottomSheetContext);
+                  Clipboard.setData(ClipboardData(
+                    text: 'Nonton "${item.title}" di LiveEuy: https://liveeuy.app/watch/${item.id}',
+                  ));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          const Icon(Icons.check_circle_rounded, color: AppColors.tertiary, size: 20),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Tautan "${item.title}" disalin ke papan klip!',
+                              style: GoogleFonts.inter(fontSize: 13, color: AppColors.onSurface),
+                            ),
+                          ),
+                        ],
+                      ),
+                      backgroundColor: AppColors.surfaceContainerHigh,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                },
+              ),
+
+              // Action 5: Hapus dari Lanjutkan Menonton (with Undo)
+              _buildContinueOptionTile(
+                icon: Icons.delete_outline_rounded,
+                title: 'Hapus dari Lanjutkan Menonton',
+                subtitle: 'Hapus tayangan ini dari baris beranda',
+                iconColor: AppColors.error,
+                textColor: AppColors.error,
+                onTap: () {
+                  Navigator.pop(bottomSheetContext);
+                  final removedItem = item;
+                  final removedIndex = itemIndex;
+                  ref.read(mediaProvider.notifier).removeFromContinueWatching(item.id);
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        '"${removedItem.title}" dihapus dari Lanjutkan Menonton',
+                        style: GoogleFonts.inter(fontSize: 13, color: AppColors.onSurface),
+                      ),
+                      action: SnackBarAction(
+                        label: 'Batalkan',
+                        textColor: AppColors.primaryContainer,
+                        onPressed: () {
+                          ref.read(mediaProvider.notifier).insertContinueWatching(
+                                removedItem,
+                                index: removedIndex,
+                              );
+                        },
+                      ),
+                      backgroundColor: AppColors.surfaceContainerHigh,
+                      duration: const Duration(seconds: 4),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 6),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+  }
+
+  Widget _buildContinueOptionTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    Color? iconColor,
+    Color? textColor,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: (iconColor ?? AppColors.textSecondary).withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                color: iconColor ?? AppColors.textPrimary,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.outfit(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: textColor ?? AppColors.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.textSecondary.withValues(alpha: 0.5),
+              size: 20,
+            ),
+          ],
+        ),
       ),
     );
   }

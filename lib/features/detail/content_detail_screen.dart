@@ -157,12 +157,15 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
               children: [
                 const StreamFlixLogo(fontSize: 18, showText: false, height: 26),
                 const SizedBox(width: 8),
-                Text(
-                  'Detail Tayangan',
-                  style: GoogleFonts.outfit(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.onSurface,
+                Flexible(
+                  child: Text(
+                    'Detail Tayangan',
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.outfit(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.onSurface,
+                    ),
                   ),
                 ),
               ],
@@ -813,9 +816,14 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
                   ],
                 ),
               ),
-              Text(
-                'Semua episode tersedia',
-                style: GoogleFonts.inter(fontSize: 11, color: AppColors.outline),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  'Semua episode tersedia',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(fontSize: 11, color: AppColors.outline),
+                ),
               ),
             ],
           ),

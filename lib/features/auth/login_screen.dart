@@ -142,7 +142,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         _strengthColor = AppColors.onSurfaceVariant;
       } else if (score <= 1) {
         _strengthLabel = 'Lemah';
-        _strengthColor = AppColors.error;
+        _strengthColor = const Color(0xFFFBBF24);
       } else if (score == 2 || score == 3) {
         _strengthLabel = 'Sedang';
         _strengthColor = AppColors.secondary;
@@ -204,15 +204,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         Navigator.pop(context);
       }
     }
-  }
-
-  void _handleBiometric() {
-    _showToast('Memindai Biometrik', 'Arahkan wajah ke kamera atau sentuh sensor sidik jari...', icon: Icons.fingerprint_rounded);
-    Future.delayed(const Duration(milliseconds: 1200), () {
-      if (mounted) {
-        _handleMasuk();
-      }
-    });
   }
 
   void _handleSocial(String platform) {
@@ -642,58 +633,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             child: Center(
               child: _isLoading
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 20),
-                        const SizedBox(width: 6),
-                        Text(
-                          'MASUK SEKARANG',
-                          style: GoogleFonts.outfit(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.8,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
+                  : Text(
+                      'MASUK SEKARANG',
+                      style: GoogleFonts.outfit(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.8,
+                        color: Colors.white,
+                      ),
                     ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-
-        // Biometric Quick Login Action
-        GestureDetector(
-          onTap: _handleBiometric,
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceContainerHigh.withValues(alpha: 0.6),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: AppColors.secondaryContainer.withValues(alpha: 0.4),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.fingerprint_rounded, size: 18, color: AppColors.secondary),
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  'Login Cepat dengan Biometrik (Face ID / Touch)',
-                  style: GoogleFonts.outfit(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.onSurface,
-                  ),
-                ),
-              ],
             ),
           ),
         ),
@@ -846,21 +794,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             child: Center(
               child: _isLoading
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.person_add_rounded, color: Colors.white, size: 20),
-                        const SizedBox(width: 8),
-                        Text(
-                          'DAFTAR SEKARANG',
-                          style: GoogleFonts.outfit(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.8,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
+                  : Text(
+                      'DAFTAR SEKARANG',
+                      style: GoogleFonts.outfit(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.8,
+                        color: Colors.white,
+                      ),
                     ),
             ),
           ),

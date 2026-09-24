@@ -25,7 +25,7 @@ class AppColors {
   static const Color primaryContainer = Color(0xFF433FFE);
   static const Color onPrimaryContainer = Color(0xFFDAD9FF);
   static const Color primaryFixed = Color(0xFFE1DFFF);
-  static const Color primaryCrimson = Color(0xFFE50914); // Hero / badge accents
+  static const Color primaryCrimson = Color(0xFF433FFE); // Electric indigo (no red)
   static const Color primaryGlow = Color(0xFF433FFE);
 
   // Secondary & Tertiary Accents

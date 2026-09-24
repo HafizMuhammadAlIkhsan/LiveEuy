@@ -5,11 +5,13 @@ import '../../core/theme/app_theme.dart';
 class LiveEuyLogo extends StatelessWidget {
   final double fontSize;
   final bool showBadge;
+  final bool showText;
 
   const LiveEuyLogo({
     super.key,
     this.fontSize = 22.0,
     this.showBadge = true,
+    this.showText = true,
   });
 
   @override
@@ -24,13 +26,13 @@ class LiveEuyLogo extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: const LinearGradient(
-                colors: [AppColors.primaryCrimson, Color(0xFFFF2E4D)],
+                colors: [AppColors.primaryContainer, AppColors.tertiary],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primaryCrimson.withValues(alpha: 0.6),
+                  color: AppColors.primaryContainer.withValues(alpha: 0.5),
                   blurRadius: 14,
                   spreadRadius: 2,
                 ),
@@ -42,38 +44,39 @@ class LiveEuyLogo extends StatelessWidget {
               size: fontSize * 0.75,
             ),
           ),
-          SizedBox(width: fontSize * 0.35),
+          if (showText) SizedBox(width: fontSize * 0.35),
         ],
-        Text.rich(
-          TextSpan(
-            children: [
-              TextSpan(
-                text: 'LIVE',
-                style: GoogleFonts.outfit(
-                  fontSize: fontSize,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
-                  letterSpacing: 1.5,
+        if (showText)
+          Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: 'LIVE',
+                  style: GoogleFonts.outfit(
+                    fontSize: fontSize,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                    letterSpacing: 1.5,
+                  ),
                 ),
-              ),
-              TextSpan(
-                text: 'EUY',
-                style: GoogleFonts.outfit(
-                  fontSize: fontSize,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.primaryCrimson,
-                  letterSpacing: 1.5,
-                  shadows: [
-                    Shadow(
-                      color: AppColors.primaryCrimson.withValues(alpha: 0.8),
-                      blurRadius: 12,
-                    ),
-                  ],
+                TextSpan(
+                  text: 'EUY',
+                  style: GoogleFonts.outfit(
+                    fontSize: fontSize,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.tertiary,
+                    letterSpacing: 1.5,
+                    shadows: [
+                      Shadow(
+                        color: AppColors.primaryContainer.withValues(alpha: 0.8),
+                        blurRadius: 12,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
       ],
     );
   }

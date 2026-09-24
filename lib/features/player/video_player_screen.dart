@@ -10,10 +10,14 @@ import '../../providers/player_provider.dart';
 
 class VideoPlayerScreen extends ConsumerStatefulWidget {
   final Movie movie;
+  final double? startProgress;
+  final Duration? startPosition;
 
   const VideoPlayerScreen({
     super.key,
     required this.movie,
+    this.startProgress,
+    this.startPosition,
   });
 
   @override
@@ -28,11 +32,28 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
   bool _isFullscreen = false;
   bool _showSkipIntro = true;
   String _selectedAudio = 'Indonesia [Asli]';
+  String? _resumeBannerText;
+  Timer? _resumeBannerTimer;
 
   @override
   void initState() {
     super.initState();
     _initController();
+  }
+
+  void _showResumeBanner(String timeText) {
+    if (!mounted) return;
+    setState(() {
+      _resumeBannerText = 'Melanjutkan dari menit $timeText';
+    });
+    _resumeBannerTimer?.cancel();
+    _resumeBannerTimer = Timer(const Duration(seconds: 4), () {
+      if (mounted) {
+        setState(() {
+          _resumeBannerText = null;
+        });
+      }
+    });
   }
 
   void _initController() async {
@@ -45,6 +66,20 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
       setState(() {
         _isInitialized = true;
       });
+
+      if (widget.startPosition != null && widget.startPosition! > Duration.zero) {
+        await _controller.seekTo(widget.startPosition!);
+        _showResumeBanner(_formatDuration(widget.startPosition!));
+      } else if (widget.startProgress != null && widget.startProgress! > 0.0) {
+        final totalMs = _controller.value.duration.inMilliseconds;
+        final targetMs = (totalMs * widget.startProgress!).clamp(0, totalMs).toInt();
+        if (targetMs > 0) {
+          final resumeDuration = Duration(milliseconds: targetMs);
+          await _controller.seekTo(resumeDuration);
+          _showResumeBanner(_formatDuration(resumeDuration));
+        }
+      }
+
       _controller.play();
       _startHideTimer();
     } catch (e) {
@@ -58,6 +93,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
 
   @override
   void dispose() {
+    _resumeBannerTimer?.cancel();
     _hideControlsTimer?.cancel();
     _controller.dispose();
     SystemChrome.setPreferredOrientations([
@@ -428,6 +464,48 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
               ),
             ),
           ),
+
+          // Resume Floating Banner
+          if (_resumeBannerText != null)
+            Positioned(
+              top: 52,
+              left: 20,
+              right: 20,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainerHigh.withValues(alpha: 0.95),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: AppColors.primaryContainer.withValues(alpha: 0.6),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.5),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.history_rounded, color: AppColors.primary, size: 18),
+                      const SizedBox(width: 8),
+                      Text(
+                        _resumeBannerText!,
+                        style: GoogleFonts.outfit(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
 
           // 6. Interactive Player Controls (Animated Visibility)
           if (_showControls) ...[
