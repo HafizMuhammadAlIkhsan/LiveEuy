@@ -262,71 +262,44 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
         </div>
 
         {/* ========================================================
-            NETFLIX-STYLE HERO SLIDER DOCK (Multi-Segment Progress + Controls)
+            NETFLIX-STYLE HERO SLIDER DOCK (Multi-Segment Progress + Sound Mute Toggle)
             ======================================================== */}
-        <div className="mt-5 sm:mt-7 pt-3 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+        <div className="mt-5 sm:mt-7 pt-3 border-t border-white/10 flex items-center justify-between gap-3 sm:gap-4">
           
-          {/* Netflix Multi-Segment Story Progress Bar & Counter */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 w-48 sm:w-64 md:w-80">
-              {featuredItems.map((item, idx) => {
-                const isActive = idx === currentIndex;
-                const isPast = idx < currentIndex;
-                return (
-                  <button
-                    key={item.id || idx}
-                    onClick={() => changeSlide(idx, idx >= currentIndex ? 'next' : 'prev')}
-                    className="flex-1 h-1 sm:h-1.5 rounded-full overflow-hidden bg-white/20 hover:bg-white/40 transition-colors relative cursor-pointer"
-                    title={item.title}
-                  >
-                    {isActive ? (
-                      <div
-                        key={`bar-${currentMedia.id}`}
-                        className="h-full bg-gradient-to-r from-brand-500 to-secondary-400 rounded-full animate-hero-progress"
-                      />
-                    ) : isPast ? (
-                      <div className="h-full bg-white/90 rounded-full" />
-                    ) : null}
-                  </button>
-                );
-              })}
-            </div>
-
-            <span className="text-xs font-mono font-bold text-slate-400 whitespace-nowrap">
-              <span className="text-white">0{currentIndex + 1}</span> / 0{featuredItems.length}
-            </span>
+          {/* Netflix Multi-Segment Story Progress Bar */}
+          <div className="flex items-center gap-1.5 w-48 sm:w-64 md:w-80">
+            {featuredItems.map((item, idx) => {
+              const isActive = idx === currentIndex;
+              const isPast = idx < currentIndex;
+              return (
+                <button
+                  key={item.id || idx}
+                  onClick={() => changeSlide(idx, idx >= currentIndex ? 'next' : 'prev')}
+                  className="flex-1 h-1 sm:h-1.5 rounded-full overflow-hidden bg-white/20 hover:bg-white/40 transition-colors relative cursor-pointer"
+                  title={item.title}
+                >
+                  {isActive ? (
+                    <div
+                      key={`bar-${currentMedia.id}`}
+                      className="h-full bg-gradient-to-r from-brand-500 to-secondary-400 rounded-full animate-hero-progress"
+                    />
+                  ) : isPast ? (
+                    <div className="h-full bg-white/90 rounded-full" />
+                  ) : null}
+                </button>
+              );
+            })}
           </div>
 
-          {/* Controls: Prev / Next & Mute Button */}
-          <div className="flex items-center gap-2 self-end sm:self-auto">
-            <div className="flex items-center gap-1">
-              <button
-                onClick={handlePrev}
-                className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl glass-panel hover:bg-white/20 text-white transition-all active:scale-95 cursor-pointer"
-                aria-label="Slide Sebelumnya"
-                title="Slide Sebelumnya"
-              >
-                <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              </button>
-              <button
-                onClick={handleNext}
-                className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl glass-panel hover:bg-white/20 text-white transition-all active:scale-95 cursor-pointer"
-                aria-label="Slide Selanjutnya"
-                title="Slide Selanjutnya"
-              >
-                <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              </button>
-            </div>
-
-            <button
-              onClick={toggleMute}
-              className="p-2 sm:p-2.5 rounded-lg sm:rounded-xl glass-panel hover:bg-white/20 text-white transition-transform hover:scale-105 active:scale-95 cursor-pointer ml-1"
-              title={isMuted ? 'Nyalakan Suara Preview' : 'Bisukan Preview'}
-              aria-label="Toggle Sound"
-            >
-              {isMuted ? <VolumeX className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
-            </button>
-          </div>
+          {/* Sound Mute / Unmute Toggle */}
+          <button
+            onClick={toggleMute}
+            className="p-2 sm:p-2.5 rounded-lg sm:rounded-xl glass-panel hover:bg-white/20 text-white transition-transform hover:scale-105 active:scale-95 cursor-pointer"
+            title={isMuted ? 'Nyalakan Suara Preview' : 'Bisukan Preview'}
+            aria-label="Toggle Sound"
+          >
+            {isMuted ? <VolumeX className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
+          </button>
 
         </div>
 
