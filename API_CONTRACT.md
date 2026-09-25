@@ -27,6 +27,100 @@ Semua endpoint mengembalikan struktur envelope standar berikut:
 
 ## 📌 Daftar Endpoints RESTful
 
+### 0. 🔐 Autentikasi & Manajemen Sesi (`/api/v1/auth`)
+> 💡 *Dokumen spesifikasi mendalam, DTO Java Spring Boot 3, handler Go, sequence diagram, dan implementasi token interceptor mobile tersedia di dokumen terpisah: [AUTH_API_CONTRACT.md](file:///Users/user/LiveEuy/AUTH_API_CONTRACT.md).*
+
+#### a. `POST /api/v1/auth/register`
+Mendaftarkan akun baru (penonton baru).
+* **Request Body**:
+```json
+{
+  "name": "Arga Pratama",
+  "email": "arga@example.com",
+  "password": "PasswordSuper#2026",
+  "tier": "VIP Standard"
+}
+```
+* **Response (201 Created)**:
+```json
+{
+  "success": true,
+  "message": "Pendaftaran akun berhasil. Selamat datang di LiveEuy!",
+  "data": {
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "tokenType": "Bearer",
+    "expiresIn": 900,
+    "user": {
+      "id": "usr-018f3a5b-9b4e",
+      "name": "Arga Pratama",
+      "email": "arga@example.com",
+      "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=160",
+      "tier": "VIP Standard",
+      "role": "user",
+      "memberSince": "September 2026",
+      "watchHours": 0.0,
+      "devices": 2
+    }
+  }
+}
+```
+
+#### b. `POST /api/v1/auth/login`
+Masuk dengan kredensial email & password.
+* **Request Body**:
+```json
+{
+  "email": "hafiz@liveeuy.id",
+  "password": "LiveEuy#2026",
+  "rememberMe": true
+}
+```
+* **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Berhasil masuk ke LiveEuy",
+  "data": {
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "tokenType": "Bearer",
+    "expiresIn": 900,
+    "refreshToken": "rfk-94a28f73b610c41d99e52e",
+    "user": {
+      "id": "usr-hafiz-admin-01",
+      "name": "Hafiz Muhammad",
+      "email": "hafiz@liveeuy.id",
+      "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=160",
+      "tier": "VIP Cinema Ultra",
+      "role": "admin",
+      "memberSince": "Januari 2024",
+      "watchHours": 48.5,
+      "devices": 4
+    }
+  }
+}
+```
+
+#### c. `POST /api/v1/auth/demo-login`
+Endpoint praktis testing & QA untuk 1-click masuk akun demo.
+* **Request Body**: `{ "persona": "hafiz" | "budi" }`
+* **Response (200 OK)**: Mengembalikan token dan profil identik dengan login berhasil.
+
+#### d. `GET /api/v1/auth/me`
+Verifikasi sesi aktif dan mengambil data profil pengguna.
+* **Header**: `Authorization: Bearer <accessToken>`
+* **Response (200 OK)**: Mengembalikan objek profil `user` lengkap.
+
+#### e. `POST /api/v1/auth/refresh`
+Rotasi dan pembaruan access token (menggunakan cookie `refreshToken` atau JSON body).
+* **Response (200 OK)**: Token baru dengan rotasi refresh token.
+
+#### f. `POST /api/v1/auth/logout`
+Revoke refresh token dan pembersihan cookie sesi.
+* **Header**: `Authorization: Bearer <accessToken>`
+* **Response (200 OK)**: `{ "success": true, "message": "Sesi berhasil diakhiri", "data": null }`
+
+---
+
 ### 1. 🎬 Katalog Media & Konten (`/api/v1/media`)
 
 #### a. `GET /api/v1/media`

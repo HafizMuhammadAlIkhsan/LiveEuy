@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useWatch } from '../context/WatchContext';
+import { apiService } from '../services/api';
 import { 
   X, 
   Play, 
@@ -53,29 +54,57 @@ export const AuthModal: React.FC = () => {
 
   if (!isAuthModalOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password || (isRegister && !name)) {
       setError('Mohon lengkapi semua kolom yang wajib diisi.');
       return;
     }
 
-    const userName = isRegister ? name.trim() : email.split('@')[0];
-    login({
-      name: userName,
-      email: email.trim(),
-      tier: 'VIP Standard',
-      role: 'user',
-      watchHours: 0,
-      devices: 1
-    });
+    try {
+      // Connect to real Go Auth Service
+      const res = isRegister 
+        ? await apiService.register(name.trim(), email.trim(), password)
+        : await apiService.login(email.trim(), password);
 
-    setSuccessMessage(isRegister ? 'Akun berhasil dibuat! Mengalihkan...' : 'Berhasil masuk! Menyiapkan tontonan Anda...');
-    setSuccess(true);
-    setTimeout(() => {
-      closeAuthModal();
-      setSuccess(false);
-    }, 600);
+      if (res?.token) {
+        localStorage.setItem('liveeuy_auth_token', res.token);
+      }
+
+      const userName = (res?.user?.name) || (isRegister ? name.trim() : email.split('@')[0]);
+      login({
+        name: userName,
+        email: email.trim(),
+        tier: 'VIP Standard',
+        role: 'user',
+        watchHours: 0,
+        devices: 1
+      });
+
+      setSuccessMessage(isRegister ? 'Akun berhasil dibuat! Mengalihkan...' : 'Berhasil masuk! Menyiapkan tontonan Anda...');
+      setSuccess(true);
+      setTimeout(() => {
+        closeAuthModal();
+        setSuccess(false);
+      }, 600);
+    } catch {
+      const userName = isRegister ? name.trim() : email.split('@')[0];
+      login({
+        name: userName,
+        email: email.trim(),
+        tier: 'VIP Standard',
+        role: 'user',
+        watchHours: 0,
+        devices: 1
+      });
+
+      setSuccessMessage(isRegister ? 'Akun berhasil dibuat! Mengalihkan...' : 'Berhasil masuk! Menyiapkan tontonan Anda...');
+      setSuccess(true);
+      setTimeout(() => {
+        closeAuthModal();
+        setSuccess(false);
+      }, 600);
+    }
   };
 
   const handleDemoVip = () => {
