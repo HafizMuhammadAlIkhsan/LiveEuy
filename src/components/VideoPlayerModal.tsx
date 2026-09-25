@@ -21,7 +21,9 @@ import {
   Minimize2,
   Maximize2,
   FastForward,
-  Smartphone
+  Smartphone,
+  ExternalLink,
+  ShieldCheck
 } from 'lucide-react';
 import { useWatch } from '../context/WatchContext';
 
@@ -34,7 +36,10 @@ export const VideoPlayerModal: React.FC = () => {
     user,
     isLoggedIn,
     openAuthModal,
-    openMobileSync
+    openMobileSync,
+    ads,
+    recordAdImpression,
+    recordAdClick
   } = useWatch();
   const { isOpen, item, episode } = playerState;
 
@@ -69,6 +74,73 @@ export const VideoPlayerModal: React.FC = () => {
 
   // Skip Intro Toast Feedback
   const [showSkipToast, setShowSkipToast] = useState(false);
+
+  // Pre-roll Video Ad State (Layer: video_preroll)
+  const isVip = user?.tier === 'VIP Cinema Ultra';
+  const prerollAd = useMemo(() => {
+    if (isVip) return null;
+    const activePrerolls = ads.filter(a => a.layer === 'video_preroll' && a.active);
+    return activePrerolls.length > 0 ? activePrerolls[0] : null;
+  }, [ads, isVip]);
+
+  const [hasShownPrerollFor, setHasShownPrerollFor] = useState<string | null>(null);
+  const [prerollActive, setPrerollActive] = useState<boolean>(false);
+  const [prerollCountdown, setPrerollCountdown] = useState<number>(5);
+  const [hasRecordedImpression, setHasRecordedImpression] = useState<boolean>(false);
+
+  // Trigger pre-roll when modal opens or item/episode changes
+  useEffect(() => {
+    const currentId = episode?.id || item?.id;
+    if (isOpen && prerollAd && currentId && hasShownPrerollFor !== currentId) {
+      setPrerollActive(true);
+      setPrerollCountdown(5);
+      setHasRecordedImpression(false);
+      setHasShownPrerollFor(currentId);
+      if (videoRef.current) {
+        videoRef.current.pause();
+        setIsPlaying(false);
+      }
+    } else if (!isOpen) {
+      setPrerollActive(false);
+    }
+  }, [isOpen, episode?.id, item?.id, prerollAd, hasShownPrerollFor]);
+
+  // Pre-roll countdown & impression tracker
+  useEffect(() => {
+    if (!prerollActive || !prerollAd) return;
+
+    if (!hasRecordedImpression) {
+      recordAdImpression(prerollAd.id);
+      setHasRecordedImpression(true);
+    }
+
+    const timer = setInterval(() => {
+      setPrerollCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [prerollActive, prerollAd, hasRecordedImpression, recordAdImpression]);
+
+  const handleSkipPreroll = () => {
+    setPrerollActive(false);
+    if (videoRef.current) {
+      videoRef.current.play().catch(() => {});
+      setIsPlaying(true);
+    }
+  };
+
+  const handlePrerollClick = () => {
+    if (prerollAd) {
+      recordAdClick(prerollAd.id);
+      window.open(prerollAd.targetUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
 
   const activeVideoUrl = episode?.videoUrl || item?.videoUrl || '';
   const currentTitle = item ? (episode ? `${item.title} - S${episode.seasonNumber}:E${episode.episodeNumber}` : item.title) : '';
@@ -362,7 +434,7 @@ export const VideoPlayerModal: React.FC = () => {
       <video
         ref={videoRef}
         src={activeVideoUrl}
-        autoPlay
+        autoPlay={!prerollActive}
         playsInline
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleTimeUpdate}
@@ -375,9 +447,128 @@ export const VideoPlayerModal: React.FC = () => {
             playNextEpisode();
           }
         }}
-        onClick={isMinimized ? undefined : togglePlay}
+        onClick={prerollActive ? undefined : (isMinimized ? undefined : togglePlay)}
         className={`w-full h-full ${isMinimized ? 'object-cover' : 'object-contain'} cursor-pointer`}
       />
+
+      {/* ========================================================
+          VIDEO PRE-ROLL SPONSOR AD OVERLAY (Layer: video_preroll)
+          ======================================================== */}
+      {prerollActive && prerollAd && (
+        <div className="absolute inset-0 z-40 bg-black flex flex-col justify-between overflow-hidden animate-fade-in select-none">
+          {/* Ad Background Visual */}
+          <div className="absolute inset-0 z-0">
+            <img 
+              src={prerollAd.bannerUrl} 
+              alt={prerollAd.partnerName}
+              className="w-full h-full object-cover filter brightness-[0.4] blur-sm scale-105 transition-transform duration-1000"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#07080d] via-black/70 to-black/85" />
+          </div>
+
+          {/* Top Ad Info Bar */}
+          <div className="relative z-10 p-4 sm:p-6 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2.5">
+              <span className="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-amber-500/10">
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                <span>Iklan Sponsor • 1 dari 1</span>
+              </span>
+              <span className="text-xs text-slate-300 font-medium hidden sm:inline-flex items-center gap-1">
+                <ShieldCheck className="w-3.5 h-3.5 text-brand-400" />
+                <span>Mitra Terverifikasi LiveEuy</span>
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (!isLoggedIn) {
+                    openAuthModal('register');
+                  }
+                }}
+                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-brand-500/20 hover:from-amber-500/30 hover:to-brand-500/30 text-amber-300 border border-amber-500/30 text-xs font-bold flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
+              >
+                <Crown className="w-3.5 h-3.5 text-amber-400" />
+                <span className="hidden xs:inline">Bebas Iklan</span>
+                <span>VIP Ultra</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={closePlayer}
+                className="p-1.5 sm:p-2 rounded-full glass-panel hover:bg-white/20 text-white transition-colors"
+                title="Tutup Pemutar"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Center Ad Hero Showcase */}
+          <div className="relative z-10 px-6 sm:px-12 max-w-4xl mx-auto my-auto text-center space-y-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-white/90 backdrop-blur-md text-xs font-semibold tracking-wide border border-white/15">
+              <span>{prerollAd.partnerName}</span>
+            </div>
+
+            <h2 className="text-2xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight drop-shadow-xl">
+              {prerollAd.title}
+            </h2>
+
+            <p className="text-sm sm:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed line-clamp-3">
+              {prerollAd.description}
+            </p>
+
+            <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={handlePrerollClick}
+                className="px-6 py-3 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm flex items-center gap-2 shadow-xl shadow-brand-600/30 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+              >
+                <span>{prerollAd.ctaText || 'Kunjungi Situs Sponsor'}</span>
+                <ExternalLink className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Bottom Countdown & Skip Bar */}
+          <div className="relative z-10 p-4 sm:p-6 bg-gradient-to-t from-black via-black/80 to-transparent flex items-center justify-between gap-4 border-t border-white/10">
+            <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm text-slate-300">
+              <div className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+              <span>
+                Tayangan utama dimulai dalam{' '}
+                <strong className="text-white font-mono">{prerollCountdown}s</strong>
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {prerollCountdown > 0 ? (
+                <div className="px-4 py-2 rounded-xl bg-white/10 border border-white/10 text-slate-400 text-xs sm:text-sm font-semibold flex items-center gap-2 cursor-not-allowed select-none">
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-amber-400 rounded-full animate-spin" />
+                  <span>Lewati Iklan ({prerollCountdown}s)</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSkipPreroll}
+                  className="px-5 py-2.5 rounded-xl bg-white hover:bg-slate-200 text-black font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-2xl hover:scale-105 active:scale-95 transition-all cursor-pointer animate-pulse"
+                >
+                  <span>Lewati Iklan</span>
+                  <FastForward className="w-4 h-4 fill-black" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Countdown Progress Line */}
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/10">
+            <div 
+              className="h-full bg-gradient-to-r from-amber-400 via-brand-500 to-emerald-400 transition-all duration-1000 ease-linear"
+              style={{ width: `${Math.max(0, 100 - ((5 - prerollCountdown) / 5) * 100)}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* ========================================================
           IN-APP MINI-PLAYER CONTROLS OVERLAY (When Minimized)
