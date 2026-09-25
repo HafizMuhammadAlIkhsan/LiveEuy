@@ -1,17 +1,20 @@
 package com.liveeuy.catalog_service.entity;
 
+import com.liveeuy.catalog_service.entity.enums.MediaType;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import java.util.List;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "media")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class Media {
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name = "media_type", discriminatorType = DiscriminatorType.STRING)
+@Getter
+@Setter
+public abstract class Media {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -19,12 +22,7 @@ public class Media {
 
     @Column(nullable = false)
     private String title;
-
     private String originalTitle;
-
-    @Column(nullable = false)
-    private String type; // "movie" atau "tv"
-
     private String tagline;
 
     @Column(columnDefinition = "TEXT")
@@ -33,33 +31,20 @@ public class Media {
     private String posterUrl;
     private String backdropUrl;
     private String logoUrl;
-
-    private Integer releaseYear;
-    private Double rating;
-    private Integer matchScore;
-
-    private String ageRating;
-    private String duration;
-    private Integer totalSeasons;
-
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "media_genres", joinColumns = @JoinColumn(name = "media_id"))
-    @Column(name = "genre")
-    private List<String> genres;
-
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "media_cast", joinColumns = @JoinColumn(name = "media_id"))
-    @Column(name = "actor_name")
-    private List<String> castList;
-
-    private String director;
-    private String videoUrl;
     private String trailerUrl;
 
-    private Boolean isTrending;
-    private Boolean isFeatured;
-    private Integer topRank;
+    private Integer releaseYear;
+    private String ageRating;
 
-    private String quality;
-    private String audio;
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(name = "media_genres", joinColumns = @JoinColumn(name = "media_id"))
+    @Column(name = "genre")
+    private Set<String> genres = new HashSet<>();
+
+    @OneToMany(mappedBy = "media", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<MediaCast> castAndCrew = new HashSet<>();
+    
+    @Column(name = "media_type", insertable = false, updatable = false)
+    @Enumerated(EnumType.STRING)
+    private MediaType type;
 }
