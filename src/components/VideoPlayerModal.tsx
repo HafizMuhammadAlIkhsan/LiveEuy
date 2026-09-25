@@ -20,7 +20,8 @@ import {
   Crown,
   Minimize2,
   Maximize2,
-  FastForward
+  FastForward,
+  Smartphone
 } from 'lucide-react';
 import { useWatch } from '../context/WatchContext';
 
@@ -32,7 +33,8 @@ export const VideoPlayerModal: React.FC = () => {
     updateWatchProgress,
     user,
     isLoggedIn,
-    openAuthModal
+    openAuthModal,
+    openMobileSync
   } = useWatch();
   const { isOpen, item, episode } = playerState;
 
@@ -539,6 +541,21 @@ export const VideoPlayerModal: React.FC = () => {
                   <span className="text-white underline hidden xs:inline">Buka 4K VIP</span>
                 </button>
               )}
+
+              {/* Continue on Mobile Button */}
+              <button
+                onClick={() => {
+                  if (item) {
+                    updateWatchProgress(item.id, currentTime, duration, episode?.id);
+                  }
+                  openMobileSync(item);
+                }}
+                className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full glass-panel hover:bg-white/20 text-slate-200 hover:text-white transition-colors cursor-pointer text-[11px] font-semibold border border-white/10"
+                title="Lanjutkan Nonton di Aplikasi Mobile (HP)"
+              >
+                <Smartphone className="w-3.5 h-3.5 text-brand-400" />
+                <span className="hidden sm:inline">Nonton di HP</span>
+              </button>
 
               {/* Mini-Player Button in Top Bar */}
               <button

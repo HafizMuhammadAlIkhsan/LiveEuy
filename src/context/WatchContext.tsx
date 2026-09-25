@@ -58,6 +58,11 @@ interface WatchContextType {
   authModalMode: 'login' | 'register';
   openAuthModal: (mode?: 'login' | 'register') => void;
   closeAuthModal: () => void;
+  // Mobile & Cross-Platform Sync
+  isMobileSyncOpen: boolean;
+  mobileSyncItem: MediaItem | null;
+  openMobileSync: (target?: MediaItem) => void;
+  closeMobileSync: () => void;
   // Visitor Cookie & Device Tracking
   visitorSessions: VisitorSession[];
   currentSession: VisitorSession | null;
@@ -418,6 +423,19 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setIsAuthModalOpen(false);
   };
 
+  // Cross-Platform Mobile & Backend Sync Modal
+  const [isMobileSyncOpen, setIsMobileSyncOpen] = useState(false);
+  const [mobileSyncItem, setMobileSyncItem] = useState<MediaItem | null>(null);
+
+  const openMobileSync = (target?: MediaItem) => {
+    setMobileSyncItem(target || playerState.item || detailItem || mediaList[0] || null);
+    setIsMobileSyncOpen(true);
+  };
+
+  const closeMobileSync = () => {
+    setIsMobileSyncOpen(false);
+  };
+
   const login = (userData?: Partial<User>) => {
     const newUser: User = {
       id: userData?.id || `user-${Date.now()}`,
@@ -658,6 +676,10 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         authModalMode,
         openAuthModal,
         closeAuthModal,
+        isMobileSyncOpen,
+        mobileSyncItem,
+        openMobileSync,
+        closeMobileSync,
         visitorSessions,
         currentSession,
         refreshTracking,

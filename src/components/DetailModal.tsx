@@ -7,7 +7,8 @@ import {
   Heart, 
   Share2, 
   Star, 
-  Send
+  Send,
+  Smartphone
 } from 'lucide-react';
 import { useWatch } from '../context/WatchContext';
 import { Review } from '../types';
@@ -25,7 +26,8 @@ export const DetailModal: React.FC = () => {
     allMedia,
     user,
     isLoggedIn,
-    openAuthModal
+    openAuthModal,
+    openMobileSync
   } = useWatch();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'episodes' | 'similar' | 'reviews'>('overview');
@@ -173,6 +175,16 @@ export const DetailModal: React.FC = () => {
                     Tersalin!
                   </span>
                 )}
+              </button>
+
+              {/* Buka di Aplikasi Mobile / Hubungkan ke HP */}
+              <button
+                onClick={() => openMobileSync(detailItem)}
+                className="flex items-center gap-1.5 px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-xl glass-panel hover:bg-white/20 text-slate-200 hover:text-white text-xs sm:text-sm font-semibold transition-all hover:scale-105 active:scale-95 cursor-pointer border border-white/10"
+                title="Buka tayangan ini di aplikasi mobile (QR Code & Deep Link)"
+              >
+                <Smartphone className="w-3.5 h-3.5 text-brand-400" />
+                <span className="hidden xs:inline">Buka di HP</span>
               </button>
             </div>
           </div>

@@ -4,6 +4,7 @@ import { Navbar } from './components/Navbar';
 import { DetailModal } from './components/DetailModal';
 import { VideoPlayerModal } from './components/VideoPlayerModal';
 import { AuthModal } from './components/AuthModal';
+import { MobileSyncModal } from './components/MobileSyncModal';
 import { Footer } from './components/Footer';
 import {
   HomePage,
@@ -47,6 +48,7 @@ const MainContent: React.FC = () => {
       <DetailModal />
       <VideoPlayerModal />
       <AuthModal />
+      <MobileSyncModal />
     </div>
   );
 };

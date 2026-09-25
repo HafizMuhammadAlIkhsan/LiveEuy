@@ -19,7 +19,8 @@ import {
   ArrowRight,
   BarChart3,
   Globe,
-  Radio
+  Radio,
+  Smartphone
 } from 'lucide-react';
 import { useWatch } from '../context/WatchContext';
 import { ViewTab } from '../types';
@@ -37,6 +38,7 @@ export const Navbar: React.FC = () => {
     isLoggedIn,
     logout,
     openAuthModal,
+    openMobileSync,
     login,
     broadcastAnnouncement
   } = useWatch();
@@ -345,6 +347,20 @@ export const Navbar: React.FC = () => {
                   </div>
                 )}
               </div>
+
+              {/* CROSS-PLATFORM MOBILE & BACKEND SYNC BUTTON */}
+              <button
+                onClick={() => openMobileSync()}
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-200 hover:text-white bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 hover:border-brand-500/40 transition-all min-h-[36px] shadow-sm cursor-pointer group"
+                title="Buka Hub Koneksi Mobile (Flutter) & Backend (Spring Boot/Go)"
+                aria-label="Koneksi Mobile dan Backend"
+              >
+                <div className="relative">
+                  <Smartphone className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-brand-400 group-hover:scale-110 transition-transform" />
+                  <span className="absolute -top-1 -right-1 w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                </div>
+                <span className="hidden md:inline font-medium">Buka di HP</span>
+              </button>
 
               {/* Notification Popover */}
               <div className="relative" ref={notifRef}>
