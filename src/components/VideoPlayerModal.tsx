@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { 
   Play, 
   Pause, 
@@ -17,7 +17,10 @@ import {
   Activity,
   Check,
   ChevronRight,
-  Crown
+  Crown,
+  Minimize2,
+  Maximize2,
+  FastForward
 } from 'lucide-react';
 import { useWatch } from '../context/WatchContext';
 
@@ -54,9 +57,44 @@ export const VideoPlayerModal: React.FC = () => {
   const [scrubPreviewTime, setScrubPreviewTime] = useState<number | null>(null);
   const [scrubPreviewPos, setScrubPreviewPos] = useState<number>(0);
 
+  // In-app Mini-Player Floating Mode
+  const [isMinimized, setIsMinimized] = useState(false);
+
+  // Auto-play Next Episode 5-Second Countdown
+  const [showNextCountdown, setShowNextCountdown] = useState(false);
+  const [countdownSeconds, setCountdownSeconds] = useState(5);
+  const [isCancelledCountdown, setIsCancelledCountdown] = useState(false);
+
+  // Skip Intro Toast Feedback
+  const [showSkipToast, setShowSkipToast] = useState(false);
+
   const activeVideoUrl = episode?.videoUrl || item?.videoUrl || '';
   const currentTitle = item ? (episode ? `${item.title} - S${episode.seasonNumber}:E${episode.episodeNumber}` : item.title) : '';
   const episodeSubtitle = episode ? episode.title : item?.tagline || '';
+
+  // Determine next episode info if TV series
+  const nextEpisodeInfo = useMemo(() => {
+    if (!item || !episode || !item.seasons) return null;
+    for (const season of item.seasons) {
+      const epIndex = season.episodes.findIndex(e => e.id === episode.id);
+      if (epIndex !== -1) {
+        if (epIndex + 1 < season.episodes.length) {
+          return {
+            seasonNumber: season.seasonNumber,
+            episode: season.episodes[epIndex + 1]
+          };
+        }
+        const nextSeason = item.seasons.find(s => s.seasonNumber === season.seasonNumber + 1);
+        if (nextSeason && nextSeason.episodes.length > 0) {
+          return {
+            seasonNumber: nextSeason.seasonNumber,
+            episode: nextSeason.episodes[0]
+          };
+        }
+      }
+    }
+    return null;
+  }, [item, episode]);
 
   // Format seconds to mm:ss or hh:mm:ss
   const formatTime = (seconds: number) => {
@@ -84,6 +122,45 @@ export const VideoPlayerModal: React.FC = () => {
     }, 3200);
   }, [isPlaying]);
 
+  // Reset countdown state when episode or item changes
+  useEffect(() => {
+    setShowNextCountdown(false);
+    setIsCancelledCountdown(false);
+    setCountdownSeconds(5);
+  }, [episode?.id, item?.id]);
+
+  // 5-second countdown timer for auto-playing next episode
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (showNextCountdown && countdownSeconds > 0) {
+      timer = setTimeout(() => {
+        setCountdownSeconds(prev => prev - 1);
+      }, 1000);
+    } else if (showNextCountdown && countdownSeconds === 0) {
+      setShowNextCountdown(false);
+      playNextEpisode();
+    }
+    return () => clearTimeout(timer);
+  }, [showNextCountdown, countdownSeconds, playNextEpisode]);
+
+  const handlePlayNextNow = () => {
+    setShowNextCountdown(false);
+    playNextEpisode();
+  };
+
+  const handleCancelCountdown = () => {
+    setShowNextCountdown(false);
+    setIsCancelledCountdown(true);
+  };
+
+  const handleSkipIntro = () => {
+    // Jump past intro to second 85 (or skip +60s)
+    const target = currentTime < 85 ? 85 : currentTime + 60;
+    handleSeek(target);
+    setShowSkipToast(true);
+    setTimeout(() => setShowSkipToast(false), 2500);
+  };
+
   // Video time update handler
   const handleTimeUpdate = () => {
     if (videoRef.current) {
@@ -94,6 +171,12 @@ export const VideoPlayerModal: React.FC = () => {
 
       if (videoRef.current.buffered.length > 0) {
         setBufferedTime(videoRef.current.buffered.end(videoRef.current.buffered.length - 1));
+      }
+
+      // Check auto-play countdown for next episode (trigger 15s before end of TV series episode)
+      if (nextEpisodeInfo && dur > 20 && cur >= dur - 15 && !showNextCountdown && !isCancelledCountdown) {
+        setShowNextCountdown(true);
+        setCountdownSeconds(5);
       }
 
       // Save watch progress periodically
@@ -202,6 +285,16 @@ export const VideoPlayerModal: React.FC = () => {
           e.preventDefault();
           toggleMute();
           break;
+        case 's':
+          e.preventDefault();
+          if (currentTime >= 3 && currentTime <= 95) {
+            handleSkipIntro();
+          }
+          break;
+        case 'p':
+          e.preventDefault();
+          setIsMinimized(prev => !prev);
+          break;
         case 'arrowleft':
           e.preventDefault();
           skipSeconds(-10);
@@ -230,7 +323,7 @@ export const VideoPlayerModal: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, togglePlay, volume, isMuted]);
+  }, [isOpen, togglePlay, volume, isMuted, currentTime]);
 
   // Scrub bar hover preview calculations
   const handleScrubberMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {

@@ -59,6 +59,7 @@ export const AuthModal: React.FC = () => {
       name: 'Hafiz Muhammad',
       email: 'hafiz@liveeuy.id',
       tier: 'VIP Cinema Ultra',
+      role: 'admin',
       watchHours: 48.5,
       devices: 3
     });
@@ -74,6 +75,7 @@ export const AuthModal: React.FC = () => {
       name: 'Budi Santoso',
       email: 'budi@liveeuy.id',
       tier: 'VIP Standard',
+      role: 'user',
       watchHours: 12.0,
       devices: 1
     });
@@ -144,37 +146,53 @@ export const AuthModal: React.FC = () => {
             Pilihan Masuk Demo Instan
           </span>
 
+          {/* Admin Demo Button */}
           <button
             onClick={handleDemoVip}
-            className="w-full p-3 rounded-2xl bg-gradient-to-r from-amber-500/20 via-brand-600/20 to-secondary-500/20 hover:from-amber-500/30 hover:via-brand-600/30 hover:to-secondary-500/30 border border-amber-500/40 hover:border-amber-400 text-white text-xs font-bold flex items-center justify-between transition-all group shadow-md"
+            className="w-full p-3 rounded-2xl bg-gradient-to-r from-emerald-500/20 via-brand-600/20 to-teal-500/20 hover:from-emerald-500/30 hover:via-brand-600/30 hover:to-teal-500/30 border border-emerald-500/40 hover:border-emerald-400 text-white text-xs font-bold flex items-center justify-between transition-all group shadow-md"
           >
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-amber-500 text-surface-950 flex items-center justify-center font-black">
-                <Crown className="w-4 h-4 fill-surface-950" />
+              <div className="w-8 h-8 rounded-lg bg-emerald-500 text-slate-950 flex items-center justify-center font-black shadow-md">
+                <ShieldCheck className="w-4 h-4 text-slate-950" />
               </div>
               <div className="text-left">
-                <div className="text-white font-bold group-hover:text-amber-300 transition-colors">
-                  Hafiz Muhammad (VIP Cinema Ultra)
+                <div className="flex items-center gap-1.5">
+                  <span className="text-white font-bold group-hover:text-emerald-300 transition-colors">
+                    Hafiz Muhammad
+                  </span>
+                  <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase tracking-wide bg-emerald-500/30 text-emerald-300 border border-emerald-500/40">
+                    Admin
+                  </span>
                 </div>
-                <div className="text-[10px] text-amber-200/80 font-normal">
-                  Akses 4K UHD • Dolby Atmos • Multi-Device
+                <div className="text-[10px] text-emerald-200/80 font-normal">
+                  Akses Penuh CMS Admin • 4K UHD • VIP Ultra
                 </div>
               </div>
             </div>
-            <ArrowRight className="w-4 h-4 text-amber-400 group-hover:translate-x-1 transition-transform" />
+            <ArrowRight className="w-4 h-4 text-emerald-400 group-hover:translate-x-1 transition-transform" />
           </button>
 
+          {/* Regular User Demo Button */}
           <button
             onClick={handleDemoStandard}
-            className="w-full p-2.5 rounded-2xl bg-surface-800/90 hover:bg-surface-700/90 border border-white/5 hover:border-white/20 text-white text-xs font-medium flex items-center justify-between transition-all group"
+            className="w-full p-3 rounded-2xl bg-surface-800/90 hover:bg-surface-700/90 border border-white/10 hover:border-brand-500/40 text-white text-xs font-medium flex items-center justify-between transition-all group shadow"
           >
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-white/10 text-white flex items-center justify-center">
-                <UserIcon className="w-4 h-4" />
+              <div className="w-8 h-8 rounded-lg bg-white/10 text-white flex items-center justify-center">
+                <UserIcon className="w-4 h-4 text-slate-300" />
               </div>
               <div className="text-left">
-                <div className="text-white font-semibold">Budi Santoso (Member Standar)</div>
-                <div className="text-[10px] text-slate-400">Akses Streaming HD 1080p</div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-white font-semibold group-hover:text-brand-300 transition-colors">
+                    Budi Santoso
+                  </span>
+                  <span className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-white/10 text-slate-300">
+                    Pengguna Biasa
+                  </span>
+                </div>
+                <div className="text-[10px] text-slate-400">
+                  Tampilan Penonton Bersih • Tanpa Akses Admin
+                </div>
               </div>
             </div>
             <ArrowRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />

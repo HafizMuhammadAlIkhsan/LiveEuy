@@ -237,7 +237,8 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       email: userData?.email || 'user@liveeuy.id',
       avatar: userData?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
       tier: userData?.tier || 'VIP Standard',
-      memberSince: 'Hari ini',
+      role: userData?.role || (userData?.email?.toLowerCase().includes('admin') || userData?.email === 'hafiz@liveeuy.id' ? 'admin' : 'user'),
+      memberSince: userData?.memberSince || 'Hari ini',
       watchHours: userData?.watchHours || 0,
       devices: userData?.devices || 1
     };

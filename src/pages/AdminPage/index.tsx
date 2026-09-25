@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useWatch } from '../../context/WatchContext';
 import { MediaItem, Episode, Season, User } from '../../types';
 import { GENRES } from '../../data/mockData';
@@ -85,6 +85,18 @@ export const AdminPage: React.FC = () => {
 
   // Active Admin Sub-Module Tab
   const [activeModule, setActiveModule] = useState<AdminModuleId>('media');
+
+  useEffect(() => {
+    const handleTabChange = (e: Event) => {
+      const customEvent = e as CustomEvent<AdminModuleId>;
+      if (customEvent.detail) {
+        setActiveModule(customEvent.detail);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    };
+    window.addEventListener('admin-tab-change', handleTabChange);
+    return () => window.removeEventListener('admin-tab-change', handleTabChange);
+  }, []);
 
   // Tracking Search & Filter
   const [trackingSearch, setTrackingSearch] = useState('');
