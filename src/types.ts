@@ -78,3 +78,24 @@ export interface User {
   watchHours?: number;
   devices?: number;
 }
+
+export interface VisitorSession {
+  sessionId: string;
+  cookieToken: string;
+  ipAddress: string;
+  city?: string;
+  country?: string;
+  deviceType: 'Desktop' | 'Mobile' | 'Tablet';
+  os: string;
+  browser: string;
+  screenResolution: string;
+  language: string;
+  timeZone: string;
+  userAgent: string;
+  firstSeen: string;
+  lastActive: string;
+  currentPage: string;
+  visitedPages: string[];
+  userEmail?: string;
+  isCurrentDevice?: boolean;
+}
