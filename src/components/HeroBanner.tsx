@@ -174,224 +174,145 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
         </div>
       </div>
 
-      {/* Featured Content Details raised closer to navbar with balanced padding */}
-      <div className="relative max-w-7xl mx-auto h-full flex flex-col justify-end pt-14 sm:pt-16 md:pt-20 pb-6 sm:pb-8 md:pb-10 px-4 sm:px-6 lg:px-8 z-10">
+      {/* Featured Content Details matching user's reference screenshot */}
+      <div className="relative max-w-7xl mx-auto h-full flex flex-col justify-end pt-14 sm:pt-16 md:pt-20 pb-8 sm:pb-10 md:pb-12 px-4 sm:px-6 lg:px-8 z-10">
         <div 
           key={`content-${currentMedia.id}`}
-          className={`max-w-2xl space-y-2 sm:space-y-3.5 ${
+          className={`max-w-2xl space-y-2.5 sm:space-y-3.5 ${
             direction === 'next' ? 'animate-hero-next' : 'animate-hero-prev'
           }`}
         >
-          
-          {/* Badges Bar (Fluid wrap for mobile & tablet) */}
-          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2.5 text-[10px] xs:text-[11px] sm:text-xs font-semibold">
+          {/* Media Type Badge (MOVIE / TV SERIES) */}
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center px-3 py-1 rounded-md text-[11px] sm:text-xs font-black uppercase tracking-wider bg-rose-600 text-white shadow-lg shadow-rose-600/30">
+              {currentMedia.type === 'tv' ? 'TV SERIES' : 'MOVIE'}
+            </span>
             {currentMedia.topRank && (
-              <span className="flex items-center gap-1 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-brand-600 text-white shadow-lg shadow-brand-600/30 text-[10px] sm:text-xs">
-                <Flame className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-white" />
-                <span>TOP {currentMedia.topRank} HARI INI</span>
+              <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/10 text-white text-[11px] font-semibold">
+                <Flame className="w-3 h-3 fill-rose-500 text-rose-500" />
+                <span>TOP {currentMedia.topRank}</span>
               </span>
             )}
-            <span className="flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md bg-white/10 backdrop-blur-md text-emerald-400 border border-emerald-500/20">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-              {currentMedia.matchScore}% Cocok
-            </span>
-            <span className="px-1.5 py-0.5 rounded border border-white/20 text-slate-300 font-mono text-[10px] sm:text-[11px]">
-              {currentMedia.ageRating}
-            </span>
-            <span className="px-1.5 py-0.5 rounded bg-white/10 text-slate-300 text-[10px] sm:text-[11px]">
-              {currentMedia.quality}
-            </span>
-            <span className="text-slate-400 font-medium hidden xs:inline">
-              {currentMedia.releaseYear}
-            </span>
-            <span className="text-slate-400 font-medium">
-              {currentMedia.type === 'tv' ? `${currentMedia.totalSeasons} Musim` : currentMedia.duration}
-            </span>
           </div>
 
-          {/* Title */}
-          <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-white drop-shadow-md leading-tight">
+          {/* Tagline */}
+          {currentMedia.tagline && (
+            <p className="text-xs sm:text-sm text-slate-300 italic font-medium line-clamp-1">
+              {currentMedia.tagline}
+            </p>
+          )}
+
+          {/* Big Title */}
+          <h1 className="text-3xl xs:text-4xl sm:text-5xl md:text-6xl font-black tracking-tight text-white drop-shadow-md leading-tight">
             {currentMedia.title}
           </h1>
 
-          {/* Tagline */}
-          <p className="text-xs sm:text-sm md:text-base font-medium text-brand-300 italic line-clamp-1">
-            "{currentMedia.tagline}"
-          </p>
+          {/* Metadata Row: Rating, Year, Duration, Genres, Quality */}
+          <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-slate-300">
+            <span className="flex items-center gap-1 font-bold text-amber-400">
+              ★ {currentMedia.rating}
+            </span>
+            <span>{currentMedia.releaseYear}</span>
+            <span>•</span>
+            <span>{currentMedia.type === 'tv' ? `${currentMedia.totalSeasons} Musim` : currentMedia.duration}</span>
+            <span>•</span>
+            <span>{currentMedia.genres.slice(0, 3).join(', ')}</span>
+            {currentMedia.quality && (
+              <>
+                <span>•</span>
+                <span className="px-1.5 py-0.2 rounded bg-white/15 text-[10px] font-bold text-slate-200">
+                  {currentMedia.quality}
+                </span>
+              </>
+            )}
+          </div>
 
-          {/* Overview */}
-          <p className="text-xs sm:text-sm md:text-base text-slate-300 line-clamp-2 sm:line-clamp-3 leading-relaxed max-w-xl text-shadow">
+          {/* Overview / Synopsis */}
+          <p className="text-xs sm:text-sm md:text-base text-slate-300 line-clamp-2 sm:line-clamp-3 leading-relaxed max-w-2xl text-shadow">
             {currentMedia.overview}
           </p>
 
-          {/* Genres pills */}
-          <div className="flex flex-wrap gap-1.5 sm:gap-2 pt-0.5">
-            {currentMedia.genres.map(genre => (
-              <span
-                key={genre}
-                className="text-[10px] sm:text-xs px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg bg-surface-800/80 backdrop-blur-sm text-slate-300 border border-white/5"
-              >
-                {genre}
-              </span>
-            ))}
-          </div>
-
           {/* Action Buttons */}
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-1.5 sm:pt-2">
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 pt-1 sm:pt-2">
             <button
               onClick={() => openPlayer(currentMedia)}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm sm:text-base shadow-xl shadow-brand-600/30 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+              className="flex items-center gap-2 px-6 sm:px-7 py-2.5 sm:py-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm sm:text-base shadow-xl shadow-rose-600/40 hover:scale-105 active:scale-95 transition-all cursor-pointer"
             >
               <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-white" />
-              <span>Putar Sekarang</span>
+              <span>Watch Now</span>
             </button>
 
             <button
               onClick={() => toggleWatchlist(currentMedia.id)}
-              className="flex items-center justify-center gap-1.5 px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-xl glass-panel text-white hover:bg-white/20 font-medium text-xs sm:text-sm transition-all hover:scale-105 active:scale-95 cursor-pointer"
+              className="flex items-center justify-center gap-1.5 px-4 py-2.5 sm:py-3 rounded-xl glass-panel text-white hover:bg-white/20 font-medium text-xs sm:text-sm transition-all hover:scale-105 active:scale-95 cursor-pointer"
             >
               {inWatchlist ? (
                 <>
                   <Check className="w-4 h-4 text-emerald-400" />
-                  <span className="hidden xs:inline">Di Koleksi</span>
+                  <span>Di Koleksi</span>
                 </>
               ) : (
                 <>
                   <Plus className="w-4 h-4 text-white" />
-                  <span className="hidden xs:inline">Koleksi Saya</span>
+                  <span>Koleksi Saya</span>
                 </>
               )}
             </button>
 
             <button
               onClick={() => openDetail(currentMedia)}
-              className="flex items-center justify-center gap-1.5 px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-xl glass-panel text-slate-300 hover:text-white hover:bg-white/20 font-medium text-xs sm:text-sm transition-all hover:scale-105 active:scale-95 cursor-pointer"
+              className="flex items-center justify-center gap-1.5 px-4 py-2.5 sm:py-3 rounded-xl glass-panel text-slate-300 hover:text-white hover:bg-white/20 font-medium text-xs sm:text-sm transition-all hover:scale-105 active:scale-95 cursor-pointer"
             >
               <Info className="w-4 h-4" />
               <span>Detail</span>
             </button>
           </div>
-        </div>
 
-        {/* ========================================================
-            NETFLIX-STYLE HERO SLIDER DOCK (Thumbnails + Multi-Segment Bars)
-            ======================================================== */}
-        <div className="mt-5 sm:mt-7 pt-3 border-t border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
-          
-          {/* Netflix Multi-Segment Story Progress Bar & Counter */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 w-44 sm:w-56">
-              {featuredItems.map((item, idx) => {
-                const isActive = idx === currentIndex;
-                const isPast = idx < currentIndex;
-                return (
-                  <button
-                    key={item.id || idx}
-                    onClick={() => changeSlide(idx, idx >= currentIndex ? 'next' : 'prev')}
-                    className="flex-1 h-1 sm:h-1.5 rounded-full overflow-hidden bg-white/20 hover:bg-white/40 transition-colors relative cursor-pointer"
-                    title={item.title}
-                  >
-                    {isActive ? (
-                      <div
-                        key={`bar-${currentMedia.id}`}
-                        className="h-full bg-gradient-to-r from-brand-500 to-secondary-400 rounded-full animate-hero-progress"
-                      />
-                    ) : isPast ? (
-                      <div className="h-full bg-white/90 rounded-full" />
-                    ) : null}
-                  </button>
-                );
-              })}
-            </div>
-
-            <span className="text-xs font-mono font-bold text-slate-400 whitespace-nowrap">
-              <span className="text-white">0{currentIndex + 1}</span> / 0{featuredItems.length}
-            </span>
-          </div>
-
-          {/* Right: Netflix Interactive Thumbnail Carousel Strip */}
-          <div className="flex items-center gap-2 sm:gap-3 w-full md:w-auto overflow-hidden justify-between md:justify-end">
-            
-            {/* Quick Prev / Next controls */}
-            <div className="flex items-center gap-1 flex-shrink-0">
-              <button
-                onClick={handlePrev}
-                className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl glass-panel hover:bg-white/20 text-white transition-all active:scale-95 cursor-pointer"
-                aria-label="Slide Sebelumnya"
-                title="Slide Sebelumnya"
-              >
-                <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              </button>
-              <button
-                onClick={handleNext}
-                className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl glass-panel hover:bg-white/20 text-white transition-all active:scale-95 cursor-pointer"
-                aria-label="Slide Selanjutnya"
-                title="Slide Selanjutnya"
-              >
-                <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              </button>
-            </div>
-
-            {/* Thumbnail cards strip with smooth auto-scroll */}
-            <div 
-              ref={thumbnailStripRef}
-              className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1 px-0.5 max-w-[240px] xs:max-w-[320px] sm:max-w-[440px] md:max-w-[520px] scroll-smooth"
-            >
-              {featuredItems.map((item, idx) => {
-                const isActive = idx === currentIndex;
-                return (
-                  <div
-                    key={item.id}
-                    onClick={() => changeSlide(idx, idx >= currentIndex ? 'next' : 'prev')}
-                    className={`group relative flex-shrink-0 w-20 xs:w-24 sm:w-28 h-12 xs:h-14 sm:h-16 rounded-xl overflow-hidden cursor-pointer transition-all duration-300 ${
-                      isActive
-                        ? 'ring-2 ring-brand-500 shadow-xl shadow-brand-500/40 scale-105 z-10 brightness-110'
-                        : 'opacity-50 hover:opacity-100 hover:scale-102 border border-white/10 brightness-90 hover:brightness-100'
-                    }`}
-                  >
-                    <img
-                      src={item.backdropUrl || item.posterUrl}
-                      alt={item.title}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+          {/* ========================================================
+              EXACT SLIDER MODEL FROM USER'S SCREENSHOT (Dots + Active Capsule Pill)
+              ======================================================== */}
+          <div className="flex items-center gap-2 pt-3 sm:pt-4">
+            {featuredItems.map((item, idx) => {
+              const isActive = idx === currentIndex;
+              return (
+                <button
+                  key={item.id || idx}
+                  onClick={() => changeSlide(idx, idx >= currentIndex ? 'next' : 'prev')}
+                  className={`transition-all duration-300 rounded-full cursor-pointer relative overflow-hidden ${
+                    isActive
+                      ? 'w-8 sm:w-10 h-2 sm:h-2.5 bg-rose-600 shadow-lg shadow-rose-600/40 ring-1 ring-rose-400/40'
+                      : 'w-2 sm:w-2.5 h-2 sm:h-2.5 bg-white/30 hover:bg-white/70'
+                  }`}
+                  aria-label={`Slide ${idx + 1}: ${item.title}`}
+                  title={item.title}
+                >
+                  {isActive && (
+                    <div
+                      key={`bar-${currentMedia.id}`}
+                      className="h-full bg-white/70 rounded-full animate-hero-progress"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
-                    
-                    <div className="absolute inset-x-1.5 bottom-1 text-left">
-                      <p className="text-[9px] xs:text-[10px] font-bold text-white truncate drop-shadow leading-tight">
-                        {item.title}
-                      </p>
-                      <div className="flex items-center gap-1 text-[8px] text-brand-300 font-medium">
-                        <span>★ {item.rating}</span>
-                        {item.topRank && <span>• #{item.topRank}</span>}
-                      </div>
-                    </div>
-
-                    {isActive && (
-                      <span className="absolute top-1 right-1 px-1.5 py-0.2 rounded bg-brand-600 text-white text-[7px] font-extrabold uppercase tracking-wider shadow">
-                        Tayang
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Sound Mute Button */}
-            <button
-              onClick={toggleMute}
-              className="p-2 sm:p-2.5 rounded-lg sm:rounded-xl glass-panel hover:bg-white/20 text-white transition-transform hover:scale-105 active:scale-95 flex-shrink-0"
-              title={isMuted ? 'Nyalakan Suara Preview' : 'Bisukan Preview'}
-              aria-label="Toggle Sound"
-            >
-              {isMuted ? <VolumeX className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
-            </button>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
         </div>
+
+        {/* Floating Sound Toggle Button (Discreetly at bottom-right) */}
+        <button
+          onClick={toggleMute}
+          className="absolute bottom-6 sm:bottom-8 right-4 sm:right-8 z-20 p-2.5 sm:p-3 rounded-full glass-panel hover:bg-white/20 text-white transition-transform hover:scale-110 active:scale-95 shadow-xl cursor-pointer"
+          title={isMuted ? 'Nyalakan Suara Preview' : 'Bisukan Preview'}
+          aria-label="Toggle Sound"
+        >
+          {isMuted ? <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" /> : <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />}
+        </button>
 
       </div>
     </div>
   );
 
 };
+
 
