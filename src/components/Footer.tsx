@@ -1,7 +1,10 @@
 import React from 'react';
-import { Play, Heart, Globe, Shield, HelpCircle } from 'lucide-react';
+import { Play, Heart, Globe, Shield, HelpCircle, ShieldCheck } from 'lucide-react';
+import { useWatch } from '../context/WatchContext';
 
 export const Footer: React.FC = () => {
+  const { setCurrentTab, currentTab } = useWatch();
+
   return (
     <footer className="border-t border-white/10 bg-[#06070a] text-slate-400 text-xs py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
@@ -17,7 +20,21 @@ export const Footer: React.FC = () => {
             </span>
           </div>
 
-          <div className="flex items-center gap-6 text-xs">
+          <div className="flex items-center gap-4 sm:gap-6 text-xs flex-wrap">
+            <button 
+              onClick={() => {
+                setCurrentTab('admin');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border transition-all ${
+                currentTab === 'admin'
+                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-bold'
+                  : 'bg-emerald-500/10 text-emerald-400 hover:text-emerald-300 border-emerald-500/20'
+              }`}
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Panel Admin (CMS & Tracker)</span>
+            </button>
             <button className="flex items-center gap-1.5 hover:text-white transition-colors">
               <Globe className="w-3.5 h-3.5" />
               <span>Bahasa Indonesia</span>
@@ -38,10 +55,18 @@ export const Footer: React.FC = () => {
           <div className="space-y-2">
             <p className="font-semibold text-slate-300">Navigasi</p>
             <ul className="space-y-1.5 text-slate-400">
-              <li><a href="#" className="hover:text-white transition-colors">Film Terbaru</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Serial TV Populer</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Top 10 Hari Ini</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Segera Hadir</a></li>
+              <li>
+                <button 
+                  onClick={() => { setCurrentTab('admin'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} 
+                  className="text-emerald-400 hover:text-emerald-300 transition-colors font-medium flex items-center gap-1"
+                >
+                  <ShieldCheck className="w-3 h-3" />
+                  <span>Panel Admin & Tracker</span>
+                </button>
+              </li>
+              <li><a href="#movies" onClick={(e) => { e.preventDefault(); setCurrentTab('movies'); }} className="hover:text-white transition-colors">Film Terbaru</a></li>
+              <li><a href="#tv" onClick={(e) => { e.preventDefault(); setCurrentTab('tv'); }} className="hover:text-white transition-colors">Serial TV Populer</a></li>
+              <li><a href="#trending" onClick={(e) => { e.preventDefault(); setCurrentTab('trending'); }} className="hover:text-white transition-colors">Top 10 Hari Ini</a></li>
             </ul>
           </div>
 

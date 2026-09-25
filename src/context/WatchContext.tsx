@@ -62,12 +62,57 @@ export const withViewTransition = (fn: () => void) => {
   }
 };
 
+const VALID_TABS: ViewTab[] = ['home', 'movies', 'tv', 'trending', 'watchlist', 'search', 'admin'];
+
+const getInitialTab = (): ViewTab => {
+  if (typeof window !== 'undefined') {
+    const rawHash = window.location.hash.replace('#', '').trim().toLowerCase();
+    if (VALID_TABS.includes(rawHash as ViewTab)) {
+      return rawHash as ViewTab;
+    }
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = (params.get('tab') || params.get('page') || '').trim().toLowerCase();
+    if (VALID_TABS.includes(tabParam as ViewTab)) {
+      return tabParam as ViewTab;
+    }
+  }
+  return 'home';
+};
+
 const WatchContext = createContext<WatchContextType | undefined>(undefined);
 
 export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentTab, setCurrentTab] = useState<ViewTab>('home');
+  const [currentTab, setCurrentTab] = useState<ViewTab>(getInitialTab);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGenre, setSelectedGenre] = useState('Semua Genre');
+
+  // Synchronize currentTab with browser URL hash
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const currentHash = window.location.hash.replace('#', '').trim().toLowerCase();
+    if (currentTab === 'home') {
+      if (currentHash && VALID_TABS.includes(currentHash as ViewTab)) {
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
+    } else if (currentHash !== currentTab) {
+      window.location.hash = currentTab;
+    }
+  }, [currentTab]);
+
+  // Listen to browser navigation (back/forward buttons and hashchange)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '').trim().toLowerCase();
+      if (VALID_TABS.includes(hash as ViewTab)) {
+        setCurrentTab(hash as ViewTab);
+      } else if (!hash) {
+        setCurrentTab('home');
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   const [mediaList, setMediaList] = useState<MediaItem[]>(() => {
     try {

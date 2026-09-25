@@ -420,6 +420,22 @@ export const Navbar: React.FC = () => {
                   </span>
 
                   <button
+                    onClick={() => {
+                      setCurrentTab(currentTab === 'admin' ? 'home' : 'admin');
+                      setSearchQuery('');
+                    }}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold transition-all ${
+                      currentTab === 'admin'
+                        ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 ring-1 ring-emerald-400'
+                        : 'bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 border border-emerald-500/30'
+                    }`}
+                    title="Buka Panel Manajemen Admin"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="hidden sm:inline">Admin</span>
+                  </button>
+
+                  <button
                     onClick={() => openAuthModal('login')}
                     className="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-200 hover:text-white hover:bg-white/10 transition-colors flex items-center gap-1.5"
                   >
