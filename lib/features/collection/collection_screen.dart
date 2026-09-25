@@ -13,10 +13,10 @@ import '../detail/content_detail_screen.dart';
 import '../player/video_player_screen.dart';
 
 /// Halaman Koleksi & Riwayat Tontonan (WatchlistView)
-/// Mengikuti secara presisi styling, font (Plus Jakarta Sans), dan color palette dari dev-frontend:
-/// - Brand Rose Red: brand-500 (#F43F5E), brand-600 (#E11D48), brand-400 (#FB7185)
+/// Mengikuti secara presisi styling, font (Plus Jakarta Sans), dan color palette sinematik kebiruan:
+/// - Brand Blue / Cyan: blue-600 (#2563EB), blue-500 (#3B82F6), blue-400 (#60A5FA), cyan-400 (#38BDF8)
 /// - Surface OLED & Glass: surface-800 (#0F111A), surface-900 (#090A0F), glass-panel
-/// - Accents: emerald-400 (#34D399) untuk progress/match, amber-400 (#FBBF24) untuk rating
+/// - Accents: emerald-400 (#34D399) untuk status terhubung, amber-400 (#FBBF24) untuk rating
 /// - Slates: slate-100 (#F1F5F9), slate-400 (#94A3B8), slate-300 (#CBD5E1)
 class CollectionScreen extends ConsumerStatefulWidget {
   final void Function(int tabIndex)? onNavigateTab;
@@ -37,13 +37,17 @@ class CollectionScreen extends ConsumerStatefulWidget {
 class _CollectionScreenState extends ConsumerState<CollectionScreen> {
   String _selectedCategory = 'Semua';
 
-  // Palette dev-frontend yang konsisten
+  // Palette dev-frontend & tema kebiruan sinematik (Electric Blue & Cyan)
   static const Color _surface800 = Color(0xFF0F111A);
   static const Color _surface700 = Color(0xFF181B28);
   static const Color _slate400 = Color(0xFF94A3B8);
   static const Color _slate300 = Color(0xFFCBD5E1);
   static const Color _emerald400 = Color(0xFF34D399);
   static const Color _amber400 = Color(0xFFFBBF24);
+  static const Color _blue600 = Color(0xFF2563EB);
+  static const Color _blue500 = Color(0xFF3B82F6);
+  static const Color _blue400 = Color(0xFF60A5FA);
+  static const Color _cyan400 = Color(0xFF38BDF8);
 
   bool _isSeries(Movie movie) {
     return movie.seasons.isNotEmpty ||
@@ -103,7 +107,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
             const SizedBox(height: 16),
             Row(
               children: [
-                const Icon(Icons.cast_rounded, color: AppColors.brand400),
+                const Icon(Icons.cast_rounded, color: _blue400),
                 const SizedBox(width: 10),
                 Text(
                   'Transmisikan ke Perangkat (Cast)',
@@ -149,7 +153,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.brand600,
+                  backgroundColor: _blue600,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
@@ -226,7 +230,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
             const SizedBox(height: 16),
             const Divider(color: Colors.white10),
             ListTile(
-              leading: const Icon(Icons.play_circle_fill_rounded, color: AppColors.brand500),
+              leading: const Icon(Icons.play_circle_fill_rounded, color: _blue500),
               title: Text('Lanjutkan Menonton', style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.w600)),
               subtitle: Text(
                 'Mulai dari posisi terakhir (${(movie.continueWatchingProgress * 100).toInt()}%)',
@@ -272,8 +276,8 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.delete_sweep_rounded, color: AppColors.brand400),
-              title: Text('Hapus dari Riwayat', style: GoogleFonts.plusJakartaSans(color: AppColors.brand400, fontWeight: FontWeight.w600)),
+              leading: const Icon(Icons.delete_sweep_rounded, color: _blue400),
+              title: Text('Hapus dari Riwayat', style: GoogleFonts.plusJakartaSans(color: _blue400, fontWeight: FontWeight.w600)),
               onTap: () {
                 Navigator.pop(sheetContext);
                 final notifier = ref.read(mediaProvider.notifier);
@@ -284,7 +288,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                     backgroundColor: _surface700,
                     action: SnackBarAction(
                       label: 'BATAL',
-                      textColor: AppColors.brand400,
+                      textColor: _blue400,
                       onPressed: () {
                         notifier.insertContinueWatching(movie);
                       },
@@ -364,8 +368,8 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                       shape: BoxShape.circle,
                       gradient: LinearGradient(
                         colors: [
-                          Color(0xFFF59E0B),
-                          Color(0xFFF43F5E),
+                          _cyan400,
+                          _blue500,
                           Color(0xFF6366F1),
                         ],
                         begin: Alignment.bottomLeft,
@@ -381,7 +385,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                         errorWidget: (context, url, err) => Container(
                           color: _surface800,
                           child: const Icon(Icons.person_rounded,
-                              size: 18, color: AppColors.brand400),
+                              size: 18, color: _blue400),
                         ),
                       ),
                     ),
@@ -404,15 +408,15 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: AppColors.brand500.withValues(alpha: 0.12),
+                          color: _blue500.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: AppColors.brand500.withValues(alpha: 0.25),
+                            color: _blue500.withValues(alpha: 0.25),
                           ),
                         ),
                         child: const Icon(
                           Icons.bookmark_rounded,
-                          color: AppColors.brand500,
+                          color: _blue500,
                           size: 24,
                         ),
                       ),
@@ -547,7 +551,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                         children: [
                           const Icon(
                             Icons.bookmark_outline_rounded,
-                            color: AppColors.brand400,
+                            color: _blue400,
                             size: 18,
                           ),
                           const SizedBox(width: 8),
@@ -631,7 +635,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
     );
   }
 
-  /// Filter Chip Tombol dengan palet brand-600 / surface-800
+  /// Filter Chip Tombol dengan palet blue-600 / surface-800
   Widget _buildFilterChip(String label, int count) {
     final isSelected = _selectedCategory == label;
     return GestureDetector(
@@ -645,18 +649,18 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.brand600
+              ? _blue600
               : _surface800.withValues(alpha: 0.8),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected
-                ? AppColors.brand400.withValues(alpha: 0.5)
+                ? _blue400.withValues(alpha: 0.5)
                 : Colors.white.withValues(alpha: 0.08),
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: AppColors.brand600.withValues(alpha: 0.35),
+                    color: _blue600.withValues(alpha: 0.35),
                     blurRadius: 10,
                     offset: const Offset(0, 3),
                   )
@@ -772,7 +776,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                         child: LinearProgressIndicator(
                           value: item.continueWatchingProgress,
                           backgroundColor: Colors.white24,
-                          valueColor: const AlwaysStoppedAnimation<Color>(AppColors.brand500),
+                          valueColor: const AlwaysStoppedAnimation<Color>(_blue500),
                           minHeight: 3,
                         ),
                       ),
@@ -929,7 +933,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                                 backgroundColor: _surface700,
                                 action: SnackBarAction(
                                   label: 'BATAL',
-                                  textColor: AppColors.brand400,
+                                  textColor: _blue400,
                                   onPressed: () {
                                     ref.read(mediaProvider.notifier).toggleWatchlist(movie.id);
                                   },
@@ -1000,11 +1004,11 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                             width: 28,
                             height: 28,
                             decoration: BoxDecoration(
-                              color: AppColors.brand600,
+                              color: _blue600,
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppColors.brand600.withValues(alpha: 0.4),
+                                  color: _blue600.withValues(alpha: 0.4),
                                   blurRadius: 6,
                                   offset: const Offset(0, 2),
                                 ),
@@ -1094,15 +1098,15 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                 height: 68,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.brand500.withValues(alpha: 0.12),
+                  color: _blue500.withValues(alpha: 0.12),
                   border: Border.all(
-                    color: AppColors.brand500.withValues(alpha: 0.25),
+                    color: _blue500.withValues(alpha: 0.25),
                   ),
                 ),
                 child: const Icon(
                   Icons.bookmark_rounded,
                   size: 32,
-                  color: AppColors.brand400,
+                  color: _blue400,
                 ),
               ),
               const SizedBox(height: 18),
@@ -1141,14 +1145,14 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.brand600,
+                  backgroundColor: _blue600,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),
                   elevation: 4,
-                  shadowColor: AppColors.brand600.withValues(alpha: 0.4),
+                  shadowColor: _blue600.withValues(alpha: 0.4),
                 ),
               ),
             ],
@@ -1187,8 +1191,8 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                 });
               },
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.brand400,
-                side: const BorderSide(color: AppColors.brand500),
+                foregroundColor: _blue400,
+                side: const BorderSide(color: _blue500),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               child: Text(
