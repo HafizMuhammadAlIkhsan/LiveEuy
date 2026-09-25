@@ -1,6 +1,7 @@
 package com.liveeuy.backend.service;
 
 import com.liveeuy.backend.dto.ReviewRequest;
+import com.liveeuy.backend.dto.UserSettingsRequest;
 import com.liveeuy.backend.dto.WatchProgressRequest;
 import com.liveeuy.backend.model.*;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,7 @@ public class MediaService {
     private final Map<String, List<Review>> reviewDatabase = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> userWatchlist = new ConcurrentHashMap<>();
     private final Map<String, Map<String, WatchProgress>> userProgressDatabase = new ConcurrentHashMap<>();
+    private final Map<String, UserSettings> userSettingsDatabase = new ConcurrentHashMap<>();
 
     public MediaService() {
         seedInitialData();
@@ -194,5 +196,36 @@ public class MediaService {
     public List<WatchProgress> getUserProgressList(String userId) {
         Map<String, WatchProgress> map = userProgressDatabase.get(userId);
         return map == null ? Collections.emptyList() : new ArrayList<>(map.values());
+    }
+
+    public UserSettings getUserSettings(String userId) {
+        return userSettingsDatabase.computeIfAbsent(userId, UserSettings::defaultSettings);
+    }
+
+    public UserSettings updateUserSettings(String userId, UserSettingsRequest req) {
+        UserSettings current = getUserSettings(userId);
+        if (req.getStreamingQuality() != null) {
+            current.setStreamingQuality(req.getStreamingQuality());
+        }
+        if (req.getSpatialAudio() != null) {
+            current.setSpatialAudio(req.getSpatialAudio());
+        }
+        if (req.getAutoSkipIntro() != null) {
+            current.setAutoSkipIntro(req.getAutoSkipIntro());
+        }
+        if (req.getWifiOnlyDownload() != null) {
+            current.setWifiOnlyDownload(req.getWifiOnlyDownload());
+        }
+        if (req.getDownloadQuality() != null) {
+            current.setDownloadQuality(req.getDownloadQuality());
+        }
+        if (req.getNotifications() != null) {
+            current.setNotifications(req.getNotifications());
+        }
+        if (req.getCacheSizeBytes() != null) {
+            current.setCacheSizeBytes(req.getCacheSizeBytes());
+        }
+        userSettingsDatabase.put(userId, current);
+        return current;
     }
 }

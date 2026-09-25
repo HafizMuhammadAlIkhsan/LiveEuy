@@ -3,6 +3,7 @@ import 'api_config.dart';
 import '../../models/movie_model.dart';
 import '../../models/review_model.dart';
 import '../../models/watch_progress_model.dart';
+import '../../models/user_settings_model.dart';
 
 class ApiService {
   final ApiClient _client;
@@ -172,4 +173,35 @@ class ApiService {
     );
     return response.data;
   }
+
+  // ==========================================
+  // 5. Pengaturan & Preferensi Pengguna
+  // ==========================================
+
+  /// Mengambil preferensi pengguna (`GET /api/v1/user/settings`)
+  Future<UserSettings> getUserSettings({
+    String userId = ApiConfig.defaultUserId,
+  }) async {
+    final response = await _client.get<UserSettings>(
+      ApiConfig.settingsPath,
+      queryParams: {'userId': userId},
+      fromJson: (data) => UserSettings.fromJson(data as Map<String, dynamic>),
+    );
+    return response.data ?? const UserSettings();
+  }
+
+  /// Memperbarui preferensi pengguna (`PUT /api/v1/user/settings`)
+  Future<UserSettings> updateUserSettings(
+    UserSettings settings, {
+    String userId = ApiConfig.defaultUserId,
+  }) async {
+    final response = await _client.put<UserSettings>(
+      ApiConfig.settingsPath,
+      queryParams: {'userId': userId},
+      body: settings.toJson(),
+      fromJson: (data) => UserSettings.fromJson(data as Map<String, dynamic>),
+    );
+    return response.data ?? settings;
+  }
 }
+

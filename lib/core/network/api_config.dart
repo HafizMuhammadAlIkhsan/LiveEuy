@@ -66,4 +66,5 @@ class ApiConfig {
 
   static const String progressPath = '/user/progress';
   static String reviewsPath(String mediaId) => '/media/$mediaId/reviews';
+  static const String settingsPath = '/user/settings';
 }

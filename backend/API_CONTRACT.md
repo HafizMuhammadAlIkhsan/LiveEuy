@@ -504,5 +504,102 @@ Future<http.Response> executeWithAutoRefresh(
 }
 ```
 
+---
+
+## ⚙️ 6. Pengaturan Pengguna & Kualitas Streaming (`/api/v1/user/settings`)
+
+Endpoint untuk mengelola preferensi pemutar streaming, pemilihan kualitas resolusi video, status audio spasial, dan pemakaian cache.
+
+### a. Ambil Pengaturan Pengguna (`GET /api/v1/user/settings`)
+* **Method**: `GET`
+* **Path**: `/api/v1/user/settings`
+* **Query Params**: `userId` (opsional, default: `user_hafiz`)
+* **Header**: `Authorization: Bearer <accessToken>` (opsional jika dalam sesi autentikasi)
+* **Response Body (`200 OK`)**:
+  ```json
+  {
+    "success": true,
+    "message": "Pengaturan pengguna berhasil dimuat",
+    "data": {
+      "userId": "user_hafiz",
+      "streamingQuality": "AUTO",
+      "spatialAudio": true,
+      "autoSkipIntro": true,
+      "wifiOnlyDownload": true,
+      "downloadQuality": "HIGH",
+      "notifications": true,
+      "cacheSizeBytes": 356515840
+    },
+    "timestamp": "2026-09-25T11:30:00"
+  }
+  ```
+
+---
+
+### b. Perbarui Pengaturan Pengguna (`PUT /api/v1/user/settings`)
+* **Method**: `PUT`
+* **Path**: `/api/v1/user/settings`
+* **Query Params**: `userId` (opsional, default: `user_hafiz`)
+* **Payload Request**:
+  ```json
+  {
+    "streamingQuality": "FHD_1080P",
+    "spatialAudio": true,
+    "autoSkipIntro": true,
+    "wifiOnlyDownload": true,
+    "downloadQuality": "HIGH",
+    "notifications": true,
+    "cacheSizeBytes": 0
+  }
+  ```
+* **Response Body (`200 OK`)**:
+  ```json
+  {
+    "success": true,
+    "message": "Pengaturan pengguna berhasil diperbarui",
+    "data": {
+      "userId": "user_hafiz",
+      "streamingQuality": "FHD_1080P",
+      "spatialAudio": true,
+      "autoSkipIntro": true,
+      "wifiOnlyDownload": true,
+      "downloadQuality": "HIGH",
+      "notifications": true,
+      "cacheSizeBytes": 0
+    },
+    "timestamp": "2026-09-25T11:30:01"
+  }
+  ```
+
+---
+
+### 🎚️ Spesifikasi Enum Nilai Kualitas Streaming (`streamingQuality`)
+
+| Kode Enum | Label Tampilan | Resolusi Video | Estimasi Kuota Data | Kebutuhan Membership |
+|---|---|---|---|---|
+| `AUTO` | Otomatis (Adaptif) | Hingga 1080p | Adaptif (~0.5 - 2.0 GB / jam) | Semua Pengguna (Rekomendasi) |
+| `DATA_SAVER` | Hemat Data | SD 480p | ~0.3 GB / jam | Semua Pengguna |
+| `HD_720P` | Standar HD | HD 720p | ~0.7 GB / jam | Semua Pengguna |
+| `FHD_1080P` | Tinggi Full HD | FHD 1080p | ~1.5 GB / jam | Semua Pengguna |
+| `UHD_4K` | Maksimal Ultra HD | 4K UHD & Dolby | ~7.0 GB / jam | Khusus Member **LIVEEUY VIP 4K** |
+
+> [!NOTE]
+> Jika pengguna dengan tier standar (`REGULAR`) mencoba memilih `UHD_4K`, klien mobile akan mengarahkan ke lembar upgrade VIP, dan backend dapat memvalidasi tier pengguna melalui status `User.membershipTier`.
+
+---
+
+### 💻 Contoh Pengujian via cURL
+
+```bash
+# 1. Mengambil Pengaturan
+curl -X GET "http://localhost:8080/api/v1/user/settings?userId=user_hafiz"
+
+# 2. Mengubah Kualitas ke 1080p
+curl -X PUT "http://localhost:8080/api/v1/user/settings?userId=user_hafiz" \
+  -H "Content-Type: application/json" \
+  -d '{"streamingQuality":"FHD_1080P","spatialAudio":true,"autoSkipIntro":true,"wifiOnlyDownload":true,"notifications":true}'
+```
+
+
 
 

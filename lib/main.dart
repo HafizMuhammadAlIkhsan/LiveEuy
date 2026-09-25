@@ -13,6 +13,8 @@ import 'features/search/search_screen.dart';
 import 'models/movie_model.dart';
 import 'providers/auth_provider.dart';
 import 'providers/media_provider.dart';
+import 'models/user_settings_model.dart';
+import 'providers/user_settings_provider.dart';
 import 'shared/widgets/streamflix_logo.dart';
 
 void main() {
@@ -570,11 +572,6 @@ class _AkunTab extends ConsumerStatefulWidget {
 }
 
 class _AkunTabState extends ConsumerState<_AkunTab> {
-  bool _wifiOnlyDownload = true;
-  bool _spatialAudio = true;
-  bool _autoSkipIntro = true;
-  bool _notifications = true;
-
   void _openAuthScreen(int initialTab) {
     Navigator.push(
       context,
@@ -902,9 +899,492 @@ class _AkunTabState extends ConsumerState<_AkunTab> {
     );
   }
 
+  void _showStreamingQualitySheet(BuildContext context, UserSettings settings) {
+    final isVip = widget.userProfile.isVip;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetCtx) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceContainerHigh.withValues(alpha: 0.98),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border.all(color: AppColors.glassBorder),
+        ),
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceVariant,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: const BoxDecoration(
+                            color: AppColors.primaryContainer,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.high_quality_rounded, color: Colors.white, size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Kualitas Streaming',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.onSurface,
+                                ),
+                              ),
+                              Text(
+                                'Pilih resolusi dan konsumsi kuota data tontonan',
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, color: AppColors.outline),
+                    onPressed: () => Navigator.pop(sheetCtx),
+                  ),
+                ],
+              ),
+            const SizedBox(height: 16),
+            ...StreamingQuality.values.map((q) {
+              final isSelected = settings.streamingQuality == q;
+              final isLocked = q.requiresVip && !isVip;
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: InkWell(
+                  onTap: () {
+                    if (isLocked) {
+                      Navigator.pop(sheetCtx);
+                      _showBuyVipDialog(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Kualitas 4K UHD & Dolby eksklusif untuk member LIVEEUY VIP 4K.',
+                            style: GoogleFonts.outfit(),
+                          ),
+                          backgroundColor: AppColors.surfaceContainerHighest,
+                        ),
+                      );
+                      return;
+                    }
+
+                    ref.read(userSettingsProvider.notifier).setStreamingQuality(q);
+                    Navigator.pop(sheetCtx);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Row(
+                          children: [
+                            const Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 20),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Kualitas streaming diubah ke ${q.label}',
+                                style: GoogleFonts.outfit(fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ],
+                        ),
+                        backgroundColor: AppColors.surfaceContainerHighest,
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppColors.primary.withValues(alpha: 0.15)
+                          : AppColors.surfaceContainerLowest,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isSelected
+                            ? AppColors.primary
+                            : AppColors.outlineVariant.withValues(alpha: 0.2),
+                        width: isSelected ? 1.5 : 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          isSelected
+                              ? Icons.radio_button_checked_rounded
+                              : (isLocked ? Icons.lock_outline_rounded : Icons.radio_button_off_rounded),
+                          color: isSelected
+                              ? AppColors.primary
+                              : (isLocked ? AppColors.outline : AppColors.outlineVariant),
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      q.label,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.outfit(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                        color: isSelected
+                                            ? AppColors.primary
+                                            : AppColors.onSurface,
+                                      ),
+                                    ),
+                                  ),
+                                  if (q.badge != null) ...[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        gradient: q.requiresVip
+                                            ? const LinearGradient(
+                                                colors: [Color(0xFF433FFE), Color(0xFF81CFFF)],
+                                              )
+                                            : null,
+                                        color: q.requiresVip
+                                            ? null
+                                            : (q.id == 'DATA_SAVER'
+                                                ? Colors.greenAccent.withValues(alpha: 0.2)
+                                                : AppColors.primaryContainer.withValues(alpha: 0.2)),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        q.badge!,
+                                        style: GoogleFonts.outfit(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w800,
+                                          color: q.requiresVip
+                                              ? Colors.white
+                                              : (q.id == 'DATA_SAVER'
+                                                  ? Colors.greenAccent
+                                                  : AppColors.primary),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${q.resolutionLabel} • ${q.estimatedUsage}',
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+  void _showStorageCacheSheet(BuildContext context, UserSettings settings) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetCtx) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceContainerHigh.withValues(alpha: 0.98),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border.all(color: AppColors.glassBorder),
+        ),
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceVariant,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: const BoxDecoration(
+                            color: AppColors.primaryContainer,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.sd_card_rounded, color: Colors.white, size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Penyimpanan & Cache',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.onSurface,
+                                ),
+                              ),
+                              Text(
+                                'Kelola pemakaian ruang memori aplikasi',
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, color: AppColors.outline),
+                    onPressed: () => Navigator.pop(sheetCtx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // Storage breakdown
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceContainerLowest,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.2)),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Total Penyimpanan Terpakai',
+                            style: GoogleFonts.inter(fontSize: 12, color: AppColors.textSecondary),
+                          ),
+                        ),
+                        Text(
+                          '12.4 GB / 128 GB',
+                          style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.onSurface),
+                        ),
+                      ],
+                    ),
+                  const SizedBox(height: 10),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: LinearProgressIndicator(
+                      value: 0.097,
+                      backgroundColor: AppColors.surfaceContainerHighest,
+                      valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                      minHeight: 8,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildStorageRow(Icons.file_download_done_rounded, 'Video Unduhan Offline', '11.8 GB'),
+                  const SizedBox(height: 8),
+                  _buildStorageRow(Icons.image_outlined, 'Cache Gambar & Metadata', settings.cacheFormatted),
+                  const SizedBox(height: 8),
+                  _buildStorageRow(Icons.storage_rounded, 'Ruang Bebas Perangkat', '115.6 GB'),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: settings.cacheSizeBytes <= 0
+                    ? null
+                    : () {
+                        final clearedSize = settings.cacheFormatted;
+                        ref.read(userSettingsProvider.notifier).clearCache();
+                        Navigator.pop(sheetCtx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Row(
+                              children: [
+                                const Icon(Icons.cleaning_services_rounded, color: Colors.greenAccent, size: 20),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    'Cache aplikasi ($clearedSize) berhasil dibersihkan!',
+                                    style: GoogleFonts.outfit(fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            backgroundColor: AppColors.surfaceContainerHighest,
+                          ),
+                        );
+                      },
+                icon: const Icon(Icons.cleaning_services_rounded, size: 18),
+                label: Text(
+                  settings.cacheSizeBytes <= 0
+                      ? 'Cache Bersih'
+                      : 'Bersihkan Cache (${settings.cacheFormatted})',
+                  style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w700),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryContainer,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+  Widget _buildStorageRow(IconData icon, String label, String size) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: AppColors.outline),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            label,
+            style: GoogleFonts.inter(fontSize: 12, color: AppColors.onSurfaceVariant),
+          ),
+        ),
+        Text(
+          size,
+          style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.onSurface),
+        ),
+      ],
+    );
+  }
+
+  void _showAboutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: AppColors.surfaceContainerHigh,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            StreamFlixLogo(fontSize: 20),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'LiveEuy Cinematic Streaming',
+              style: GoogleFonts.outfit(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: AppColors.onSurface,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Versi 2.4.0 (Build 412) • 2026',
+              style: GoogleFonts.inter(fontSize: 12, color: AppColors.primary),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Platform streaming generasi baru dengan teknologi Adaptive 4K UHD, Ambient Glow, dan Dolby Atmos audio spasial.',
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Divider(color: AppColors.outlineVariant.withValues(alpha: 0.2)),
+            const SizedBox(height: 8),
+            Text(
+              '© 2026 LiveEuy Team. Hak cipta dilindungi undang-undang.',
+              style: GoogleFonts.inter(fontSize: 10, color: AppColors.outline),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryContainer,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text(
+              'Tutup',
+              style: GoogleFonts.outfit(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = widget.userProfile;
+    final userSettings = ref.watch(userSettingsProvider);
 
     return SafeArea(
       bottom: false,
@@ -1189,22 +1669,22 @@ class _AkunTabState extends ConsumerState<_AkunTab> {
             _buildSettingsTile(
               icon: Icons.high_quality_rounded,
               title: 'Kualitas Streaming',
-              subtitle: 'Maksimal (4K UHD & Dolby Atmos)',
-              onTap: () {},
+              subtitle: userSettings.streamingQualitySubtitle,
+              onTap: () => _showStreamingQualitySheet(context, userSettings),
             ),
             _buildSwitchTile(
               icon: Icons.spatial_audio_rounded,
               title: 'Audio Spasial Dolby Atmos',
               subtitle: 'Nikmati audio surround multi-arah',
-              value: _spatialAudio,
-              onChanged: (v) => setState(() => _spatialAudio = v),
+              value: userSettings.spatialAudio,
+              onChanged: (v) => ref.read(userSettingsProvider.notifier).setSpatialAudio(v),
             ),
             _buildSwitchTile(
               icon: Icons.fast_forward_rounded,
               title: 'Lewati Intro & Rekap Otomatis',
               subtitle: 'Langsung tonton cerita utama',
-              value: _autoSkipIntro,
-              onChanged: (v) => setState(() => _autoSkipIntro = v),
+              value: userSettings.autoSkipIntro,
+              onChanged: (v) => ref.read(userSettingsProvider.notifier).setAutoSkipIntro(v),
             ),
 
             const SizedBox(height: 20),
@@ -1213,14 +1693,14 @@ class _AkunTabState extends ConsumerState<_AkunTab> {
               icon: Icons.wifi_rounded,
               title: 'Unduh Hanya via Wi-Fi',
               subtitle: 'Mencegah pemakaian kuota data seluler',
-              value: _wifiOnlyDownload,
-              onChanged: (v) => setState(() => _wifiOnlyDownload = v),
+              value: userSettings.wifiOnlyDownload,
+              onChanged: (v) => ref.read(userSettingsProvider.notifier).setWifiOnlyDownload(v),
             ),
             _buildSettingsTile(
               icon: Icons.sd_card_rounded,
               title: 'Penyimpanan & Cache',
-              subtitle: '12.4 GB digunakan dari 128 GB',
-              onTap: () {},
+              subtitle: 'Cache: ${userSettings.cacheFormatted} • Total Digunakan 12.4 GB',
+              onTap: () => _showStorageCacheSheet(context, userSettings),
             ),
 
             const SizedBox(height: 20),
@@ -1229,14 +1709,14 @@ class _AkunTabState extends ConsumerState<_AkunTab> {
               icon: Icons.notifications_active_outlined,
               title: 'Pemberitahuan Rilis Baru',
               subtitle: 'Rekomendasi film & serial terkini',
-              value: _notifications,
-              onChanged: (v) => setState(() => _notifications = v),
+              value: userSettings.notifications,
+              onChanged: (v) => ref.read(userSettingsProvider.notifier).setNotifications(v),
             ),
             _buildSettingsTile(
               icon: Icons.info_outline_rounded,
               title: 'Tentang LiveEuy',
               subtitle: 'Versi 2.4.0 (Build 412) • Kebijakan Privasi',
-              onTap: () {},
+              onTap: () => _showAboutDialog(context),
             ),
 
             const SizedBox(height: 28),

@@ -40,6 +40,7 @@ erDiagram
     USERS ||--o{ WATCH_PROGRESS : tracks
     USERS ||--o{ REVIEWS : writes
     USERS ||--o{ REFRESH_TOKENS : issues
+    USERS ||--|| USER_SETTINGS : configures
     
     MEDIA_ITEMS ||--o{ SEASONS : has
     MEDIA_ITEMS ||--o{ REVIEWS : receives
@@ -56,6 +57,18 @@ erDiagram
         VARCHAR(255) avatar_url
         VARCHAR(32) membership_tier
         TIMESTAMP created_at
+        TIMESTAMP updated_at
+    }
+
+    USER_SETTINGS {
+        VARCHAR(64) user_id PK_FK
+        VARCHAR(32) streaming_quality
+        BOOLEAN spatial_audio
+        BOOLEAN auto_skip_intro
+        BOOLEAN wifi_only_download
+        VARCHAR(32) download_quality
+        BOOLEAN notifications
+        BIGINT cache_size_bytes
         TIMESTAMP updated_at
     }
 
@@ -181,6 +194,27 @@ UPDATE refresh_tokens
 SET is_revoked = TRUE,
     revoked_at = NOW()
 WHERE user_id = ?;
+```
+
+### 4. UPSERT untuk User Settings & Kualitas Streaming
+Sinkronisasi preferensi pemutar secara idempotensial:
+
+```sql
+INSERT INTO user_settings (
+    user_id, streaming_quality, spatial_audio, auto_skip_intro, 
+    wifi_only_download, download_quality, notifications, cache_size_bytes, updated_at
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+ON CONFLICT (user_id)
+DO UPDATE SET
+    streaming_quality = COALESCE(EXCLUDED.streaming_quality, user_settings.streaming_quality),
+    spatial_audio = COALESCE(EXCLUDED.spatial_audio, user_settings.spatial_audio),
+    auto_skip_intro = COALESCE(EXCLUDED.auto_skip_intro, user_settings.auto_skip_intro),
+    wifi_only_download = COALESCE(EXCLUDED.wifi_only_download, user_settings.wifi_only_download),
+    download_quality = COALESCE(EXCLUDED.download_quality, user_settings.download_quality),
+    notifications = COALESCE(EXCLUDED.notifications, user_settings.notifications),
+    cache_size_bytes = COALESCE(EXCLUDED.cache_size_bytes, user_settings.cache_size_bytes),
+    updated_at = NOW();
 ```
 
 ---

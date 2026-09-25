@@ -3,10 +3,13 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../core/data/mock_data.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/movie_model.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/media_provider.dart';
 import '../../providers/search_provider.dart';
+import '../../shared/widgets/notification_modal.dart';
 import '../../shared/widgets/streamflix_logo.dart';
 import '../detail/content_detail_screen.dart';
 import '../player/video_player_screen.dart';
@@ -74,6 +77,21 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       context,
       MaterialPageRoute(builder: (_) => ContentDetailScreen(movie: movie)),
     );
+  }
+
+  void _openNotificationMedia(String mediaId) {
+    final mediaState = ref.read(mediaProvider);
+    final allMedia = [
+      ...mediaState.heroList,
+      ...mediaState.top10List,
+      ...MockData.heroMovies,
+      ...MockData.top10Movies,
+    ];
+    final found = allMedia.where((m) => m.id == mediaId).firstOrNull ??
+        allMedia.firstOrNull;
+    if (found != null) {
+      _openDetail(found);
+    }
   }
 
   void _playVideo(Movie movie) {
@@ -329,10 +347,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 icon: const Icon(Icons.cast_rounded, color: AppColors.onSurface, size: 22),
                 onPressed: () {},
               ),
-              IconButton(
-                tooltip: 'Search Catalog',
-                icon: const Icon(Icons.search_rounded, color: AppColors.primaryContainer, size: 22),
-                onPressed: () {},
+              NotificationIconButton(
+                onOpenMediaId: _openNotificationMedia,
               ),
               Padding(
                 padding: const EdgeInsets.only(right: 16.0, left: 4.0),
@@ -342,9 +358,18 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   child: Container(
                     width: 34,
                     height: 34,
-                    decoration: BoxDecoration(
+                    padding: const EdgeInsets.all(1.5),
+                    decoration: const BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.primaryContainer, width: 1.5),
+                      gradient: LinearGradient(
+                        colors: [
+                          Color(0xFFF59E0B),
+                          Color(0xFFF43F5E),
+                          Color(0xFF6366F1),
+                        ],
+                        begin: Alignment.bottomLeft,
+                        end: Alignment.topRight,
+                      ),
                     ),
                     child: ClipOval(
                       child: CachedNetworkImage(

@@ -56,6 +56,7 @@ com.liveeuy.backend/
 │   └── CorsConfig.java               # Konfigurasi CORS (allowCredentials=true untuk Cookie HttpOnly)
 ├── model/
 │   ├── User.java                     # Entitas Profil Pengguna & Membership Tier
+│   ├── UserSettings.java             # Entitas Preferensi Pengguna, Kualitas Streaming, & Cache
 │   ├── MediaItem.java                # Entitas Film & Serial TV
 │   ├── Season.java                   # Entitas Musim Serial
 │   ├── Episode.java                  # Entitas Episode
@@ -67,6 +68,7 @@ com.liveeuy.backend/
 │   ├── RegisterRequest.java          # DTO Registrasi {name, email, password}
 │   ├── RefreshTokenRequest.java      # DTO Mobile Refresh Token {refreshToken}
 │   ├── AuthResponse.java             # DTO Respons Sesi {accessToken, refreshToken, expiresIn, user}
+│   ├── UserSettingsRequest.java      # DTO Pembaruan Pengaturan {streamingQuality, spatialAudio, dll}
 │   ├── ReviewRequest.java            # DTO Kirim Ulasan {rating, comment, userName}
 │   └── WatchProgressRequest.java     # DTO Sinkronisasi Progres {mediaId, progress, lastEpisodeId}
 ├── security/
@@ -74,9 +76,10 @@ com.liveeuy.backend/
 │   └── CookieUtil.java               # Utility Pembuatan & Penghapusan Cookie HttpOnly SameSite=Lax
 ├── service/
 │   ├── AuthService.java              # Logika Autentikasi, Refresh Token Rotation, & Replay Attack Defense
-│   └── MediaService.java             # Logika Katalog Media, Top 10, Watchlist, & Watch Progress
+│   └── MediaService.java             # Logika Katalog Media, Top 10, Watchlist, Progres, & Pengaturan
 └── controller/
     ├── AuthController.java           # Endpoints Autentikasi /api/v1/auth/*
+    ├── UserSettingsController.java   # Endpoints Preferensi & Streaming /api/v1/user/settings
     ├── MediaController.java          # Endpoints Katalog /api/v1/media/*
     ├── WatchlistController.java      # Endpoints Koleksi Pengguna /api/v1/user/watchlist/*
     ├── WatchProgressController.java  # Endpoints Lanjutkan Menonton /api/v1/user/progress/*
@@ -96,6 +99,8 @@ Semua endpoint diawali dengan prefix `/api/v1`:
 | **Auth** | `POST` | `/api/v1/auth/refresh` | Cookie / Body | Web & Mobile | Silent refresh token rotation |
 | **Auth** | `POST` | `/api/v1/auth/logout` | Publik | Web & Mobile | Menghapus refresh token & cookie |
 | **Auth** | `GET` | `/api/v1/auth/me` | Bearer Token | Web & Mobile | Mengambil profil user aktif |
+| **Settings** | `GET` | `/api/v1/user/settings` | Publik / User | Web & Mobile | Mengambil preferensi & kualitas streaming |
+| **Settings** | `PUT` | `/api/v1/user/settings` | Publik / User | Web & Mobile | Memperbarui kualitas, audio, & cache |
 | **Media** | `GET` | `/api/v1/media` | Publik | Web & Mobile | Mengambil seluruh katalog film & serial |
 | **Media** | `GET` | `/api/v1/media/{id}` | Publik | Web & Mobile | Mengambil detail tayangan lengkap |
 | **Media** | `GET` | `/api/v1/media/top10` | Publik | Web & Mobile | Mengambil daftar Top 10 Indonesia |
@@ -127,7 +132,8 @@ Sistem autentikasi mengadopsi standar **Zero Trust Dual-Channel**:
 
 Untuk pemahaman mendalam mengenai arsitektur backend, silakan baca dokumentasi berikut:
 * 📘 [AUTHENTICATION_AND_SECURITY.md](AUTHENTICATION_AND_SECURITY.md): Panduan lengkap autentikasi, refresh token, cookie HttpOnly, deteksi replay attack, dan implementasi interceptor untuk React & Flutter.
-* 📋 [API_CONTRACT.md](API_CONTRACT.md): Kontrak payload request/response JSON terpadu, normalisasi model antara Web & Mobile, serta contoh cURL.
+* 📋 [API_CONTRACT.md](API_CONTRACT.md): Kontrak payload request/response JSON terpadu, spesifikasi kualitas streaming, normalisasi model antara Web & Mobile, serta contoh cURL.
 * 📖 [DATABASE_GUIDELINES.md](DATABASE_GUIDELINES.md): Pedoman arsitektur skema PostgreSQL, diagram ERD Mermaid, UPSERT anti race-condition, dan aturan migrasi Flyway.
 * 📜 [V20260924_01__init_schema.sql](src/main/resources/db/migration/V20260924_01__init_schema.sql): Migrasi Flyway DDL awal untuk tabel pengguna, tayangan, musim, episode, ulasan, dan progres.
 * 📜 [V20260925_01__create_refresh_tokens_table.sql](src/main/resources/db/migration/V20260925_01__create_refresh_tokens_table.sql): Migrasi Flyway DDL untuk tabel `refresh_tokens`.
+* 📜 [V20260925_02__create_user_settings_table.sql](src/main/resources/db/migration/V20260925_02__create_user_settings_table.sql): Migrasi Flyway DDL untuk tabel `user_settings` preferensi pemutar & kualitas streaming.
