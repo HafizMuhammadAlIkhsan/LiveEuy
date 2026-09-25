@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { MediaItem, Episode, WatchProgress, ViewTab, User } from '../types';
+import { MediaItem, Episode, WatchProgress, ViewTab, User, VisitorSession } from '../types';
 import { MOCK_MEDIA } from '../data/mockData';
 import { apiService } from '../services/api';
+import { trackCurrentVisitor, getStoredSessions, resetVisitorTracking } from '../utils/cookieTracker';
 
 interface WatchContextType {
   currentTab: ViewTab;
@@ -44,6 +45,11 @@ interface WatchContextType {
   authModalMode: 'login' | 'register';
   openAuthModal: (mode?: 'login' | 'register') => void;
   closeAuthModal: () => void;
+  // Visitor Cookie & Device Tracking
+  visitorSessions: VisitorSession[];
+  currentSession: VisitorSession | null;
+  refreshTracking: () => Promise<void>;
+  resetTracking: () => void;
 }
 
 export const withViewTransition = (fn: () => void) => {
@@ -346,6 +352,31 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
+  // Visitor Cookie & Device Tracking
+  const [visitorSessions, setVisitorSessions] = useState<VisitorSession[]>(() => getStoredSessions());
+  const [currentSession, setCurrentSession] = useState<VisitorSession | null>(null);
+
+  useEffect(() => {
+    trackCurrentVisitor(currentTab, user?.email).then(sess => {
+      setCurrentSession(sess);
+      setVisitorSessions(getStoredSessions());
+    });
+  }, [currentTab, user?.email]);
+
+  const refreshTracking = async () => {
+    const sess = await trackCurrentVisitor(currentTab, user?.email);
+    setCurrentSession(sess);
+    setVisitorSessions(getStoredSessions());
+  };
+
+  const resetTracking = () => {
+    resetVisitorTracking();
+    trackCurrentVisitor(currentTab, user?.email).then(sess => {
+      setCurrentSession(sess);
+      setVisitorSessions(getStoredSessions());
+    });
+  };
+
   return (
     <WatchContext.Provider
       value={{
@@ -382,7 +413,11 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         isAuthModalOpen,
         authModalMode,
         openAuthModal,
-        closeAuthModal
+        closeAuthModal,
+        visitorSessions,
+        currentSession,
+        refreshTracking,
+        resetTracking
       }}
     >
       {children}

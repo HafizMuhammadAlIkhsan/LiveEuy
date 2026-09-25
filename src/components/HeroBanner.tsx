@@ -91,7 +91,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
     <div 
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
-      className="relative w-full h-[80vh] min-h-[560px] sm:h-[84vh] sm:min-h-[620px] lg:h-[88vh] lg:min-h-[660px] overflow-hidden select-none group"
+      className="relative w-full h-[76vh] min-h-[500px] sm:h-[80vh] sm:min-h-[560px] lg:h-[84vh] lg:min-h-[600px] overflow-hidden select-none group"
     >
       
       {/* Background Media with Ken Burns cinematic zoom and smooth crossfade */}
@@ -164,7 +164,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
       </div>
 
       {/* Featured Content Details raised closer to navbar with balanced padding */}
-      <div className="relative max-w-7xl mx-auto h-full flex flex-col justify-end pt-12 sm:pt-14 md:pt-16 pb-16 sm:pb-20 md:pb-24 lg:pb-28 px-4 sm:px-6 lg:px-8 z-10">
+      <div className="relative max-w-7xl mx-auto h-full flex flex-col justify-end pt-8 sm:pt-10 md:pt-12 pb-20 sm:pb-24 md:pb-28 lg:pb-32 px-4 sm:px-6 lg:px-8 z-10">
         <div 
           key={`content-${currentMedia.id}`}
           className={`max-w-2xl space-y-2 sm:space-y-3.5 ${
@@ -261,43 +261,46 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
           </div>
         </div>
 
-        {/* Unified Slider Bar (Directly below content in 1 single responsive layer, no extra dock) */}
-        <div className="flex items-center gap-1.5 w-44 xs:w-56 sm:w-64 md:w-80 pt-3 sm:pt-4">
-          {featuredItems.map((item, idx) => {
-            const isActive = idx === currentIndex;
-            const isPast = idx < currentIndex;
-            return (
-              <button
-                key={item.id || idx}
-                onClick={() => changeSlide(idx, idx >= currentIndex ? 'next' : 'prev')}
-                className="flex-1 h-1 sm:h-1.5 rounded-full overflow-hidden bg-white/20 hover:bg-white/40 transition-colors relative cursor-pointer"
-                title={item.title}
-                aria-label={`Slide ${idx + 1}: ${item.title}`}
-              >
-                {isActive ? (
-                  <div
-                    key={`bar-${currentMedia.id}`}
-                    className="h-full bg-gradient-to-r from-brand-500 to-secondary-400 rounded-full animate-hero-progress"
-                  />
-                ) : isPast ? (
-                  <div className="h-full bg-white/90 rounded-full" />
-                ) : null}
-              </button>
-            );
-          })}
+        {/* Unified Slider Bar & Volume Button Row (Setara / Inline at the same level) */}
+        <div className="flex items-center justify-between gap-4 pt-3 sm:pt-4 w-full">
+          {/* Multi-Segment Story Progress Bar */}
+          <div className="flex items-center gap-1.5 w-44 xs:w-56 sm:w-64 md:w-80">
+            {featuredItems.map((item, idx) => {
+              const isActive = idx === currentIndex;
+              const isPast = idx < currentIndex;
+              return (
+                <button
+                  key={item.id || idx}
+                  onClick={() => changeSlide(idx, idx >= currentIndex ? 'next' : 'prev')}
+                  className="flex-1 h-1 sm:h-1.5 rounded-full overflow-hidden bg-white/20 hover:bg-white/40 transition-colors relative cursor-pointer"
+                  title={item.title}
+                  aria-label={`Slide ${idx + 1}: ${item.title}`}
+                >
+                  {isActive ? (
+                    <div
+                      key={`bar-${currentMedia.id}`}
+                      className="h-full bg-gradient-to-r from-brand-500 to-secondary-400 rounded-full animate-hero-progress"
+                    />
+                  ) : isPast ? (
+                    <div className="h-full bg-white/90 rounded-full" />
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Sound Toggle Button (Inline setara dengan slider di sisi kanan) */}
+          <button
+            onClick={toggleMute}
+            className="p-2 sm:p-2.5 rounded-full glass-panel hover:bg-white/20 text-white transition-all hover:scale-110 active:scale-95 shadow-xl cursor-pointer flex-shrink-0"
+            title={isMuted ? 'Nyalakan Suara Preview' : 'Bisukan Preview'}
+            aria-label="Toggle Sound"
+          >
+            {isMuted ? <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" /> : <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />}
+          </button>
         </div>
 
       </div>
-
-      {/* Floating Sound Toggle Button (Bottom-right, zero vertical layout obstruction) */}
-      <button
-        onClick={toggleMute}
-        className="absolute bottom-8 sm:bottom-12 md:bottom-16 right-4 sm:right-8 z-20 p-2.5 sm:p-3 rounded-full glass-panel hover:bg-white/20 text-white transition-all hover:scale-110 active:scale-95 shadow-xl cursor-pointer"
-        title={isMuted ? 'Nyalakan Suara Preview' : 'Bisukan Preview'}
-        aria-label="Toggle Sound"
-      >
-        {isMuted ? <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" /> : <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />}
-      </button>
 
     </div>
   );
