@@ -91,7 +91,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
     <div 
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
-      className="relative w-full h-[85vh] min-h-[600px] xs:min-h-[640px] sm:h-[88vh] sm:min-h-[680px] lg:h-[92vh] lg:min-h-[720px] overflow-hidden select-none"
+      className="relative w-full h-[78vh] min-h-[520px] sm:h-[82vh] sm:min-h-[580px] lg:h-[85vh] lg:min-h-[620px] overflow-hidden select-none"
     >
       
       {/* Background Media with Ken Burns cinematic zoom and smooth crossfade */}
@@ -118,8 +118,8 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
         />
 
         {/* Ambient Vignette and Gradient overlays for cinematic depth & navbar contrast */}
-        {/* 1. Top shadow overlay: Prevents visual clash with fixed navbar across all screen sizes */}
-        <div className="absolute inset-x-0 top-0 h-32 xs:h-40 sm:h-48 md:h-56 bg-gradient-to-b from-[#08090d]/95 via-[#08090d]/60 to-transparent pointer-events-none z-10" />
+        {/* 1. Subtle top shadow overlay for clean navbar blend */}
+        <div className="absolute inset-x-0 top-0 h-20 sm:h-24 md:h-28 bg-gradient-to-b from-[#08090d]/80 via-[#08090d]/30 to-transparent pointer-events-none z-10" />
 
         {/* 2. Bottom shadow vignette */}
         <div className="absolute inset-0 bg-gradient-to-t from-[#08090d] via-[#08090d]/50 to-transparent" />
@@ -131,8 +131,8 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-brand-600/10 via-transparent to-transparent pointer-events-none" />
       </div>
 
-      {/* Featured Content Details with Responsive Top Clearance and Directional Slide Animation */}
-      <div className="relative max-w-7xl mx-auto h-full flex flex-col justify-end pt-24 xs:pt-28 sm:pt-32 md:pt-36 lg:pt-40 pb-14 sm:pb-20 md:pb-24 px-4 sm:px-6 lg:px-8 z-10">
+      {/* Featured Content Details raised closer to navbar with balanced padding */}
+      <div className="relative max-w-7xl mx-auto h-full flex flex-col justify-end pt-14 sm:pt-16 md:pt-20 pb-8 sm:pb-12 md:pb-14 px-4 sm:px-6 lg:px-8 z-10">
         <div 
           key={`content-${currentMedia.id}`}
           className={`max-w-2xl space-y-2.5 sm:space-y-4 ${
@@ -231,7 +231,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
         </div>
 
         {/* Floating Controls: Mute Toggle & Carousel Switchers positioned comfortably at the bottom */}
-        <div className="absolute bottom-14 sm:bottom-18 md:bottom-22 lg:bottom-26 right-4 sm:right-6 md:right-8 flex items-center gap-2 sm:gap-3 z-20">
+        <div className="absolute bottom-8 sm:bottom-12 md:bottom-14 right-4 sm:right-6 md:right-8 flex items-center gap-2 sm:gap-3 z-20">
           <button
             onClick={toggleMute}
             className="p-2 sm:p-3 rounded-full glass-panel hover:bg-white/20 text-white transition-transform hover:scale-110 active:scale-95 shadow-lg"

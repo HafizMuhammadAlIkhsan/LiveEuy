@@ -320,6 +320,22 @@ export const AdminPage: React.FC = () => {
     showToast(`Episode "${epTitle}" berhasil ditambahkan ke ${activeSeries.title}!`);
   };
 
+  // Delete Episode from Active Series
+  const handleDeleteEpisode = (epId: string, seasonNumber: number) => {
+    if (!activeSeries || !activeSeries.seasons) return;
+    const updatedSeasons = activeSeries.seasons.map(s => {
+      if (s.seasonNumber === seasonNumber) {
+        return {
+          ...s,
+          episodes: s.episodes.filter(ep => ep.id !== epId)
+        };
+      }
+      return s;
+    });
+    updateMedia(activeSeries.id, { seasons: updatedSeasons });
+    showToast('Episode berhasil dihapus dari serial!');
+  };
+
   // Filtered Media in Admin table
   const filteredAdminMedia = useMemo(() => {
     return allMedia.filter(item => {
@@ -487,7 +503,25 @@ export const AdminPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {filteredAdminMedia.map(item => (
+                {filteredAdminMedia.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-12 text-center text-slate-400">
+                      <div className="max-w-xs mx-auto space-y-2">
+                        <Search className="w-8 h-8 text-slate-500 mx-auto" />
+                        <p className="font-bold text-white text-sm">Tidak ada tayangan ditemukan</p>
+                        <p className="text-xs">Coba ubah kata kunci pencarian atau ganti filter format.</p>
+                        <button
+                          type="button"
+                          onClick={() => { setSearchTerm(''); setFilterType('all'); }}
+                          className="px-3 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all shadow-md mt-2"
+                        >
+                          Reset Pencarian
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredAdminMedia.map(item => (
                   <tr key={item.id} className="hover:bg-white/5 transition-colors">
                     {/* Media item info */}
                     <td className="py-3 px-4">
@@ -605,7 +639,8 @@ export const AdminPage: React.FC = () => {
                       </div>
                     </td>
                   </tr>
-                ))}
+                ))
+              )}
               </tbody>
             </table>
           </div>
@@ -684,7 +719,7 @@ export const AdminPage: React.FC = () => {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                           {season.episodes.map(ep => (
-                            <div key={ep.id} className="p-3 rounded-xl bg-surface-800/80 border border-white/5 flex gap-3 items-center group">
+                            <div key={ep.id} className="p-3 rounded-xl bg-surface-800/80 border border-white/5 flex gap-3 items-center group relative hover:border-white/20 transition-all">
                               <img src={ep.thumbnail} alt={ep.title} className="w-20 aspect-video rounded-lg object-cover flex-shrink-0" />
                               <div className="flex-1 min-w-0">
                                 <h5 className="text-xs font-bold text-white group-hover:text-brand-400 truncate">
@@ -692,6 +727,18 @@ export const AdminPage: React.FC = () => {
                                 </h5>
                                 <span className="text-[10px] text-slate-400 block">{ep.duration}</span>
                               </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (confirm(`Hapus episode "${ep.title}" dari musim ${season.seasonNumber}?`)) {
+                                    handleDeleteEpisode(ep.id, season.seasonNumber);
+                                  }
+                                }}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-300 hover:bg-rose-500/20 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
+                                title="Hapus Episode"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
                             </div>
                           ))}
                         </div>
@@ -981,6 +1028,92 @@ export const AdminPage: React.FC = () => {
                 </div>
               </div>
 
+              {/* Durasi & Resolusi */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {formType === 'movie' ? (
+                  <div className="space-y-1">
+                    <label className="font-semibold text-slate-300">Durasi Film (misal: 2j 10m)</label>
+                    <input
+                      type="text"
+                      value={formDuration}
+                      onChange={e => setFormDuration(e.target.value)}
+                      placeholder="Contoh: 2j 15m"
+                      className="w-full bg-surface-800 border border-white/10 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-brand-500"
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <label className="font-semibold text-slate-300">Jumlah Musim</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={formTotalSeasons}
+                      onChange={e => setFormTotalSeasons(Number(e.target.value))}
+                      className="w-full bg-surface-800 border border-white/10 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-brand-500"
+                    />
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <label className="font-semibold text-slate-300">Resolusi</label>
+                    <select
+                      value={formQuality}
+                      onChange={e => setFormQuality(e.target.value as any)}
+                      className="w-full bg-surface-800 border border-white/10 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-brand-500"
+                    >
+                      <option value="4K UHD">4K UHD</option>
+                      <option value="Dolby Vision">Dolby Vision</option>
+                      <option value="HD">HD</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="font-semibold text-slate-300">Format Audio</label>
+                    <select
+                      value={formAudio}
+                      onChange={e => setFormAudio(e.target.value as any)}
+                      className="w-full bg-surface-800 border border-white/10 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-brand-500"
+                    >
+                      <option value="Dolby Atmos">Dolby Atmos</option>
+                      <option value="5.1 Surround">5.1 Surround</option>
+                      <option value="Stereo">Stereo</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Genre Multi-Select Chips */}
+              <div className="space-y-1.5 p-3 rounded-2xl bg-surface-800/60 border border-white/5">
+                <label className="font-semibold text-slate-300 block">Pilihan Genre (Klik untuk memilih multi-genre) *</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {GENRES.filter(g => g !== 'Semua Genre').map(genre => {
+                    const isSelected = formSelectedGenres.includes(genre);
+                    return (
+                      <button
+                        type="button"
+                        key={genre}
+                        onClick={() => {
+                          if (isSelected) {
+                            if (formSelectedGenres.length > 1) {
+                              setFormSelectedGenres(formSelectedGenres.filter(g => g !== genre));
+                            }
+                          } else {
+                            setFormSelectedGenres([...formSelectedGenres, genre]);
+                          }
+                        }}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                          isSelected
+                            ? 'bg-brand-600 text-white shadow-md'
+                            : 'bg-surface-900 text-slate-400 hover:text-white border border-white/5'
+                        }`}
+                      >
+                        {isSelected ? `✓ ${genre}` : genre}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="space-y-1">
                 <label className="font-semibold text-slate-300">Tagline / Slogan</label>
                 <input
@@ -1021,6 +1154,50 @@ export const AdminPage: React.FC = () => {
                     onChange={e => setFormBackdropUrl(e.target.value)}
                     className="w-full bg-surface-800 border border-white/10 rounded-xl px-3 py-2 text-white focus:outline-none"
                   />
+                </div>
+              </div>
+
+              {/* Video Stream & Trailer URLs */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="font-semibold text-slate-300">URL Stream Video (MP4 / HLS) *</label>
+                  <input
+                    type="text"
+                    required
+                    value={formVideoUrl}
+                    onChange={e => setFormVideoUrl(e.target.value)}
+                    placeholder="https://...mp4"
+                    className="w-full bg-surface-800 border border-white/10 rounded-xl px-3 py-2 text-white font-mono text-[11px] focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="font-semibold text-slate-300">URL Trailer Cuplikan (Opsional)</label>
+                  <input
+                    type="text"
+                    value={formTrailerUrl}
+                    onChange={e => setFormTrailerUrl(e.target.value)}
+                    placeholder="https://...mp4"
+                    className="w-full bg-surface-800 border border-white/10 rounded-xl px-3 py-2 text-white font-mono text-[11px] focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+              </div>
+
+              {/* Live Image Preview Card */}
+              <div className="flex items-center gap-3 p-3 rounded-2xl bg-surface-800/60 border border-white/5">
+                <div className="w-12 h-16 rounded-lg overflow-hidden bg-black/60 border border-white/10 flex-shrink-0">
+                  <img
+                    src={formPosterUrl}
+                    alt="Poster Preview"
+                    className="w-full h-full object-cover"
+                    onError={(e) => { (e.target as any).src = 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600'; }}
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="text-[10px] text-slate-400 uppercase font-bold block">Live Poster Preview</span>
+                  <span className="text-xs font-bold text-white truncate block">{formTitle || 'Judul Tayangan'}</span>
+                  <span className="text-[10px] text-brand-400 font-mono">
+                    {formReleaseYear} • {formQuality} • {formAgeRating} • {formSelectedGenres.join(', ')}
+                  </span>
                 </div>
               </div>
 
