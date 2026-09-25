@@ -37,8 +37,27 @@ import {
   RefreshCw,
   Copy,
   MapPin,
-  Laptop
+  Laptop,
+  ChevronRight,
+  Activity
 } from 'lucide-react';
+
+export type AdminModuleId = 'media' | 'episodes' | 'users' | 'tracking' | 'reviews' | 'system';
+
+export interface SidebarNavItem {
+  id: AdminModuleId;
+  label: string;
+  desc: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: string;
+  badgeColor?: string;
+  pulse?: boolean;
+}
+
+export interface SidebarNavGroup {
+  group: string;
+  items: SidebarNavItem[];
+}
 
 export const AdminPage: React.FC = () => {
   const { 
@@ -57,7 +76,7 @@ export const AdminPage: React.FC = () => {
   } = useWatch();
 
   // Active Admin Sub-Module Tab
-  const [activeModule, setActiveModule] = useState<'media' | 'episodes' | 'users' | 'tracking' | 'reviews' | 'system'>('media');
+  const [activeModule, setActiveModule] = useState<AdminModuleId>('media');
 
   // Tracking Search & Filter
   const [trackingSearch, setTrackingSearch] = useState('');
@@ -410,8 +429,80 @@ export const AdminPage: React.FC = () => {
     });
   }, [visitorSessions, trackingFilterOS, trackingSearch]);
 
+  // Sidebar Navigation Groups
+  const sidebarNavGroups: SidebarNavGroup[] = useMemo(() => [
+    {
+      group: 'KONTEN & KATALOG',
+      items: [
+        {
+          id: 'media',
+          label: 'Katalog Media',
+          desc: 'Kelola film & serial',
+          icon: Film,
+          badge: `${allMedia.length}`,
+          badgeColor: 'bg-brand-500/20 text-brand-300 border-brand-500/30'
+        },
+        {
+          id: 'episodes',
+          label: 'Episode & Musim',
+          desc: 'Manajemen serial TV',
+          icon: Tv,
+          badge: `${seriesList.length}`,
+          badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+        },
+      ]
+    },
+    {
+      group: 'AUDIENCE & MONITORING',
+      items: [
+        {
+          id: 'tracking',
+          label: 'Pelacakan Cookie & IP',
+          desc: 'Device, OS & sesi visitor',
+          icon: Monitor,
+          badge: `${visitorSessions.length}`,
+          badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
+          pulse: true
+        },
+        {
+          id: 'users',
+          label: 'Pengguna & VIP',
+          desc: 'Akun & status langganan',
+          icon: Users,
+          badge: `${usersList.length}`,
+          badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+        },
+        {
+          id: 'reviews',
+          label: 'Moderasi Ulasan',
+          desc: 'Komentar komunitas',
+          icon: MessageSquare,
+          badge: '5 Baru',
+          badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/30'
+        },
+      ]
+    },
+    {
+      group: 'KONFIGURASI',
+      items: [
+        {
+          id: 'system',
+          label: 'Sistem & REST API',
+          desc: 'Spring Boot & cache',
+          icon: Settings,
+          badge: 'Online',
+          badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+        },
+      ]
+    }
+  ], [allMedia.length, seriesList.length, visitorSessions.length, usersList.length]);
+
+  const allNavItems: SidebarNavItem[] = useMemo(() => {
+    return sidebarNavGroups.reduce<SidebarNavItem[]>((acc, g) => acc.concat(g.items), []);
+  }, [sidebarNavGroups]);
+
   return (
-    <div className="pt-20 sm:pt-24 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 animate-fade-in">
+    <div className="pt-20 sm:pt-24 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 animate-fade-in">
       
       {/* Toast Notification */}
       {successToast && (
@@ -422,112 +513,239 @@ export const AdminPage: React.FC = () => {
       )}
 
       {/* ========================================================
-          1. ADMIN HEADER BAR & QUICK SYSTEM KPI STATS
+          1. COMPACT ADMIN HEADER WITH BREADCRUMB
           ======================================================== */}
-      <section className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-surface-900 via-surface-800 to-indigo-950/40 border border-white/10 p-6 sm:p-8 shadow-2xl">
+      <section className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-surface-900 via-surface-800 to-indigo-950/40 border border-white/10 p-5 sm:p-6 shadow-2xl">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-bold">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>LiveEuy Admin Console & CMS Engine</span>
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2 flex-wrap text-xs">
+              <span className="text-slate-400">LiveEuy</span>
+              <span className="text-slate-600">/</span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold text-[11px]">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Admin Console</span>
+              </span>
+              <span className="text-slate-600">/</span>
+              <span className="text-brand-400 font-bold capitalize">
+                {activeModule === 'media' && 'Katalog & CMS Media'}
+                {activeModule === 'episodes' && 'Episode & Musim Serial'}
+                {activeModule === 'users' && 'Pengguna & Langganan VIP'}
+                {activeModule === 'tracking' && 'Pelacakan Cookie, IP & Device'}
+                {activeModule === 'reviews' && 'Moderasi Komunitas & Ulasan'}
+                {activeModule === 'system' && 'Pengaturan Sistem & REST API'}
+              </span>
             </div>
-            <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
-              Pusat Manajemen Sistem & Modul
+            <h1 className="text-xl sm:text-3xl font-black text-white tracking-tight">
+              Pusat Kontrol & Manajemen Sistem
             </h1>
-            <p className="text-xs sm:text-sm text-slate-400">
-              Kelola katalog film/serial, episode & musim, pengguna & paket VIP, serta moderasi komunitas.
+            <p className="text-xs text-slate-400">
+              Kelola seluruh konten, penonton, pelacakan sesi visitor, serta konfigurasi server dengan tertata dan cepat.
             </p>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => setCurrentTab('home')}
-              className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center gap-2 transition-colors border border-white/10"
+              className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center gap-1.5 transition-colors border border-white/10"
             >
-              <ExternalLink className="w-4 h-4" />
-              <span>Kembali ke Website</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span>Kembali ke Web</span>
             </button>
             <button
               onClick={openCreateModal}
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-secondary-500 hover:from-brand-500 hover:to-secondary-600 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-brand-600/30 transition-all hover:scale-105 active:scale-95"
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-brand-600 to-secondary-500 hover:from-brand-500 hover:to-secondary-600 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-brand-600/30 transition-all hover:scale-105 active:scale-95"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-3.5 h-3.5" />
               <span>Tambah Tayangan</span>
             </button>
-          </div>
-        </div>
-
-        {/* 5 KPI Metric Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mt-6 pt-6 border-t border-white/10 text-xs sm:text-sm">
-          <div className="bg-black/30 p-3 sm:p-4 rounded-2xl border border-white/5 space-y-1">
-            <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Total Katalog Aktif</span>
-            <span className="text-lg sm:text-2xl font-black text-brand-400">{allMedia.length} Judul</span>
-          </div>
-
-          <div className="bg-black/30 p-3 sm:p-4 rounded-2xl border border-white/5 space-y-1">
-            <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Serial & Musim</span>
-            <span className="text-lg sm:text-2xl font-black text-emerald-400">{seriesList.length} Serial TV</span>
-          </div>
-
-          <div className="bg-black/30 p-3 sm:p-4 rounded-2xl border border-white/5 space-y-1">
-            <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Total Akun Terdaftar</span>
-            <span className="text-lg sm:text-2xl font-black text-amber-400">{usersList.length} Pengguna</span>
-          </div>
-
-          <div className="bg-black/30 p-3 sm:p-4 rounded-2xl border border-white/5 space-y-1">
-            <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Pelacakan Sesi & IP</span>
-            <span className="text-lg sm:text-2xl font-black text-secondary-400 flex items-center gap-1.5">
-              <span>{visitorSessions.length} Sesi</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary-500/20 text-secondary-300 font-mono">Cookie</span>
-            </span>
-          </div>
-
-          <div className="bg-black/30 p-3 sm:p-4 rounded-2xl border border-white/5 space-y-1 col-span-2 sm:col-span-1">
-            <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Status API Backend</span>
-            <span className="text-xs sm:text-sm font-bold text-emerald-400 flex items-center gap-1.5 pt-1">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Spring Boot Online</span>
-            </span>
           </div>
         </div>
       </section>
 
       {/* ========================================================
-          2. MODULE NAVIGATION TABS
+          MOBILE MODULE SELECTOR (Visible on mobile/tablet only)
           ======================================================== */}
-      <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1">
-        {[
-          { id: 'media', label: `1. Katalog & CMS Media (${allMedia.length})`, icon: Film },
-          { id: 'episodes', label: '2. Episode & Musim', icon: Tv },
-          { id: 'users', label: `3. Pengguna & Langganan VIP (${usersList.length})`, icon: Users },
-          { id: 'tracking', label: `4. Pelacakan Cookie & Device (${visitorSessions.length})`, icon: Monitor },
-          { id: 'reviews', label: '5. Moderasi Ulasan', icon: MessageSquare },
-          { id: 'system', label: '6. Pengaturan Sistem & API', icon: Settings },
-        ].map(mod => {
-          const Icon = mod.icon;
-          const isActive = activeModule === mod.id;
+      <div className="lg:hidden flex items-center gap-2 overflow-x-auto scrollbar-none pb-1">
+        {allNavItems.map(item => {
+          const Icon = item.icon;
+          const isActive = activeModule === item.id;
           return (
             <button
-              key={mod.id}
-              onClick={() => setActiveModule(mod.id as any)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
+              key={item.id}
+              onClick={() => setActiveModule(item.id)}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                 isActive
-                  ? 'bg-brand-600 text-white shadow-lg shadow-brand-600/30 scale-105'
+                  ? 'bg-brand-600 text-white shadow-lg shadow-brand-600/30'
                   : 'bg-surface-800/80 text-slate-300 hover:text-white border border-white/5'
               }`}
             >
-              <Icon className="w-4 h-4" />
-              <span>{mod.label}</span>
+              <Icon className="w-3.5 h-3.5" />
+              <span>{item.label}</span>
+              {item.badge && (
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-white/10 font-mono">
+                  {item.badge}
+                </span>
+              )}
             </button>
           );
         })}
       </div>
 
       {/* ========================================================
-          MODULE 1: KATALOG & CMS MEDIA
+          DASHBOARD 2-COLUMN LAYOUT: SIDEBAR + MAIN CONTENT
           ======================================================== */}
-      {activeModule === 'media' && (
-        <section className="space-y-4">
+      <div className="flex flex-col lg:flex-row items-start gap-6">
+
+        {/* ========================================================
+            LEFT SIDEBAR NAVIGATION (Sticky on Desktop)
+            ======================================================== */}
+        <aside className="hidden lg:block w-72 shrink-0 sticky top-24 space-y-4">
+          <div className="rounded-3xl bg-surface-900/90 backdrop-blur-xl border border-white/10 p-4 shadow-2xl space-y-5">
+            
+            {/* Sidebar Brand / Admin Badge */}
+            <div className="p-3 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-600 to-secondary-500 flex items-center justify-center shadow-md shadow-brand-500/30">
+                  <ShieldCheck className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-white block">CMS Engine v2.4</span>
+                  <span className="text-[10px] text-slate-400 block">Super Administrator</span>
+                </div>
+              </div>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                Live
+              </span>
+            </div>
+
+            {/* Sidebar Navigation Groups */}
+            <nav className="space-y-4">
+              {sidebarNavGroups.map(group => (
+                <div key={group.group} className="space-y-1.5">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 px-3 block">
+                    {group.group}
+                  </span>
+                  <div className="space-y-1">
+                    {group.items.map(item => {
+                      const Icon = item.icon;
+                      const isActive = activeModule === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => setActiveModule(item.id)}
+                          className={`w-full flex items-center justify-between p-2.5 rounded-2xl text-left transition-all group ${
+                            isActive
+                              ? 'bg-gradient-to-r from-brand-600/30 to-secondary-600/20 text-white font-bold border border-brand-500/50 shadow-lg shadow-brand-600/20'
+                              : 'text-slate-300 hover:text-white hover:bg-white/5 border border-transparent'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
+                              isActive
+                                ? 'bg-brand-600 text-white shadow-md shadow-brand-600/40'
+                                : 'bg-surface-800 text-slate-400 group-hover:text-white group-hover:bg-surface-700'
+                            }`}>
+                              <Icon className="w-4 h-4" />
+                            </div>
+                            <div className="min-w-0">
+                              <span className="text-xs font-semibold block truncate leading-tight">
+                                {item.label}
+                              </span>
+                              <span className="text-[10px] text-slate-400 block truncate leading-tight mt-0.5">
+                                {item.desc}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
+                            {item.badge && (
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border font-mono ${item.badgeColor}`}>
+                                {item.pulse && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 inline-block mr-1 animate-pulse" />}
+                                {item.badge}
+                              </span>
+                            )}
+                            <ChevronRight className={`w-3.5 h-3.5 transition-transform ${
+                              isActive ? 'text-brand-400 translate-x-0.5' : 'text-slate-600 group-hover:text-slate-400'
+                            }`} />
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </nav>
+
+            {/* Quick Actions & System Info in Sidebar */}
+            <div className="pt-2 border-t border-white/10 space-y-2">
+              <button
+                onClick={openCreateModal}
+                className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-brand-600 to-secondary-500 hover:from-brand-500 hover:to-secondary-600 text-white text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-brand-600/25 transition-all"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Tambah Tayangan Baru</span>
+              </button>
+
+              <div className="p-3 rounded-2xl bg-surface-950/70 border border-white/5 space-y-1.5 text-[11px]">
+                <div className="flex items-center justify-between text-slate-400">
+                  <span>Spring Boot REST API</span>
+                  <span className="text-emerald-400 font-bold">Online</span>
+                </div>
+                <div className="flex items-center justify-between text-slate-400">
+                  <span>Pelacak Cookie</span>
+                  <span className="text-cyan-400 font-bold font-mono">Aktif (365d)</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </aside>
+
+        {/* ========================================================
+            RIGHT MAIN CONTENT AREA
+            ======================================================== */}
+        <main className="flex-1 min-w-0 w-full space-y-6">
+
+          {/* 5 KPI Metric Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 text-xs">
+            <div className="bg-surface-900/80 p-3.5 rounded-2xl border border-white/10 space-y-1 shadow-lg">
+              <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Katalog Media</span>
+              <span className="text-xl sm:text-2xl font-black text-brand-400">{allMedia.length} Judul</span>
+            </div>
+
+            <div className="bg-surface-900/80 p-3.5 rounded-2xl border border-white/10 space-y-1 shadow-lg">
+              <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Serial & Musim</span>
+              <span className="text-xl sm:text-2xl font-black text-emerald-400">{seriesList.length} Serial</span>
+            </div>
+
+            <div className="bg-surface-900/80 p-3.5 rounded-2xl border border-white/10 space-y-1 shadow-lg">
+              <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Akun Pengguna</span>
+              <span className="text-xl sm:text-2xl font-black text-amber-400">{usersList.length} Akun</span>
+            </div>
+
+            <div className="bg-surface-900/80 p-3.5 rounded-2xl border border-white/10 space-y-1 shadow-lg">
+              <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Sesi Cookie & IP</span>
+              <span className="text-xl sm:text-2xl font-black text-cyan-400 flex items-center gap-1">
+                <span>{visitorSessions.length}</span>
+                <span className="text-[9px] px-1 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono">Live</span>
+              </span>
+            </div>
+
+            <div className="bg-surface-900/80 p-3.5 rounded-2xl border border-white/10 space-y-1 shadow-lg col-span-2 sm:col-span-1">
+              <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Status Server</span>
+              <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5 pt-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Spring Boot 8080</span>
+              </span>
+            </div>
+          </div>
+
+          {/* ========================================================
+              MODULE 1: KATALOG & CMS MEDIA
+              ======================================================== */}
+          {activeModule === 'media' && (
+            <section className="space-y-4">
           {/* Filter Bar */}
           <div className="flex flex-wrap items-center justify-between gap-3 bg-surface-800/60 p-4 rounded-2xl border border-white/5">
             <div className="flex items-center gap-2 flex-1 max-w-sm">
@@ -1283,6 +1501,9 @@ export const AdminPage: React.FC = () => {
           </div>
         </section>
       )}
+
+        </main>
+      </div>
 
       {/* ========================================================
           MEDIA CREATE / EDIT MODAL
