@@ -148,21 +148,6 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
         <ChevronRight className="w-6 h-6 lg:w-7 lg:h-7 translate-x-0.5" />
       </button>
 
-      {/* Netflix-Style Maturity & Audio Badge on Right Edge */}
-      <div className="hidden lg:flex items-center gap-2 absolute right-0 top-1/3 z-20">
-        <div className="border-l-4 border-brand-500 bg-black/70 backdrop-blur-md py-1.5 px-3 rounded-l-xl border-y border-r-0 border-white/10 shadow-xl flex items-center gap-2.5 text-xs font-bold text-white">
-          <span className="font-mono text-slate-200">{currentMedia.ageRating}</span>
-          <span className="w-1 h-1 rounded-full bg-slate-500" />
-          <span className="text-[11px] text-brand-300">{currentMedia.quality}</span>
-          {currentMedia.audio && (
-            <>
-              <span className="w-1 h-1 rounded-full bg-slate-500" />
-              <span className="text-[10px] text-slate-300 uppercase tracking-wider">{currentMedia.audio}</span>
-            </>
-          )}
-        </div>
-      </div>
-
       {/* Featured Content Details with balanced spacing below navbar */}
       <div className="relative max-w-7xl mx-auto h-full flex flex-col justify-end pt-16 sm:pt-20 md:pt-24 pb-12 sm:pb-14 md:pb-16 lg:pb-20 px-4 sm:px-6 lg:px-8 z-10">
         <div 
