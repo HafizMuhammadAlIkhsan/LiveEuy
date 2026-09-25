@@ -600,6 +600,87 @@ curl -X PUT "http://localhost:8080/api/v1/user/settings?userId=user_hafiz" \
   -d '{"streamingQuality":"FHD_1080P","spatialAudio":true,"autoSkipIntro":true,"wifiOnlyDownload":true,"notifications":true}'
 ```
 
+---
+
+## ⚡ Arsitektur Penanganan Kesalahan Klien: Dio & DioException (Mobile & Web)
+
+Untuk menjamin keandalan dan konsistensi interaksi jaringan antara klien Flutter (`dev-mobile`) dan server Spring Boot (`dev-backend`), seluruh lapisan jaringan HTTP telah distandarisasi menggunakan arsitektur **Dio & DioException** (spesifikasi Dio 5.x).
+
+### 1. Klasifikasi Tipe `DioExceptionType`
+
+| `DioExceptionType` | Kondisi Pemicu | Respon Backend / Status Code | Kelas Turunan di Klien |
+|---|---|---|---|
+| `badResponse` | Server mengembalikan kode 4xx atau 5xx | HTTP 400, 401, 403, 404, 409, 422, 500 | `BadRequestException`, `UnauthorizedException`, `ForbiddenException`, `NotFoundException`, `ConflictException`, `ServerException` |
+| `connectionTimeout` | Timeout saat inisialisasi koneksi soket TCP | *Tidak ada respon* (Timeout > 15s) | `ApiTimeoutException` |
+| `sendTimeout` | Timeout saat upload payload request | *Tidak ada respon* | `ApiTimeoutException` |
+| `receiveTimeout` | Timeout saat menunggu stream byte respon | *Tidak ada respon* | `ApiTimeoutException` |
+| `connectionError` | Koneksi jaringan terputus / offline / server down | `SocketException` / DNS failure | `NetworkException` |
+| `badCertificate` | Kegagalan handshake TLS/SSL | Sertifikat HTTPS tidak valid | `DioException.badCertificate` |
+| `cancel` | Request dibatalkan oleh pengguna / navigasi | Pembatalan klien | `DioException.cancel` |
+| `unknown` | Kesalahan tidak terduga lainnya | Error runtime / format data corrupt | `DioException.unknown` |
+
+---
+
+### 2. Standar Ekstraksi Pesan Error dari `ApiResponse`
+
+Setiap kali terjadi `badResponse` (4xx/5xx), objek `DioException` secara otomatis membongkar payload JSON standar backend Spring Boot (`message`, `error`, atau array `errors`):
+```json
+{
+  "success": false,
+  "message": "Film tidak ditemukan dengan ID: m999",
+  "data": null,
+  "timestamp": "2026-09-25T14:15:00"
+}
+```
+* **`e.backendMessage`**: Otomatis mengekstrak nilai `"message"` (`"Film tidak ditemukan dengan ID: m999"`).
+* **`e.statusCode`**: Mengembalikan status code numerik HTTP (`404`, `400`, `401`, `409`, dll).
+* **Helper Boolean Ekspresif**:
+  - `e.isBadRequest`: `true` untuk HTTP 400 & 422.
+  - `e.isUnauthorized`: `true` untuk HTTP 401.
+  - `e.isForbidden`: `true` untuk HTTP 403.
+  - `e.isNotFound`: `true` untuk HTTP 404.
+  - `e.isConflict`: `true` untuk HTTP 409 (duplikasi email/data).
+  - `e.isServerError`: `true` untuk status code HTTP 5xx.
+  - `e.isNetworkError`: `true` saat offline atau server mati.
+  - `e.isTimeout`: `true` untuk kegagalan connect, send, atau receive timeout.
+  - `e.isBadCertificate`: `true` untuk sertifikat SSL tidak valid.
+  - `e.isCancelled`: `true` jika request dibatalkan klien.
+
+---
+
+### 3. Pipeline Interceptor Jaringan
+
+Klien HTTP dilengkapi pipeline interceptor 3 arah (`onRequest`, `onResponse`, `onError`):
+* **`LoggingInterceptor`**: Mencatat rute HTTP, status code, dan error secara rapi pada mode debug (`[Dio/HTTP] --> GET /api/v1/media`, `[Dio/HTTP] <-- [200]`).
+* **`AuthInterceptor`**: Menginjeksi header `Authorization: Bearer <token>` secara otomatis jika pengguna memiliki sesi aktif.
+* **`ErrorInterceptor`**: Menangkap kegagalan jaringan untuk logging terpusat, analitik error, atau navigasi sesi logout otomatis.
+
+---
+
+### 4. Contoh Penggunaan di Sisi Klien (Flutter / Dart)
+
+```dart
+try {
+  final media = await apiClient.get<Movie>(
+    '/media/m999',
+    fromJson: (json) => Movie.fromJson(json),
+  );
+  print('Judul: ${media.data?.title}');
+} on ConflictException catch (e) {
+  showSnackbar('Konflik: ${e.backendMessage}');
+} on DioException catch (e) {
+  if (e.isNotFound) {
+    showToast('Tayangan tidak ditemukan di katalog LiveEuy');
+  } else if (e.isUnauthorized) {
+    navigateToLogin();
+  } else if (e.isNetworkError) {
+    showOfflineBanner(e.message);
+  } else {
+    showErrorDialog(e.backendMessage ?? 'Terjadi kesalahan sistem (${e.statusCode})');
+  }
+}
+```
+
 
 
 

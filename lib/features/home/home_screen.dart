@@ -512,7 +512,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 child: const Icon(Icons.tv_rounded, color: AppColors.tertiary),
               ),
               title: Text(
-                'Living Room Android TV (4K)',
+                'Living Room Smart TV',
                 style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w600),
               ),
               subtitle: Text(
@@ -523,7 +523,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Terhubung ke Living Room Android TV (4K)'),
+                    content: Text('Terhubung ke Living Room Smart TV'),
                     backgroundColor: AppColors.primaryContainer,
                   ),
                 );
@@ -540,7 +540,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 child: const Icon(Icons.airplay_rounded, color: AppColors.primary),
               ),
               title: Text(
-                'Bedroom Apple TV (Dolby Vision)',
+                'Bedroom Smart TV (AirPlay)',
                 style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w600),
               ),
               subtitle: Text(
@@ -551,7 +551,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Terhubung ke Bedroom Apple TV'),
+                    content: Text('Terhubung ke Bedroom Smart TV (AirPlay)'),
                     backgroundColor: AppColors.primaryContainer,
                   ),
                 );
@@ -1147,8 +1147,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          heroMovie.durationOrSeasons.toLowerCase().contains('musim')
-                              ? 'SERIAL UNGGULAN'
+                          heroMovie.top10Rank != null
+                              ? 'TOP ${heroMovie.top10Rank} HARI INI'
                               : 'TOP 1 HARI INI',
                           style: GoogleFonts.outfit(
                             fontSize: 10,
@@ -1227,36 +1227,50 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         const SizedBox(height: 10),
                       ],
 
-                      Row(
-                        children: [
-                          Text(
-                            '${heroMovie.matchScore.toInt()}% Match',
-                            style: GoogleFonts.outfit(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFF46D369),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        physics: const NeverScrollableScrollPhysics(),
+                        child: Row(
+                          children: [
+                            Text(
+                              '${heroMovie.matchScore.toInt()}% Cocok',
+                              style: GoogleFonts.outfit(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF46D369),
+                              ),
                             ),
-                          ),
-                          _buildDotSeparator(),
-                          Text(
-                            '${heroMovie.releaseYear}',
-                            style: GoogleFonts.outfit(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white70,
+                            _buildDotSeparator(),
+                            Text(
+                              '${heroMovie.releaseYear}',
+                              style: GoogleFonts.outfit(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white70,
+                              ),
                             ),
-                          ),
-                          _buildDotSeparator(),
-                          _buildHeroMetaPill(heroMovie.ageRating),
-                          if (heroMovie.resolutionBadges.isNotEmpty) ...[
-                            const SizedBox(width: 6),
-                            _buildHeroMetaPill(heroMovie.resolutionBadges.first),
+                            _buildDotSeparator(),
+                            _buildHeroMetaPill(heroMovie.ageRating),
+                            if (heroMovie.resolutionBadges.isNotEmpty) ...[
+                              const SizedBox(width: 6),
+                              _buildHeroMetaPill(
+                                heroMovie.resolutionBadges.firstWhere(
+                                  (b) => !b.toLowerCase().contains('atmos'),
+                                  orElse: () => '4K UHD',
+                                ),
+                              ),
+                            ],
+                            _buildDotSeparator(),
+                            Text(
+                              heroMovie.durationOrSeasons,
+                              style: GoogleFonts.outfit(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white70,
+                              ),
+                            ),
                           ],
-                          if (heroMovie.resolutionBadges.length > 1) ...[
-                            const SizedBox(width: 6),
-                            _buildHeroMetaPill(heroMovie.resolutionBadges[1]),
-                          ],
-                        ],
+                        ),
                       ),
                       const SizedBox(height: 8),
 

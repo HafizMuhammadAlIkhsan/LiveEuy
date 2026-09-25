@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:liveeuy_mob/core/network/api_client.dart';
-import 'package:liveeuy_mob/core/network/api_exception.dart';
 
 void main() {
   group('ApiClient Tests', () {

@@ -7,6 +7,7 @@ import '../../core/theme/app_theme.dart';
 import '../../models/movie_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/media_provider.dart';
+import '../auth/login_screen.dart';
 import '../player/video_player_screen.dart';
 
 class ContentDetailScreen extends ConsumerStatefulWidget {
@@ -26,6 +27,8 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
   late TabController _tabController;
   final ScrollController _scrollController = ScrollController();
   final GlobalKey _starRatingKey = GlobalKey();
+  final TextEditingController _commentController = TextEditingController();
+  final Set<String> _likedReviewIds = {};
 
   bool _isSynopsisExpanded = false;
   bool _isDownloadingAll = false;
@@ -51,6 +54,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
   void dispose() {
     _tabController.dispose();
     _scrollController.dispose();
+    _commentController.dispose();
     super.dispose();
   }
 
@@ -118,16 +122,43 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
   }
 
   void _handleQuickRate() {
+    final user = ref.read(authProvider);
     _tabController.animateTo(3);
-    Future.delayed(const Duration(milliseconds: 300), () {
-      if (_starRatingKey.currentContext != null) {
-        Scrollable.ensureVisible(
-          _starRatingKey.currentContext!,
-          duration: const Duration(milliseconds: 400),
-          curve: Curves.easeInOut,
-        );
-      }
-    });
+    if (!user.isLoggedIn) {
+      _showToast(
+        'Silakan masuk terlebih dahulu untuk memberikan nilai & ulasan',
+        icon: Icons.lock_outline_rounded,
+        color: AppColors.error,
+      );
+    } else {
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (_starRatingKey.currentContext != null) {
+          Scrollable.ensureVisible(
+            _starRatingKey.currentContext!,
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeInOut,
+          );
+        }
+      });
+    }
+  }
+
+  String _formatReviewDate(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 60) {
+      if (diff.inMinutes <= 1) return 'Baru saja';
+      return '${diff.inMinutes} menit lalu';
+    } else if (diff.inHours < 24) {
+      return '${diff.inHours} jam lalu';
+    } else if (diff.inDays < 7) {
+      return '${diff.inDays} hari lalu';
+    } else if (diff.inDays < 30) {
+      final weeks = (diff.inDays / 7).floor();
+      return '$weeks minggu lalu';
+    } else {
+      final months = (diff.inDays / 30).floor();
+      return '$months bulan lalu';
+    }
   }
 
   @override
@@ -354,10 +385,16 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
                       ),
                       _buildDotSeparator(),
                       _buildTagBadge(widget.movie.ageRating),
-                      const SizedBox(width: 6),
-                      _buildTagBadge('4K UHD', isHighlight: true),
-                      const SizedBox(width: 6),
-                      _buildTagBadge('Dolby Vision', isHighlight: true),
+                      if (widget.movie.resolutionBadges.isNotEmpty) ...[
+                        const SizedBox(width: 6),
+                        _buildTagBadge(
+                          widget.movie.resolutionBadges.firstWhere(
+                            (b) => !b.toLowerCase().contains('atmos'),
+                            orElse: () => widget.movie.resolutionBadges.first,
+                          ),
+                          isHighlight: true,
+                        ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 14),
@@ -1098,35 +1135,89 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
 
   // 4. Tab: Ulasan Pengguna (Reviews & Ratings)
   Widget _buildReviewsTab() {
-    final reviews = MockData.gadiskretekReviews;
+    final user = ref.watch(authProvider);
+    final mediaState = ref.watch(mediaProvider);
+    final reviews = mediaState.movieReviews[widget.movie.id] ??
+        MockData.getInitialReviews(widget.movie.id);
+
+    // Hitung rata-rata rating dinamis dari daftar ulasan
+    double avgRating = widget.movie.userRating;
+    if (reviews.isNotEmpty) {
+      final total = reviews.fold<double>(0.0, (acc, r) => acc + r.rating);
+      avgRating = total / reviews.length;
+    }
+    final displayAvg = avgRating.toStringAsFixed(1);
+
+    String scoreStatus;
+    if (avgRating >= 9.0) {
+      scoreStatus = 'Mahakarya Sempurna dari Penonton';
+    } else if (avgRating >= 8.0) {
+      scoreStatus = 'Skor Penonton Sangat Baik';
+    } else if (avgRating >= 7.0) {
+      scoreStatus = 'Ulasan Penonton Positif';
+    } else if (avgRating >= 5.0) {
+      scoreStatus = 'Ulasan Cukup Menarik';
+    } else {
+      scoreStatus = 'Ulasan Penonton Beragam';
+    }
+
+    String ratingLabel(int val) {
+      switch (val) {
+        case 10:
+          return 'Mahakarya Sempurna! (10/10)';
+        case 9:
+          return 'Luar Biasa! (9/10)';
+        case 8:
+          return 'Sangat Bagus (8/10)';
+        case 7:
+          return 'Bagus & Menghibur (7/10)';
+        case 6:
+          return 'Cukup Menarik (6/10)';
+        case 5:
+          return 'Standar (5/10)';
+        case 4:
+          return 'Kurang Memuaskan (4/10)';
+        case 3:
+          return 'Mengecewakan (3/10)';
+        case 1:
+        case 2:
+          return 'Sangat Buruk ($val/10)';
+        default:
+          return 'Sentuh bintang untuk memilih nilai (1-10)';
+      }
+    }
 
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Overall Score Card (8.8 / 10)
+          // 1. Overall Score Card (Nilai Rata-rata Dinamis)
           Container(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: AppColors.surfaceContainerLow,
               borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.06),
+              ),
             ),
             child: Row(
               children: [
                 Container(
-                  width: 60,
-                  height: 60,
+                  width: 64,
+                  height: 64,
                   decoration: BoxDecoration(
                     color: AppColors.surfaceContainerHigh,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(14),
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        '8.8',
+                        displayAvg,
                         style: GoogleFonts.outfit(
-                          fontSize: 22,
+                          fontSize: 24,
                           fontWeight: FontWeight.w900,
                           color: AppColors.secondary,
                         ),
@@ -1149,24 +1240,32 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
                       Row(
                         children: List.generate(
                           5,
-                          (i) => Icon(
-                            i < 4 ? Icons.star_rounded : Icons.star_half_rounded,
-                            color: AppColors.secondary,
-                            size: 18,
-                          ),
+                          (i) {
+                            final score5 = avgRating / 2.0;
+                            if (score5 >= i + 1) {
+                              return const Icon(Icons.star_rounded,
+                                  color: AppColors.secondary, size: 18);
+                            } else if (score5 >= i + 0.5) {
+                              return const Icon(Icons.star_half_rounded,
+                                  color: AppColors.secondary, size: 18);
+                            } else {
+                              return const Icon(Icons.star_outline_rounded,
+                                  color: AppColors.outline, size: 18);
+                            }
+                          },
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 3),
                       Text(
-                        'Skor Penonton Sangat Baik',
+                        scoreStatus,
                         style: GoogleFonts.outfit(
                           fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w700,
                           color: AppColors.onSurface,
                         ),
                       ),
                       Text(
-                        'Berdasarkan 14.280 ulasan pengguna',
+                        'Berdasarkan ${reviews.length} ulasan penonton terverifikasi',
                         style: GoogleFonts.inter(
                           fontSize: 11,
                           color: AppColors.outline,
@@ -1178,157 +1277,561 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
               ],
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
 
-          // Quick Interactive 10-Star Rating Bar
+          // 2. Rating & Review Form (Jika belum login: Tampilkan Kartu Login Required)
           Container(
             key: _starRatingKey,
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: AppColors.surfaceContainerLow,
               borderRadius: BorderRadius.circular(16),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Beri Nilai Tayangan Ini',
-                      style: GoogleFonts.outfit(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.onSurface,
-                      ),
-                    ),
-                    Text(
-                      _userSelectedRating > 0
-                          ? 'Nilai Anda: $_userSelectedRating/10 ★'
-                          : 'Sentuh untuk menilai',
-                      style: GoogleFonts.outfit(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.secondary,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-
-                // 10 Star Row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: List.generate(10, (idx) {
-                    final starVal = idx + 1;
-                    final isFilled = starVal <= _userSelectedRating;
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _userSelectedRating = starVal;
-                        });
-                        _showToast(
-                          'Terima kasih! Anda memberi nilai $starVal/10',
-                          icon: Icons.stars_rounded,
-                          color: AppColors.secondary,
-                        );
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 2.0),
-                        child: Icon(
-                          isFilled ? Icons.star_rounded : Icons.star_outline_rounded,
-                          color: isFilled ? AppColors.secondary : AppColors.surfaceVariant,
-                          size: 24,
-                        ),
-                      ),
-                    );
-                  }),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 14),
-
-          // User Reviews Feed
-          ...reviews.map((rev) {
-            return Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: user.isLoggedIn
+                    ? AppColors.secondary.withValues(alpha: 0.25)
+                    : Colors.white.withValues(alpha: 0.08),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            ),
+            child: user.isLoggedIn
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Header: Identitas Pengguna & Label Form
                       Row(
                         children: [
                           CircleAvatar(
                             radius: 16,
-                            backgroundImage: NetworkImage(rev.userAvatarUrl),
+                            backgroundImage: NetworkImage(user.avatarUrl),
                           ),
                           const SizedBox(width: 10),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                rev.userName,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        user.name,
+                                        style: GoogleFonts.outfit(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.onSurface,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    if (user.isVip) ...[
+                                      const SizedBox(width: 6),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 6, vertical: 1.5),
+                                        decoration: BoxDecoration(
+                                          gradient: const LinearGradient(
+                                            colors: [Color(0xFFFFB800), Color(0xFFFF8A00)],
+                                          ),
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          'VIP',
+                                          style: GoogleFonts.outfit(
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.w800,
+                                            color: Colors.black,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                                Text(
+                                  'Tulis Ulasan & Berikan Nilai Anda',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 11,
+                                    color: AppColors.outline,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (_userSelectedRating > 0)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: AppColors.secondary.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                '$_userSelectedRating/10 ★',
                                 style: GoogleFonts.outfit(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.onSurface,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.secondary,
                                 ),
                               ),
-                              Text(
-                                '2 hari lalu',
-                                style: GoogleFonts.inter(
-                                  fontSize: 10,
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Interactive 10-Star Rating Bar
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: List.generate(10, (idx) {
+                          final starVal = idx + 1;
+                          final isFilled = starVal <= _userSelectedRating;
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _userSelectedRating = starVal;
+                              });
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 1.5),
+                              child: Icon(
+                                isFilled
+                                    ? Icons.star_rounded
+                                    : Icons.star_outline_rounded,
+                                color: isFilled
+                                    ? AppColors.secondary
+                                    : AppColors.outline.withValues(alpha: 0.5),
+                                size: 26,
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                      const SizedBox(height: 6),
+                      Center(
+                        child: Text(
+                          ratingLabel(_userSelectedRating),
+                          style: GoogleFonts.outfit(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: _userSelectedRating > 0
+                                ? AppColors.secondary
+                                : AppColors.outline,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Comment Input Box
+                      TextField(
+                        controller: _commentController,
+                        maxLines: 3,
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          color: AppColors.onSurface,
+                        ),
+                        decoration: InputDecoration(
+                          hintText:
+                              'Bagikan pendapat Anda tentang cerita, sinematografi, akting, atau audio film ini...',
+                          hintStyle: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: AppColors.outline.withValues(alpha: 0.7),
+                          ),
+                          filled: true,
+                          fillColor: AppColors.surfaceContainerHigh,
+                          contentPadding: const EdgeInsets.all(12),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: AppColors.primaryContainer,
+                              width: 1.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Action Buttons: Batal & Kirim Ulasan
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          if (_userSelectedRating > 0 ||
+                              _commentController.text.isNotEmpty)
+                            TextButton(
+                              onPressed: () {
+                                setState(() {
+                                  _userSelectedRating = 0;
+                                  _commentController.clear();
+                                });
+                              },
+                              child: Text(
+                                'Batal',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 12,
                                   color: AppColors.outline,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
-                            ],
+                            ),
+                          const SizedBox(width: 8),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              if (_userSelectedRating <= 0) {
+                                _showToast(
+                                  'Harap berikan nilai rating bintang (1-10) terlebih dahulu',
+                                  icon: Icons.star_rounded,
+                                  color: AppColors.error,
+                                );
+                                return;
+                              }
+                              if (_commentController.text.trim().isEmpty) {
+                                _showToast(
+                                  'Harap tulis ulasan atau komentar Anda',
+                                  icon: Icons.edit_note_rounded,
+                                  color: AppColors.error,
+                                );
+                                return;
+                              }
+
+                              final commentText = _commentController.text.trim();
+                              final score = _userSelectedRating.toDouble();
+
+                              ref.read(mediaProvider.notifier).addReview(
+                                    widget.movie.id,
+                                    score,
+                                    commentText,
+                                    userName: user.name,
+                                  );
+
+                              setState(() {
+                                _userSelectedRating = 0;
+                                _commentController.clear();
+                              });
+                              FocusScope.of(context).unfocus();
+
+                              _showToast(
+                                'Ulasan Anda berhasil dikirim! Terima kasih atas partisipasinya.',
+                                icon: Icons.check_circle_rounded,
+                                color: AppColors.tertiary,
+                              );
+                            },
+                            icon: const Icon(
+                              Icons.send_rounded,
+                              size: 15,
+                              color: Colors.white,
+                            ),
+                            label: Text(
+                              'Kirim Ulasan',
+                              style: GoogleFonts.outfit(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryContainer,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 18, vertical: 10),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 2,
+                            ),
                           ),
                         ],
                       ),
+                    ],
+                  )
+                : Column(
+                    children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        width: 52,
+                        height: 52,
                         decoration: BoxDecoration(
-                          color: AppColors.surfaceContainerHigh,
-                          borderRadius: BorderRadius.circular(12),
+                          color: AppColors.primaryContainer.withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
                         ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.star_rounded, color: AppColors.secondary, size: 14),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${rev.rating.toInt()}/10',
-                              style: GoogleFonts.outfit(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.onSurface,
-                              ),
+                        child: const Icon(
+                          Icons.rate_review_outlined,
+                          color: AppColors.primaryContainer,
+                          size: 26,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Masuk untuk Memberikan Ulasan & Rating',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.outfit(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Anda belum masuk ke akun. Silakan masuk terlebih dahulu untuk memberikan nilai bintang dan membagikan ulasan kepada penonton lainnya.',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: AppColors.outline,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const LoginScreen(initialTabIndex: 0),
                             ),
-                          ],
+                          );
+                        },
+                        icon: const Icon(
+                          Icons.login_rounded,
+                          size: 16,
+                          color: Colors.white,
+                        ),
+                        label: Text(
+                          'Masuk Sekarang',
+                          style: GoogleFonts.outfit(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryContainer,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          elevation: 3,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 10),
+          ),
+          const SizedBox(height: 20),
+
+          // 3. User Reviews Feed Section Title
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Semua Ulasan Penonton',
+                style: GoogleFonts.outfit(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.onSurface,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${reviews.length} ulasan',
+                  style: GoogleFonts.outfit(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.outline,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // 4. Reviews List
+          if (reviews.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.chat_bubble_outline_rounded,
+                    color: AppColors.outline.withValues(alpha: 0.6),
+                    size: 40,
+                  ),
+                  const SizedBox(height: 8),
                   Text(
-                    rev.comment,
+                    'Belum ada ulasan untuk tayangan ini',
+                    style: GoogleFonts.outfit(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Jadilah yang pertama memberikan ulasan dan rating!',
                     style: GoogleFonts.inter(
                       fontSize: 12,
-                      color: AppColors.onSurfaceVariant,
-                      height: 1.45,
+                      color: AppColors.outline,
                     ),
                   ),
                 ],
               ),
-            );
-          }),
+            )
+          else
+            ...reviews.map((rev) {
+              final isLiked = _likedReviewIds.contains(rev.id);
+              final likesCount = rev.likesCount + (isLiked ? 1 : 0);
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.05),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 16,
+                              backgroundImage: NetworkImage(rev.userAvatarUrl),
+                            ),
+                            const SizedBox(width: 10),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  rev.userName,
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.onSurface,
+                                  ),
+                                ),
+                                Text(
+                                  _formatReviewDate(rev.createdAt),
+                                  style: GoogleFonts.inter(
+                                    fontSize: 10,
+                                    color: AppColors.outline,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AppColors.secondary.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.star_rounded,
+                                  color: AppColors.secondary, size: 14),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${rev.rating.toInt()}/10',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.secondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      rev.comment,
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: AppColors.onSurfaceVariant,
+                        height: 1.45,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    // Like / Helpful interaction
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              if (isLiked) {
+                                _likedReviewIds.remove(rev.id);
+                              } else {
+                                _likedReviewIds.add(rev.id);
+                              }
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: isLiked
+                                  ? AppColors.tertiary.withValues(alpha: 0.15)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  isLiked
+                                      ? Icons.thumb_up_rounded
+                                      : Icons.thumb_up_alt_outlined,
+                                  size: 13,
+                                  color: isLiked
+                                      ? AppColors.tertiary
+                                      : AppColors.outline,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '$likesCount',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 11,
+                                    fontWeight: isLiked
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                    color: isLiked
+                                        ? AppColors.tertiary
+                                        : AppColors.outline,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Membantu',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 10,
+                                    color: isLiked
+                                        ? AppColors.tertiary
+                                        : AppColors.outline,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }),
         ],
       ),
     );

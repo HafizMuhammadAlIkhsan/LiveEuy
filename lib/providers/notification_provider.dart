@@ -29,7 +29,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
               id: 'notif_1',
               title: 'Episode Baru Rilis!',
               message:
-                  'Cyberpunk: Neo Nusantara Musim 2 Episode 1 sekarang sudah tayang dalam format 4K UHD.',
+                  'Cyberpunk: Neo Nusantara Musim 2 Episode 1 sekarang sudah tayang dalam format Full HD Original.',
               time: '15 menit lalu',
               iconType: 'sparkles',
               targetMediaId: 'm_hero',

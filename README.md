@@ -88,6 +88,21 @@
 - **Interactive Swagger UI**: `http://localhost:8080/swagger-ui.html`
 - **OpenAPI Schema**: `http://localhost:8080/api-docs`
 
+### Lapisan Jaringan & Error Handling (Dio & DioException Architecture)
+- **Standar Protokol**: Mengikuti arsitektur **Dio 5.x** dengan penanganan exception menggunakan `DioException` dan `DioExceptionType`.
+- **Klasifikasi Error Jaringan**:
+  - `DioExceptionType.badResponse`: Menangani error 4xx dan 5xx dengan parsing otomatis pesan error JSON dari backend Spring Boot (`e.backendMessage`). Mendukung `BadRequestException` (400, 422), `UnauthorizedException` (401), `ForbiddenException` (403), `NotFoundException` (404), `ConflictException` (409), dan `ServerException` (5xx).
+  - `DioExceptionType.connectionTimeout`, `sendTimeout`, `receiveTimeout`: Menangani kegagalan batas waktu request (`ApiTimeoutException`).
+  - `DioExceptionType.connectionError`: Menangani putusnya sambungan internet / backend offline (`NetworkException`).
+  - `DioExceptionType.badCertificate`: Menangani sertifikat SSL/TLS yang tidak valid.
+  - `DioExceptionType.cancel`: Mendukung pembatalan request oleh navigasi/pengguna.
+  - `DioExceptionType.unknown`: Menangani error tidak terduga lainnya.
+- **Pipeline Interceptor 3-Arah**:
+  - `LoggingInterceptor`: Pelacakan request, status code respon, dan kegagalan jaringan secara real-time.
+  - `AuthInterceptor`: Otomatisasi penyematan `Authorization: Bearer <token>` pada request terproteksi.
+  - `ErrorInterceptor`: Menangkap kegagalan jaringan untuk penanganan dan logging terpusat.
+- **Interoperabilitas Penuh**: Typed exceptions (`BadRequestException`, `UnauthorizedException`, `ForbiddenException`, `NotFoundException`, `ConflictException`, `ServerException`, `NetworkException`, `ApiTimeoutException`) merupakan turunan dari `ApiException` sekaligus mengimplementasikan `DioException` dengan helper boolean ekspresif (`isNotFound`, `isUnauthorized`, `isConflict`, `isServerError`, `isNetworkError`, dll).
+
 ---
 
 ## 🚀 Panduan Memulai (Getting Started)
@@ -162,6 +177,14 @@ liveeuy_mob/
 │   ├── core/                          # Fondasi global aplikasi
 │   │   ├── data/
 │   │   │   └── mock_data.dart         # Seeded media catalogue, episode, & offline fallback
+│   │   ├── network/                   # Arsitektur Jaringan Dio & DioException (Dio 5.x spec)
+│   │   │   ├── api_client.dart        # Klien HTTP terpadu dengan pipeline Interceptor
+│   │   │   ├── api_config.dart        # Konfigurasi Base URL, timeout, & headers
+│   │   │   ├── api_exception.dart     # Typed exceptions (BadRequest, Unauthorized, NotFound, dll)
+│   │   │   ├── api_response.dart      # Generic wrapper JSON ApiResponse backend
+│   │   │   ├── api_service.dart       # Sinkronisasi katalog, watchlist, progress, & settings
+│   │   │   ├── dio_exception.dart     # Model DioException, RequestOptions, Response, & DioExceptionType
+│   │   │   └── dio_interceptor.dart   # Interceptor Logging, Bearer Token, & Error Handling
 │   │   └── theme/
 │   │       └── app_theme.dart         # Design System: Palet warna, Typography, Glassmorphism
 │   ├── features/                      # Modul fitur berbasis domain

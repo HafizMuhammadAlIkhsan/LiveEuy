@@ -1,21 +1,41 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'api_config.dart';
 import 'api_exception.dart';
 import 'api_response.dart';
+import 'dio_exception.dart';
+import 'dio_interceptor.dart';
 
+export 'dio_exception.dart';
+export 'dio_interceptor.dart';
+export 'api_exception.dart';
+export 'api_response.dart';
+export 'api_config.dart';
+
+/// Klien HTTP terpadu LiveEuy yang mengadopsi arsitektur Dio 5.x.
+/// Mendukung:
+/// - Penanganan error komprehensif menggunakan [DioException] & [DioExceptionType]
+/// - Interceptor untuk logging, token injection, dan transformasi error
+/// - Parsing otomatis pesan error backend Spring Boot (`ApiResponse.message`)
+/// - Kompatibilitas penuh dengan kontrak API dan unit test yang sudah ada
 class ApiClient {
   final http.Client _httpClient;
   final String? _baseUrlOverride;
+  final List<Interceptor> interceptors = [];
 
   ApiClient({
     http.Client? httpClient,
     String? baseUrl,
+    List<Interceptor>? customInterceptors,
   })  : _httpClient = httpClient ?? http.Client(),
-        _baseUrlOverride = baseUrl;
+        _baseUrlOverride = baseUrl {
+    interceptors.add(LoggingInterceptor());
+    if (customInterceptors != null) {
+      interceptors.addAll(customInterceptors);
+    }
+  }
 
   String get baseUrl => _baseUrlOverride ?? ApiConfig.baseUrl;
 
@@ -47,16 +67,26 @@ class ApiClient {
     Duration? timeout,
   }) async {
     final uri = _buildUri(path, queryParams);
+    final requestOptions = RequestOptions(
+      path: path,
+      method: 'GET',
+      baseUrl: baseUrl,
+      headers: {
+        ...ApiConfig.defaultHeaders,
+        ...?headers,
+      },
+      queryParameters: queryParams,
+      connectTimeout: timeout ?? ApiConfig.timeout,
+    );
+
     return _sendRequest<T>(
       () => _httpClient.get(
-        uri,
-        headers: {
-          ...ApiConfig.defaultHeaders,
-          ...?headers,
-        },
+        requestOptions.uri,
+        headers: requestOptions.headers.map((k, v) => MapEntry(k, v.toString())),
       ),
       method: 'GET',
       uri: uri,
+      requestOptions: requestOptions,
       fromJson: fromJson,
       timeout: timeout,
     );
@@ -73,18 +103,28 @@ class ApiClient {
   }) async {
     final uri = _buildUri(path, queryParams);
     final encodedBody = _encodeBody(body);
+    final requestOptions = RequestOptions(
+      path: path,
+      method: 'POST',
+      baseUrl: baseUrl,
+      headers: {
+        ...ApiConfig.defaultHeaders,
+        ...?headers,
+      },
+      queryParameters: queryParams,
+      data: body,
+      connectTimeout: timeout ?? ApiConfig.timeout,
+    );
 
     return _sendRequest<T>(
       () => _httpClient.post(
-        uri,
-        headers: {
-          ...ApiConfig.defaultHeaders,
-          ...?headers,
-        },
+        requestOptions.uri,
+        headers: requestOptions.headers.map((k, v) => MapEntry(k, v.toString())),
         body: encodedBody,
       ),
       method: 'POST',
       uri: uri,
+      requestOptions: requestOptions,
       fromJson: fromJson,
       timeout: timeout,
     );
@@ -101,18 +141,66 @@ class ApiClient {
   }) async {
     final uri = _buildUri(path, queryParams);
     final encodedBody = _encodeBody(body);
+    final requestOptions = RequestOptions(
+      path: path,
+      method: 'PUT',
+      baseUrl: baseUrl,
+      headers: {
+        ...ApiConfig.defaultHeaders,
+        ...?headers,
+      },
+      queryParameters: queryParams,
+      data: body,
+      connectTimeout: timeout ?? ApiConfig.timeout,
+    );
 
     return _sendRequest<T>(
       () => _httpClient.put(
-        uri,
-        headers: {
-          ...ApiConfig.defaultHeaders,
-          ...?headers,
-        },
+        requestOptions.uri,
+        headers: requestOptions.headers.map((k, v) => MapEntry(k, v.toString())),
         body: encodedBody,
       ),
       method: 'PUT',
       uri: uri,
+      requestOptions: requestOptions,
+      fromJson: fromJson,
+      timeout: timeout,
+    );
+  }
+
+  /// Sends a PATCH request to the given [path].
+  Future<ApiResponse<T>> patch<T>(
+    String path, {
+    Map<String, dynamic>? queryParams,
+    Object? body,
+    Map<String, String>? headers,
+    T Function(dynamic data)? fromJson,
+    Duration? timeout,
+  }) async {
+    final uri = _buildUri(path, queryParams);
+    final encodedBody = _encodeBody(body);
+    final requestOptions = RequestOptions(
+      path: path,
+      method: 'PATCH',
+      baseUrl: baseUrl,
+      headers: {
+        ...ApiConfig.defaultHeaders,
+        ...?headers,
+      },
+      queryParameters: queryParams,
+      data: body,
+      connectTimeout: timeout ?? ApiConfig.timeout,
+    );
+
+    return _sendRequest<T>(
+      () => _httpClient.patch(
+        requestOptions.uri,
+        headers: requestOptions.headers.map((k, v) => MapEntry(k, v.toString())),
+        body: encodedBody,
+      ),
+      method: 'PATCH',
+      uri: uri,
+      requestOptions: requestOptions,
       fromJson: fromJson,
       timeout: timeout,
     );
@@ -127,19 +215,112 @@ class ApiClient {
     Duration? timeout,
   }) async {
     final uri = _buildUri(path, queryParams);
+    final requestOptions = RequestOptions(
+      path: path,
+      method: 'DELETE',
+      baseUrl: baseUrl,
+      headers: {
+        ...ApiConfig.defaultHeaders,
+        ...?headers,
+      },
+      queryParameters: queryParams,
+      connectTimeout: timeout ?? ApiConfig.timeout,
+    );
 
     return _sendRequest<T>(
       () => _httpClient.delete(
-        uri,
-        headers: {
-          ...ApiConfig.defaultHeaders,
-          ...?headers,
-        },
+        requestOptions.uri,
+        headers: requestOptions.headers.map((k, v) => MapEntry(k, v.toString())),
       ),
       method: 'DELETE',
       uri: uri,
+      requestOptions: requestOptions,
       fromJson: fromJson,
       timeout: timeout,
+    );
+  }
+
+  /// Sends a HEAD request to the given [path].
+  Future<ApiResponse<T>> head<T>(
+    String path, {
+    Map<String, dynamic>? queryParams,
+    Map<String, String>? headers,
+    Duration? timeout,
+  }) async {
+    final uri = _buildUri(path, queryParams);
+    final requestOptions = RequestOptions(
+      path: path,
+      method: 'HEAD',
+      baseUrl: baseUrl,
+      headers: {
+        ...ApiConfig.defaultHeaders,
+        ...?headers,
+      },
+      queryParameters: queryParams,
+      connectTimeout: timeout ?? ApiConfig.timeout,
+    );
+
+    return _sendRequest<T>(
+      () => _httpClient.head(
+        requestOptions.uri,
+        headers: requestOptions.headers.map((k, v) => MapEntry(k, v.toString())),
+      ),
+      method: 'HEAD',
+      uri: uri,
+      requestOptions: requestOptions,
+      timeout: timeout,
+    );
+  }
+
+  /// Mengirim request mentah bergaya Dio dan mengembalikan [Response<T>].
+  /// Melemparkan [DioException] jika terjadi kegagalan HTTP atau koneksi.
+  Future<Response<T>> request<T>(
+    String path, {
+    String method = 'GET',
+    Map<String, dynamic>? queryParams,
+    dynamic data,
+    Map<String, String>? headers,
+    Duration? timeout,
+  }) async {
+    final uri = _buildUri(path, queryParams);
+    final requestOptions = RequestOptions(
+      path: path,
+      method: method,
+      baseUrl: baseUrl,
+      headers: {
+        ...ApiConfig.defaultHeaders,
+        ...?headers,
+      },
+      queryParameters: queryParams,
+      data: data,
+      connectTimeout: timeout ?? ApiConfig.timeout,
+    );
+
+    final apiResponse = await _sendRequest<dynamic>(
+      () {
+        final encoded = _encodeBody(data);
+        switch (method.toUpperCase()) {
+          case 'POST':
+            return _httpClient.post(uri, headers: requestOptions.headers.cast<String, String>(), body: encoded);
+          case 'PUT':
+            return _httpClient.put(uri, headers: requestOptions.headers.cast<String, String>(), body: encoded);
+          case 'DELETE':
+            return _httpClient.delete(uri, headers: requestOptions.headers.cast<String, String>());
+          default:
+            return _httpClient.get(uri, headers: requestOptions.headers.cast<String, String>());
+        }
+      },
+      method: method,
+      uri: uri,
+      requestOptions: requestOptions,
+      timeout: timeout,
+    );
+
+    return Response<T>(
+      data: apiResponse.data as T?,
+      statusCode: 200,
+      statusMessage: apiResponse.message,
+      requestOptions: requestOptions,
     );
   }
 
@@ -153,127 +334,198 @@ class ApiClient {
     Future<http.Response> Function() requestFn, {
     required String method,
     required Uri uri,
+    required RequestOptions requestOptions,
     T Function(dynamic data)? fromJson,
     Duration? timeout,
   }) async {
     final requestTimeout = timeout ?? ApiConfig.timeout;
 
+    // Run onRequest interceptors
+    for (final interceptor in interceptors) {
+      try {
+        interceptor.onRequest(requestOptions, RequestInterceptorHandler());
+      } catch (_) {}
+    }
+
     try {
-      if (kDebugMode) {
-        debugPrint('[ApiClient] $method $uri');
-      }
-
       final response = await requestFn().timeout(requestTimeout);
+      final responseBody = utf8.decode(response.bodyBytes);
 
-      if (kDebugMode) {
-        debugPrint('[ApiClient] Response [${response.statusCode}] for $method $uri');
+      dynamic decodedData;
+      Map<String, dynamic>? jsonMap;
+      if (responseBody.isNotEmpty) {
+        try {
+          decodedData = jsonDecode(responseBody);
+          if (decodedData is Map<String, dynamic>) {
+            jsonMap = decodedData;
+          }
+        } catch (_) {
+          decodedData = responseBody;
+        }
       }
 
-      return _processResponse<T>(response, uri, fromJson);
+      final dioResponse = Response(
+        data: decodedData,
+        statusCode: response.statusCode,
+        statusMessage: response.reasonPhrase,
+        headers: response.headers.map((k, v) => MapEntry(k, [v])),
+        requestOptions: requestOptions,
+      );
+
+      // Run onResponse interceptors
+      for (final interceptor in interceptors) {
+        try {
+          interceptor.onResponse(dioResponse, ResponseInterceptorHandler());
+        } catch (_) {}
+      }
+
+      return _processResponse<T>(
+        response,
+        uri,
+        requestOptions,
+        dioResponse,
+        decodedData,
+        jsonMap,
+        fromJson,
+      );
     } on SocketException catch (e) {
-      if (kDebugMode) {
-        debugPrint('[ApiClient] SocketException for $method $uri: ${e.message}');
-      }
-      throw NetworkException(
+      final err = NetworkException(
         message: 'Koneksi ke server gagal: periksa koneksi internet atau server backend.',
         uri: uri,
         originalError: e,
+        requestOptions: requestOptions,
       );
+      _notifyErrorInterceptors(err);
+      throw err;
     } on http.ClientException catch (e) {
-      if (kDebugMode) {
-        debugPrint('[ApiClient] ClientException for $method $uri: ${e.message}');
-      }
-      throw NetworkException(
+      final err = NetworkException(
         message: 'Gagal menghubungi server: ${e.message}',
         uri: uri,
         originalError: e,
+        requestOptions: requestOptions,
       );
+      _notifyErrorInterceptors(err);
+      throw err;
     } on TimeoutException catch (e) {
-      if (kDebugMode) {
-        debugPrint('[ApiClient] TimeoutException for $method $uri');
-      }
-      throw ApiTimeoutException(
+      final err = ApiTimeoutException(
         message: 'Koneksi timeout setelah ${requestTimeout.inSeconds} detik.',
         uri: uri,
         originalError: e,
+        requestOptions: requestOptions,
       );
-    } catch (e) {
-      if (e is ApiException) rethrow;
-      if (kDebugMode) {
-        debugPrint('[ApiClient] Unexpected error for $method $uri: $e');
+      _notifyErrorInterceptors(err);
+      throw err;
+    } on DioException catch (e) {
+      _notifyErrorInterceptors(e);
+      rethrow;
+    } catch (e, st) {
+      if (e is DioException) {
+        _notifyErrorInterceptors(e);
+        rethrow;
       }
-      throw ApiException(
+      if (e is ApiException) {
+        rethrow;
+      }
+      final err = DioException(
+        requestOptions: requestOptions,
+        type: DioExceptionType.unknown,
+        error: e,
+        stackTrace: st,
         message: 'Terjadi kesalahan tidak terduga: $e',
-        uri: uri,
-        originalError: e,
       );
+      _notifyErrorInterceptors(err);
+      throw err;
+    }
+  }
+
+  void _notifyErrorInterceptors(DioException err) {
+    for (final interceptor in interceptors) {
+      try {
+        interceptor.onError(err, ErrorInterceptorHandler());
+      } catch (_) {}
     }
   }
 
   ApiResponse<T> _processResponse<T>(
     http.Response response,
     Uri uri,
+    RequestOptions requestOptions,
+    Response dioResponse,
+    dynamic decodedData,
+    Map<String, dynamic>? jsonMap,
     T Function(dynamic data)? fromJson,
   ) {
     final statusCode = response.statusCode;
-    final responseBody = utf8.decode(response.bodyBytes);
 
-    Map<String, dynamic> jsonMap;
-    try {
-      final decoded = jsonDecode(responseBody);
-      if (decoded is Map<String, dynamic>) {
-        jsonMap = decoded;
+    // Check HTTP status code
+    if (statusCode >= 200 && statusCode < 300) {
+      if (jsonMap != null) {
+        return ApiResponse<T>.fromJson(jsonMap, fromJson);
       } else {
-        jsonMap = {
-          'success': statusCode >= 200 && statusCode < 300,
-          'message': 'OK',
-          'data': decoded,
-        };
-      }
-    } catch (_) {
-      // Body is not JSON
-      if (statusCode >= 200 && statusCode < 300) {
         return ApiResponse<T>(
           success: true,
-          message: 'OK',
-          data: responseBody as dynamic,
+          message: response.reasonPhrase ?? 'OK',
+          data: decodedData as dynamic,
           timestamp: DateTime.now(),
-        );
-      } else if (statusCode == 404) {
-        throw NotFoundException(
-          message: 'Sumber daya tidak ditemukan (404)',
-          statusCode: 404,
-          uri: uri,
-        );
-      } else {
-        throw ServerException(
-          message: 'Server mengembalikan kesalahan HTTP $statusCode',
-          statusCode: statusCode,
-          uri: uri,
         );
       }
     }
 
-    // Check HTTP status code
-    if (statusCode >= 200 && statusCode < 300) {
-      return ApiResponse<T>.fromJson(jsonMap, fromJson);
+    final backendMessage = DioException.extractBackendMessage(decodedData);
+
+    if (statusCode == 400 || statusCode == 422) {
+      throw BadRequestException(
+        message: backendMessage ?? 'Permintaan tidak valid ($statusCode)',
+        statusCode: statusCode,
+        uri: uri,
+        requestOptions: requestOptions,
+        response: dioResponse,
+      );
+    } else if (statusCode == 401) {
+      throw UnauthorizedException(
+        message: backendMessage ?? 'Autentikasi gagal / Sesi kedaluwarsa (401)',
+        statusCode: 401,
+        uri: uri,
+        requestOptions: requestOptions,
+        response: dioResponse,
+      );
+    } else if (statusCode == 403) {
+      throw ForbiddenException(
+        message: backendMessage ?? 'Akses ditolak (403 Forbidden)',
+        statusCode: 403,
+        uri: uri,
+        requestOptions: requestOptions,
+        response: dioResponse,
+      );
     } else if (statusCode == 404) {
       throw NotFoundException(
-        message: jsonMap['message'] as String? ?? 'Data tidak ditemukan (404)',
+        message: backendMessage ?? 'Data tidak ditemukan (404 Not Found)',
         statusCode: 404,
         uri: uri,
+        requestOptions: requestOptions,
+        response: dioResponse,
+      );
+    } else if (statusCode == 409) {
+      throw ConflictException(
+        message: backendMessage ?? 'Terjadi konflik data (409 Conflict)',
+        statusCode: 409,
+        uri: uri,
+        requestOptions: requestOptions,
+        response: dioResponse,
       );
     } else if (statusCode >= 500) {
       throw ServerException(
-        message: jsonMap['message'] as String? ?? 'Kesalahan internal server ($statusCode)',
+        message: backendMessage ?? 'Kesalahan internal server ($statusCode)',
         statusCode: statusCode,
         uri: uri,
+        requestOptions: requestOptions,
+        response: dioResponse,
       );
     } else {
-      throw ApiException(
-        message: jsonMap['message'] as String? ?? 'Permintaan gagal ($statusCode)',
-        statusCode: statusCode,
-        uri: uri,
+      throw DioException.badResponse(
+        requestOptions: requestOptions,
+        response: dioResponse,
+        message: backendMessage ?? 'Server mengembalikan kesalahan HTTP $statusCode',
       );
     }
   }

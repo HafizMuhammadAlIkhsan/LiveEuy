@@ -62,7 +62,12 @@ class MediaNotifier extends StateNotifier<MediaState> {
           popularList: MockData.popularMovies,
           actionSciFiList: MockData.actionSciFiMovies,
           watchlistIds: {'m1', 'm3'},
-          movieReviews: {'m1': MockData.gadiskretekReviews},
+          movieReviews: {
+            'cyberpunk-neo-nusantara': MockData.cyberpunkReviews,
+            'chronicles-of-elysium': MockData.chroniclesReviews,
+            'm1': MockData.gadiskretekReviews,
+            'm_hero': MockData.gundalaReviews,
+          },
         )) {
     if (apiService != null) {
       fetchMedia();
@@ -159,7 +164,8 @@ class MediaNotifier extends StateNotifier<MediaState> {
     );
 
     final currentReviews = Map<String, List<Review>>.from(state.movieReviews);
-    final list = List<Review>.from(currentReviews[movieId] ?? []);
+    final list = List<Review>.from(
+        currentReviews[movieId] ?? MockData.getInitialReviews(movieId));
     list.insert(0, newReview);
     currentReviews[movieId] = list;
 
