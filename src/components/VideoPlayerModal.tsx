@@ -277,61 +277,61 @@ export const VideoPlayerModal: React.FC = () => {
 
       {/* Top Overlay Bar */}
       <div
-        className={`absolute top-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-b from-black/90 via-black/40 to-transparent flex items-center justify-between transition-opacity duration-300 z-30 ${
+        className={`absolute top-0 left-0 right-0 p-3 sm:p-6 bg-gradient-to-b from-black/90 via-black/40 to-transparent flex items-center justify-between transition-opacity duration-300 z-30 ${
           showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       >
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2.5 sm:gap-4 min-w-0">
           <button
             onClick={closePlayer}
-            className="p-2 rounded-full glass-panel hover:bg-white/20 text-white transition-colors"
+            className="p-1.5 sm:p-2 rounded-full glass-panel hover:bg-white/20 text-white transition-colors flex-shrink-0"
             title="Tutup Pemutar (Esc)"
           >
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
-          <div>
-            <h2 className="text-base sm:text-xl font-bold text-white tracking-tight flex items-center gap-2">
-              {currentTitle}
-              <span className="text-xs px-2 py-0.5 rounded bg-brand-600 text-white font-mono">
+          <div className="min-w-0">
+            <h2 className="text-sm sm:text-xl font-bold text-white tracking-tight flex items-center gap-2 truncate">
+              <span className="truncate">{currentTitle}</span>
+              <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded bg-brand-600 text-white font-mono flex-shrink-0">
                 {selectedQuality}
               </span>
             </h2>
-            <p className="text-xs text-slate-300 mt-0.5">{episodeSubtitle}</p>
+            <p className="text-[11px] sm:text-xs text-slate-300 mt-0.5 truncate">{episodeSubtitle}</p>
           </div>
         </div>
 
         {/* Top Right Quick Settings */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
           {/* Ambient Glow Switch */}
           <button
             onClick={() => setAmbientGlow(!ambientGlow)}
-            className={`p-2.5 rounded-full transition-colors ${
+            className={`p-2 sm:p-2.5 rounded-full transition-colors ${
               ambientGlow ? 'bg-brand-600 text-white shadow-lg shadow-brand-600/30' : 'glass-panel text-slate-400'
             }`}
             title="Efek Cahaya Bioskop (Ambient Glow)"
           >
-            <Sparkles className="w-4 h-4" />
+            <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
 
           {/* Stats for nerds toggle */}
           <button
             onClick={() => setShowStats(!showStats)}
-            className={`p-2.5 rounded-full transition-colors ${
+            className={`p-2 sm:p-2.5 rounded-full transition-colors ${
               showStats ? 'bg-indigo-600 text-white' : 'glass-panel text-slate-400 hover:text-white'
             }`}
             title="Statistik Pemutaran / Diagnostik"
           >
-            <Activity className="w-4 h-4" />
+            <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
         </div>
       </div>
 
       {/* Skip Intro Button (Show during 0 to 40 seconds) */}
       {currentTime > 3 && currentTime < 40 && (
-        <div className="absolute bottom-28 right-6 z-30 animate-fade-in">
+        <div className="absolute bottom-24 sm:bottom-28 right-4 sm:right-6 z-30 animate-fade-in">
           <button
             onClick={() => handleSeek(42)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 text-white font-semibold text-sm transition-all hover:scale-105 active:scale-95 shadow-xl"
+            className="flex items-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 text-white font-semibold text-xs sm:text-sm transition-all hover:scale-105 active:scale-95 shadow-xl"
           >
             <span>Lewati Intro</span>
             <ChevronRight className="w-4 h-4" />
@@ -341,7 +341,7 @@ export const VideoPlayerModal: React.FC = () => {
 
       {/* Stream Stats Overlay HUD */}
       {showStats && (
-        <div className="absolute top-20 left-6 z-30 p-4 rounded-2xl glass-dropdown text-xs font-mono text-slate-300 space-y-1.5 shadow-2xl border border-indigo-500/30 max-w-sm pointer-events-auto animate-fade-in">
+        <div className="absolute top-16 sm:top-20 left-4 sm:left-6 z-30 p-3 sm:p-4 rounded-2xl glass-dropdown text-[11px] sm:text-xs font-mono text-slate-300 space-y-1.5 shadow-2xl border border-indigo-500/30 max-w-xs sm:max-w-sm pointer-events-auto animate-fade-in">
           <div className="flex items-center justify-between text-indigo-400 font-bold border-b border-white/10 pb-1">
             <span>LIVE STREAM DIAGNOSTICS</span>
             <button onClick={() => setShowStats(false)} className="hover:text-white">✕</button>
@@ -358,12 +358,13 @@ export const VideoPlayerModal: React.FC = () => {
 
       {/* Bottom Controls Overlay */}
       <div
-        className={`absolute bottom-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-t from-black/95 via-black/70 to-transparent transition-opacity duration-300 z-30 ${
+        className={`absolute bottom-0 left-0 right-0 p-3 sm:p-6 bg-gradient-to-t from-black/95 via-black/70 to-transparent transition-opacity duration-300 z-30 ${
           showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
+        style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
       >
         {/* Scrubber Progress Bar */}
-        <div className="relative mb-3 group/scrub">
+        <div className="relative mb-2 sm:mb-3 group/scrub py-1">
           {/* Hover Time Tooltip */}
           {scrubPreviewTime !== null && (
             <div 
@@ -398,47 +399,47 @@ export const VideoPlayerModal: React.FC = () => {
         </div>
 
         {/* Action Controls Row */}
-        <div className="flex items-center justify-between text-white">
+        <div className="flex items-center justify-between text-white gap-2">
           
           {/* Left Controls: Play, Rewind, Fast Forward, Volume, Time */}
-          <div className="flex items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-1.5 xs:gap-2.5 sm:gap-4">
             <button
               onClick={togglePlay}
-              className="p-2.5 rounded-full bg-brand-600 hover:bg-brand-500 text-white shadow-lg transition-transform hover:scale-110 active:scale-95"
+              className="p-2 sm:p-2.5 rounded-full bg-brand-600 hover:bg-brand-500 text-white shadow-lg transition-transform hover:scale-110 active:scale-95"
               title={isPlaying ? 'Jeda (Spasi)' : 'Putar (Spasi)'}
             >
-              {isPlaying ? <Pause className="w-5 h-5 fill-white" /> : <Play className="w-5 h-5 fill-white translate-x-0.5" />}
+              {isPlaying ? <Pause className="w-4 h-4 sm:w-5 sm:h-5 fill-white" /> : <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-white translate-x-0.5" />}
             </button>
 
             <button
               onClick={() => skipSeconds(-10)}
-              className="p-2 rounded-full hover:bg-white/10 text-slate-300 hover:text-white transition-colors"
+              className="p-1.5 sm:p-2 rounded-full hover:bg-white/10 text-slate-300 hover:text-white transition-colors"
               title="Mundur 10 detik (Panah Kiri)"
             >
-              <RotateCcw className="w-5 h-5" />
+              <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
 
             <button
               onClick={() => skipSeconds(10)}
-              className="p-2 rounded-full hover:bg-white/10 text-slate-300 hover:text-white transition-colors"
+              className="p-1.5 sm:p-2 rounded-full hover:bg-white/10 text-slate-300 hover:text-white transition-colors"
               title="Maju 10 detik (Panah Kanan)"
             >
-              <RotateCw className="w-5 h-5" />
+              <RotateCw className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
 
             {/* Volume Control */}
-            <div className="flex items-center gap-2 group/vol">
+            <div className="flex items-center gap-1.5 sm:gap-2 group/vol">
               <button
                 onClick={toggleMute}
-                className="p-2 rounded-full hover:bg-white/10 text-slate-300 hover:text-white transition-colors"
+                className="p-1.5 sm:p-2 rounded-full hover:bg-white/10 text-slate-300 hover:text-white transition-colors"
                 title={isMuted ? 'Nyalakan Suara (M)' : 'Bisukan Suara (M)'}
               >
                 {isMuted || volume === 0 ? (
-                  <VolumeX className="w-5 h-5 text-rose-400" />
+                  <VolumeX className="w-4 h-4 sm:w-5 sm:h-5 text-rose-400" />
                 ) : volume < 0.5 ? (
-                  <Volume1 className="w-5 h-5" />
+                  <Volume1 className="w-4 h-4 sm:w-5 sm:h-5" />
                 ) : (
-                  <Volume2 className="w-5 h-5" />
+                  <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />
                 )}
               </button>
               <input
@@ -448,30 +449,30 @@ export const VideoPlayerModal: React.FC = () => {
                 step="0.05"
                 value={isMuted ? 0 : volume}
                 onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-                className="w-16 sm:w-24 h-1.5 bg-white/30 rounded-lg appearance-none cursor-pointer accent-brand-500"
+                className="w-16 sm:w-24 h-1.5 bg-white/30 rounded-lg appearance-none cursor-pointer accent-brand-500 hidden sm:block"
               />
             </div>
 
             {/* Time Indicator */}
-            <div className="text-xs sm:text-sm font-mono text-slate-300">
+            <div className="text-[10px] xs:text-xs sm:text-sm font-mono text-slate-300 whitespace-nowrap">
               <span className="text-white font-medium">{formatTime(currentTime)}</span>
-              <span className="mx-1 text-slate-500">/</span>
+              <span className="mx-0.5 sm:mx-1 text-slate-500">/</span>
               <span>{formatTime(duration)}</span>
             </div>
           </div>
 
           {/* Right Controls: Next Episode, Subtitles, Quality, Speed, PiP, Fullscreen */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1 sm:gap-2.5">
             
             {/* Next Episode button for TV series */}
             {item.type === 'tv' && (
               <button
                 onClick={playNextEpisode}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg glass-panel hover:bg-white/20 text-xs font-semibold text-slate-200 transition-colors"
+                className="flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-lg glass-panel hover:bg-white/20 text-xs font-semibold text-slate-200 transition-colors"
                 title="Putar Episode Berikutnya"
               >
-                <SkipForward className="w-4 h-4 text-brand-400" />
-                <span className="hidden sm:inline">Episode Selanjutnya</span>
+                <SkipForward className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-brand-400" />
+                <span className="hidden md:inline">Episode Selanjutnya</span>
               </button>
             )}
 
@@ -479,22 +480,22 @@ export const VideoPlayerModal: React.FC = () => {
             <div className="relative">
               <button
                 onClick={() => setShowSettingsMenu(!showSettingsMenu)}
-                className={`p-2 rounded-full hover:bg-white/10 transition-colors ${
+                className={`p-1.5 sm:p-2 rounded-full hover:bg-white/10 transition-colors ${
                   showSettingsMenu ? 'text-brand-400 bg-white/10' : 'text-slate-300 hover:text-white'
                 }`}
                 title="Pengaturan Kualitas & Subtitle"
               >
-                <Settings className="w-5 h-5" />
+                <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
 
               {/* Settings Dropdown Popover */}
               {showSettingsMenu && (
-                <div className="absolute bottom-full right-0 mb-3 w-64 rounded-2xl glass-dropdown p-3 shadow-2xl z-50 text-xs animate-slide-up">
+                <div className="absolute bottom-full right-0 mb-3 w-56 sm:w-64 rounded-2xl glass-dropdown p-3 shadow-2xl z-50 text-xs animate-slide-up">
                   <div className="space-y-3">
                     
                     {/* Quality Selector */}
                     <div>
-                      <span className="font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                      <span className="font-bold text-slate-400 uppercase tracking-wider block mb-1.5 text-[10px] sm:text-xs">
                         Kualitas Video
                       </span>
                       <div className="grid grid-cols-2 gap-1">
@@ -505,12 +506,12 @@ export const VideoPlayerModal: React.FC = () => {
                               setSelectedQuality(q);
                               setShowSettingsMenu(false);
                             }}
-                            className={`px-2.5 py-1.5 rounded-lg flex items-center justify-between transition-colors ${
+                            className={`px-2 py-1 rounded-lg flex items-center justify-between transition-colors ${
                               selectedQuality === q ? 'bg-brand-600 text-white font-bold' : 'hover:bg-white/10 text-slate-300'
                             }`}
                           >
                             <span>{q}</span>
-                            {selectedQuality === q && <Check className="w-3.5 h-3.5" />}
+                            {selectedQuality === q && <Check className="w-3 h-3" />}
                           </button>
                         ))}
                       </div>
@@ -518,7 +519,7 @@ export const VideoPlayerModal: React.FC = () => {
 
                     {/* Subtitle Selector */}
                     <div className="border-t border-white/10 pt-2">
-                      <span className="font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                      <span className="font-bold text-slate-400 uppercase tracking-wider block mb-1.5 text-[10px] sm:text-xs">
                         Subtitle (Teks Terjemahan)
                       </span>
                       <div className="space-y-1">
@@ -529,12 +530,12 @@ export const VideoPlayerModal: React.FC = () => {
                               setSelectedSubtitle(sub);
                               setShowSettingsMenu(false);
                             }}
-                            className={`w-full px-2.5 py-1.5 rounded-lg flex items-center justify-between text-left transition-colors ${
+                            className={`w-full px-2 py-1 rounded-lg flex items-center justify-between text-left transition-colors ${
                               selectedSubtitle === sub ? 'bg-brand-600 text-white font-bold' : 'hover:bg-white/10 text-slate-300'
                             }`}
                           >
                             <span>{sub}</span>
-                            {selectedSubtitle === sub && <Check className="w-3.5 h-3.5" />}
+                            {selectedSubtitle === sub && <Check className="w-3 h-3" />}
                           </button>
                         ))}
                       </div>
@@ -542,7 +543,7 @@ export const VideoPlayerModal: React.FC = () => {
 
                     {/* Speed Selector */}
                     <div className="border-t border-white/10 pt-2">
-                      <span className="font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+                      <span className="font-bold text-slate-400 uppercase tracking-wider block mb-1.5 text-[10px] sm:text-xs">
                         Kecepatan Putar
                       </span>
                       <div className="flex items-center justify-between">
@@ -550,7 +551,7 @@ export const VideoPlayerModal: React.FC = () => {
                           <button
                             key={spd}
                             onClick={() => changeSpeed(spd)}
-                            className={`px-2 py-1 rounded transition-colors ${
+                            className={`px-1.5 py-0.5 rounded transition-colors ${
                               playbackSpeed === spd ? 'bg-brand-500 text-white font-bold' : 'hover:bg-white/10 text-slate-300'
                             }`}
                           >
@@ -568,19 +569,19 @@ export const VideoPlayerModal: React.FC = () => {
             {/* Picture-in-Picture */}
             <button
               onClick={togglePiP}
-              className="p-2 rounded-full hover:bg-white/10 text-slate-300 hover:text-white transition-colors hidden sm:block"
+              className="p-1.5 sm:p-2 rounded-full hover:bg-white/10 text-slate-300 hover:text-white transition-colors hidden sm:block"
               title="Mode Gambar dalam Gambar (PiP)"
             >
-              <PictureInPicture2 className="w-5 h-5" />
+              <PictureInPicture2 className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
 
             {/* Fullscreen */}
             <button
               onClick={toggleFullscreen}
-              className="p-2 rounded-full hover:bg-white/10 text-slate-300 hover:text-white transition-colors"
+              className="p-1.5 sm:p-2 rounded-full hover:bg-white/10 text-slate-300 hover:text-white transition-colors"
               title={isFullscreen ? 'Keluar Layar Penuh (F)' : 'Layar Penuh (F)'}
             >
-              {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+              {isFullscreen ? <Minimize className="w-4 h-4 sm:w-5 sm:h-5" /> : <Maximize className="w-4 h-4 sm:w-5 sm:h-5" />}
             </button>
 
           </div>

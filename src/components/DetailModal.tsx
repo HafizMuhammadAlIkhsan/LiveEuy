@@ -86,66 +86,66 @@ export const DetailModal: React.FC = () => {
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 overflow-y-auto bg-black/80 backdrop-blur-md animate-fade-in"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 md:p-6 overflow-y-auto bg-black/85 backdrop-blur-md animate-fade-in"
       onClick={closeDetail}
     >
       <div 
-        className="relative w-full max-w-4xl bg-surface-900 border border-white/10 rounded-3xl overflow-hidden shadow-2xl my-auto text-slate-100 max-h-[92vh] flex flex-col"
+        className="relative w-full max-w-4xl bg-surface-900 border-t sm:border border-white/10 rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl text-slate-100 max-h-[94vh] sm:max-h-[92vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header Backdrop Banner */}
-        <div className="relative h-64 sm:h-80 md:h-96 w-full flex-shrink-0">
+        <div className="relative h-56 sm:h-80 md:h-96 w-full flex-shrink-0">
           <img
             src={detailItem.backdropUrl}
             alt={detailItem.title}
             style={{ viewTransitionName: 'active-media-hero' }}
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-surface-900 via-surface-900/50 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-r from-surface-900/80 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-surface-900 via-surface-900/60 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-surface-900/90 via-transparent to-transparent" />
 
           {/* Close Button */}
           <button
             onClick={closeDetail}
-            className="absolute top-4 right-4 z-20 p-2.5 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md transition-colors"
+            className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 p-2 sm:p-2.5 rounded-full bg-black/70 hover:bg-black/90 text-white backdrop-blur-md transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
 
           {/* Banner Details & Action Buttons */}
-          <div className="absolute bottom-6 left-6 right-6 z-10 space-y-3">
+          <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6 z-10 space-y-2 sm:space-y-3">
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full bg-brand-600 text-white text-xs font-bold uppercase tracking-wider">
+              <span className="px-2 py-0.5 rounded-full bg-brand-600 text-white text-[10px] sm:text-xs font-bold uppercase tracking-wider">
                 {detailItem.type === 'movie' ? 'Film Layar Lebar' : 'Serial Eksklusif'}
               </span>
-              <span className="text-xs px-2 py-0.5 rounded bg-white/10 text-emerald-400 font-semibold border border-emerald-500/20">
+              <span className="text-[10px] sm:text-xs px-2 py-0.5 rounded bg-white/10 text-emerald-400 font-semibold border border-emerald-500/20">
                 {detailItem.matchScore}% Cocok untuk Anda
               </span>
             </div>
 
-            <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight drop-shadow-md">
+            <h1 className="text-xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight drop-shadow-md leading-tight">
               {detailItem.title}
             </h1>
 
             {/* Quick Actions */}
-            <div className="flex flex-wrap items-center gap-3 pt-2">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-1 sm:pt-2">
               <button
                 onClick={() => {
                   closeDetail();
                   openPlayer(detailItem);
                 }}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm shadow-xl shadow-brand-600/30 transition-transform hover:scale-105 active:scale-95"
+                className="flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs sm:text-sm shadow-xl shadow-brand-600/30 transition-transform hover:scale-105 active:scale-95"
               >
-                <Play className="w-4 h-4 fill-white translate-x-0.5" />
+                <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-white translate-x-0.5" />
                 <span>Putar {detailItem.type === 'tv' ? 'Episode 1' : 'Film'}</span>
               </button>
 
               <button
                 onClick={() => toggleWatchlist(detailItem.id)}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl glass-panel text-white hover:bg-white/20 text-sm font-medium transition-transform hover:scale-105"
+                className="flex items-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl glass-panel text-white hover:bg-white/20 text-xs sm:text-sm font-medium transition-transform hover:scale-105"
               >
-                {inWatchlist ? <Check className="w-4 h-4 text-emerald-400" /> : <Plus className="w-4 h-4" />}
-                <span>{inWatchlist ? 'Tersimpan di Koleksi' : 'Koleksi Saya'}</span>
+                {inWatchlist ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Plus className="w-3.5 h-3.5" />}
+                <span className="hidden xs:inline">{inWatchlist ? 'Tersimpan' : 'Koleksi'}</span>
               </button>
 
               <button
