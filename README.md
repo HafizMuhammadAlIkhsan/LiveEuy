@@ -55,6 +55,25 @@
 - Tab **Mirip Ini**: Rekomendasi tayangan terkait dengan genre serupa.
 - Tab **Ulasan Pengguna**: Formulir interaktif untuk memberikan rating 1-10 bintang dan ulasan komentar real-time.
 
+### 7. 👤 Diferensiasi Pengguna Login (VIP Ultra) vs Tamu (Guest)
+- **Top Navbar**:
+  - *Pengguna Login*: Menampilkan badge `👑 VIP Ultra`, avatar profil interaktif dengan menu informasi akun, beralih ke mode demo tamu, dan tombol logout.
+  - *Tamu (Guest)*: Menampilkan badge `Mode Tamu`, tombol "Masuk", dan tombol gradien "Daftar VIP".
+- **Halaman Beranda (HomePage)**:
+  - *Pengguna Login*: Ribbon ucapan selamat datang personal, akses instan baris "Lanjutkan Menonton" dengan progress bar real-time.
+  - *Tamu*: Banner promosi promo uji coba gratis 7 hari, kartu penjelasan sinkronisasi lintas perangkat cloud, tabel perbandingan paket langganan (Gratis vs VIP Standard vs VIP Cinema Ultra), serta akordion FAQ.
+- **Halaman Koleksi (WatchlistPage)**:
+  - *Pengguna Login*: Dashboard profil VIP Ultra dengan 4 KPI Analytics (*Total Jam Tonton, Judul Diputar, Koleksi Cloud, Genre Favorit*), manajer tontonan aktif, dan opsi bagikan playlist.
+  - *Tamu*: Notifikasi status penyimpanan lokal sementara (browser cache), ajakan migrasi ke cloud, serta 4 kartu keuntungan akun VIP.
+- **Halaman Film (MoviesPage) & Serial (SeriesPage)**:
+  - *Tamu*: Banner informatif penanda mode pratinjau kualitas HD dengan tombol satu-klik untuk masuk/buka akses 4K Dolby Atmos.
+- **Ulasan & Pemutar Video**:
+  - Modal detail membatasi formulir kirim review hanya untuk akun terdaftar (tamu diarahkan masuk).
+  - Pemutar video menampilkan badge resolusi aktif sesuai status akun (Tamu HD vs VIP 4K).
+- **Modal Autentikasi Pintar (AuthModal)**:
+  - Form login dan registrasi akun.
+  - Fitur **Demo Instan 1-Klik**: *Masuk Cepat sebagai Hafiz Muhammad (VIP Cinema Ultra)* atau *Budi Santoso (Member Standar)* untuk kemudahan demonstrasi pengujian.
+
 ---
 
 ## 🛠️ Arsitektur Teknologi
@@ -147,6 +166,7 @@ LiveEuy/
 │   │   ├── TopTenRow.tsx
 │   │   ├── VideoPlayerModal.tsx
 │   │   ├── DetailModal.tsx
+│   │   ├── AuthModal.tsx
 │   │   └── Footer.tsx
 │   └── services/
 │       └── api.ts

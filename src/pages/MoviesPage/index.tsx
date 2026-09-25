@@ -21,7 +21,15 @@ import {
 } from 'lucide-react';
 
 export const MoviesPage: React.FC = () => {
-  const { allMedia, openDetail, openPlayer, toggleWatchlist, isInWatchlist } = useWatch();
+  const { 
+    allMedia, 
+    openDetail, 
+    openPlayer, 
+    toggleWatchlist, 
+    isInWatchlist,
+    isLoggedIn,
+    openAuthModal
+  } = useWatch();
 
   // Filters state
   const [selectedGenre, setSelectedGenre] = useState('Semua Genre');
@@ -101,8 +109,26 @@ export const MoviesPage: React.FC = () => {
   const inWatchlist = marqueeMovie ? isInWatchlist(marqueeMovie.id) : false;
 
   return (
-    <div className="pt-20 sm:pt-24 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+    <div className="pt-20 sm:pt-24 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
       
+      {/* Guest Mode Notice */}
+      {!isLoggedIn && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-surface-800/80 border border-brand-500/30 text-xs shadow-lg">
+          <div className="flex items-center gap-2.5">
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+            <span className="text-slate-300">
+              Anda sedang dalam <strong>Mode Tamu</strong>: Pratinjau kualitas HD. Beralih ke akun VIP untuk membuka streaming 4K Ultra HD & Dolby Atmos.
+            </span>
+          </div>
+          <button
+            onClick={() => openAuthModal('login')}
+            className="px-4 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold whitespace-nowrap shadow transition-colors"
+          >
+            Masuk / Buka 4K
+          </button>
+        </div>
+      )}
+
       {/* ========================================================
           1. THEATRICAL CINEMA MARQUEE BILLBOARD
           ======================================================== */}

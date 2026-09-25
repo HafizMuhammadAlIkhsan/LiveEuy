@@ -21,7 +21,15 @@ import {
 } from 'lucide-react';
 
 export const SeriesPage: React.FC = () => {
-  const { allMedia, openPlayer, openDetail, toggleWatchlist, isInWatchlist } = useWatch();
+  const { 
+    allMedia, 
+    openPlayer, 
+    openDetail, 
+    toggleWatchlist, 
+    isInWatchlist,
+    isLoggedIn,
+    openAuthModal
+  } = useWatch();
 
   // All TV series items
   const allSeries = useMemo(() => allMedia.filter(m => m.type === 'tv'), [allMedia]);
@@ -75,8 +83,26 @@ export const SeriesPage: React.FC = () => {
   const inWatchlist = activeSeries ? isInWatchlist(activeSeries.id) : false;
 
   return (
-    <div className="pt-20 sm:pt-24 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+    <div className="pt-20 sm:pt-24 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
       
+      {/* Guest Mode Notice */}
+      {!isLoggedIn && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-surface-800/80 border border-brand-500/30 text-xs shadow-lg">
+          <div className="flex items-center gap-2.5">
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+            <span className="text-slate-300">
+              Anda sedang dalam <strong>Mode Tamu</strong>: Masuk ke akun LiveEuy untuk membuka seluruh episode multi-musim dan dapatkan notifikasi rilis episode baru setiap pekan.
+            </span>
+          </div>
+          <button
+            onClick={() => openAuthModal('login')}
+            className="px-4 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold whitespace-nowrap shadow transition-colors"
+          >
+            Masuk Akun
+          </button>
+        </div>
+      )}
+
       {/* ========================================================
           1. BINGE-WATCH SPOTLIGHT BANNER
           ======================================================== */}

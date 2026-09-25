@@ -22,7 +22,10 @@ export const DetailModal: React.FC = () => {
     isInWatchlist, 
     toggleFavorite, 
     isFavorite,
-    allMedia
+    allMedia,
+    user,
+    isLoggedIn,
+    openAuthModal
   } = useWatch();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'episodes' | 'similar' | 'reviews'>('overview');
@@ -62,13 +65,14 @@ export const DetailModal: React.FC = () => {
     e.preventDefault();
     if (!userComment.trim()) return;
 
-    const author = 'Anda (Penikmat Sinema)';
+    const author = user ? `${user.name} (${user.tier})` : 'Anda (Tamu)';
+    const avatar = user ? user.avatar : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80';
     const comment = userComment.trim();
 
     const newRev: Review = {
       id: `rev-${Date.now()}`,
       author,
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+      avatar,
       rating: userRating,
       date: 'Baru saja',
       comment
@@ -391,47 +395,70 @@ export const DetailModal: React.FC = () => {
           {/* TAB 4: REVIEWS & RATING FORM */}
           {activeTab === 'reviews' && (
             <div className="space-y-6">
-              {/* Add Review Form */}
-              <form onSubmit={handleAddReview} className="p-4 rounded-2xl bg-surface-800/70 border border-white/5 space-y-3">
-                <span className="text-sm font-bold text-white block">Tulis Ulasan Anda</span>
-                
-                {/* Rating Stars Selector */}
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-400">Nilai:</span>
-                  <div className="flex items-center gap-1">
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(val => (
-                      <button
-                        type="button"
-                        key={val}
-                        onClick={() => setUserRating(val)}
-                        className={`text-xs px-2 py-1 rounded transition-colors ${
-                          userRating >= val ? 'bg-amber-500 text-black font-bold' : 'bg-white/10 text-slate-400'
-                        }`}
-                      >
-                        {val}
-                      </button>
-                    ))}
+              {/* Add Review Form or Guest Login Prompt */}
+              {!isLoggedIn ? (
+                <div className="p-4 sm:p-5 rounded-2xl bg-surface-800/80 border border-brand-500/30 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+                  <div>
+                    <span className="text-sm font-bold text-white block">Ingin Memberikan Rating & Ulasan?</span>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Masuk ke akun LiveEuy Anda untuk memberikan penilaian bintang dan membagikan ulasan kepada komunitas.
+                    </p>
                   </div>
-                  <span className="text-xs text-amber-400 font-bold ml-1">{userRating}/10</span>
-                </div>
-
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={userComment}
-                    onChange={(e) => setUserComment(e.target.value)}
-                    placeholder="Bagikan pendapat Anda tentang film ini..."
-                    className="flex-1 bg-surface-900 border border-white/10 rounded-xl px-3.5 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-500"
-                  />
                   <button
-                    type="submit"
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs transition-colors shadow-lg shadow-brand-600/20"
+                    type="button"
+                    onClick={() => openAuthModal('login')}
+                    className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow-md transition-colors whitespace-nowrap"
                   >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>Kirim</span>
+                    Masuk untuk Menulis
                   </button>
                 </div>
-              </form>
+              ) : (
+                <form onSubmit={handleAddReview} className="p-4 rounded-2xl bg-surface-800/70 border border-white/5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-white block">Tulis Ulasan Anda</span>
+                    <span className="text-[11px] text-slate-400">
+                      Sebagai: <strong className="text-brand-400">{user?.name}</strong>
+                    </span>
+                  </div>
+                  
+                  {/* Rating Stars Selector */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-400">Nilai:</span>
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(val => (
+                        <button
+                          type="button"
+                          key={val}
+                          onClick={() => setUserRating(val)}
+                          className={`text-xs px-2 py-1 rounded transition-colors ${
+                            userRating >= val ? 'bg-amber-500 text-black font-bold' : 'bg-white/10 text-slate-400'
+                          }`}
+                        >
+                          {val}
+                        </button>
+                      ))}
+                    </div>
+                    <span className="text-xs text-amber-400 font-bold ml-1">{userRating}/10</span>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={userComment}
+                      onChange={(e) => setUserComment(e.target.value)}
+                      placeholder="Bagikan pendapat Anda tentang film ini..."
+                      className="flex-1 bg-surface-900 border border-white/10 rounded-xl px-3.5 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-500"
+                    />
+                    <button
+                      type="submit"
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs transition-colors shadow-lg shadow-brand-600/20"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>Kirim</span>
+                    </button>
+                  </div>
+                </form>
+              )}
 
               {/* Reviews List */}
               <div className="space-y-3">

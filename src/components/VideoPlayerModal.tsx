@@ -16,12 +16,21 @@ import {
   Sparkles, 
   Activity,
   Check,
-  ChevronRight
+  ChevronRight,
+  Crown
 } from 'lucide-react';
 import { useWatch } from '../context/WatchContext';
 
 export const VideoPlayerModal: React.FC = () => {
-  const { playerState, closePlayer, playNextEpisode, updateWatchProgress } = useWatch();
+  const { 
+    playerState, 
+    closePlayer, 
+    playNextEpisode, 
+    updateWatchProgress,
+    user,
+    isLoggedIn,
+    openAuthModal
+  } = useWatch();
   const { isOpen, item, episode } = playerState;
 
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -302,6 +311,23 @@ export const VideoPlayerModal: React.FC = () => {
 
         {/* Top Right Quick Settings */}
         <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+          {/* VIP / Guest Streaming Mode Badge */}
+          {isLoggedIn && user ? (
+            <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              <Crown className="w-3 h-3 text-amber-400" />
+              <span>{user.tier}</span>
+            </span>
+          ) : (
+            <button
+              onClick={() => openAuthModal('login')}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-brand-600/30 hover:bg-brand-600/50 text-brand-300 border border-brand-500/40 transition-colors"
+              title="Tingkatkan ke VIP untuk 4K Ultra HD & Dolby Atmos"
+            >
+              <span>Mode Tamu</span>
+              <span className="text-white underline hidden xs:inline">Buka 4K VIP</span>
+            </button>
+          )}
+
           {/* Ambient Glow Switch */}
           <button
             onClick={() => setAmbientGlow(!ambientGlow)}

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { MediaItem, Episode, WatchProgress, ViewTab } from '../types';
+import { MediaItem, Episode, WatchProgress, ViewTab, User } from '../types';
 import { MOCK_MEDIA } from '../data/mockData';
 import { apiService } from '../services/api';
 
@@ -30,6 +30,15 @@ interface WatchContextType {
   closePlayer: () => void;
   playNextEpisode: () => void;
   allMedia: MediaItem[];
+  // Authentication & Guest State
+  user: User | null;
+  isLoggedIn: boolean;
+  login: (userData?: Partial<User>) => void;
+  logout: () => void;
+  isAuthModalOpen: boolean;
+  authModalMode: 'login' | 'register';
+  openAuthModal: (mode?: 'login' | 'register') => void;
+  closeAuthModal: () => void;
 }
 
 export const withViewTransition = (fn: () => void) => {
@@ -91,6 +100,68 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return {};
     }
   });
+
+  const DEFAULT_USER: User = {
+    id: 'user-vip-01',
+    name: 'Hafiz Muhammad',
+    email: 'hafiz@liveeuy.id',
+    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
+    tier: 'VIP Cinema Ultra',
+    memberSince: 'September 2024',
+    watchHours: 48.5,
+    devices: 3
+  };
+
+  const [user, setUser] = useState<User | null>(() => {
+    try {
+      const saved = localStorage.getItem('liveeuy_user');
+      if (saved === 'guest') return null;
+      if (saved) return JSON.parse(saved);
+      return DEFAULT_USER;
+    } catch {
+      return DEFAULT_USER;
+    }
+  });
+
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
+
+  const openAuthModal = (mode: 'login' | 'register' = 'login') => {
+    setAuthModalMode(mode);
+    setIsAuthModalOpen(true);
+  };
+
+  const closeAuthModal = () => {
+    setIsAuthModalOpen(false);
+  };
+
+  const login = (userData?: Partial<User>) => {
+    const newUser: User = {
+      id: userData?.id || `user-${Date.now()}`,
+      name: userData?.name || 'Pengguna LiveEuy',
+      email: userData?.email || 'user@liveeuy.id',
+      avatar: userData?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
+      tier: userData?.tier || 'VIP Standard',
+      memberSince: 'Hari ini',
+      watchHours: userData?.watchHours || 0,
+      devices: userData?.devices || 1
+    };
+    setUser(newUser);
+    try {
+      localStorage.setItem('liveeuy_user', JSON.stringify(newUser));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const logout = () => {
+    setUser(null);
+    try {
+      localStorage.setItem('liveeuy_user', 'guest');
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const [detailItem, setDetailItem] = useState<MediaItem | null>(null);
   const [playerState, setPlayerState] = useState<{
@@ -255,7 +326,15 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         openPlayer,
         closePlayer,
         playNextEpisode,
-        allMedia: MOCK_MEDIA
+        allMedia: MOCK_MEDIA,
+        user,
+        isLoggedIn: Boolean(user),
+        login,
+        logout,
+        isAuthModalOpen,
+        authModalMode,
+        openAuthModal,
+        closeAuthModal
       }}
     >
       {children}

@@ -3,6 +3,7 @@ import { WatchProvider, useWatch } from './context/WatchContext';
 import { Navbar } from './components/Navbar';
 import { DetailModal } from './components/DetailModal';
 import { VideoPlayerModal } from './components/VideoPlayerModal';
+import { AuthModal } from './components/AuthModal';
 import { Footer } from './components/Footer';
 import {
   HomePage,
@@ -42,6 +43,7 @@ const MainContent: React.FC = () => {
       {/* Global Modals */}
       <DetailModal />
       <VideoPlayerModal />
+      <AuthModal />
     </div>
   );
 };

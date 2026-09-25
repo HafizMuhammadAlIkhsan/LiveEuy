@@ -15,7 +15,14 @@ import {
   Tv, 
   CheckCircle2, 
   ChevronRight,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Crown,
+  Cloud,
+  CloudOff,
+  LogIn,
+  ShieldCheck,
+  BellRing,
+  Tv2
 } from 'lucide-react';
 
 export const WatchlistPage: React.FC = () => {
@@ -25,7 +32,10 @@ export const WatchlistPage: React.FC = () => {
     watchHistory, 
     toggleWatchlist, 
     openPlayer, 
-    setCurrentTab 
+    setCurrentTab,
+    user,
+    isLoggedIn,
+    openAuthModal
   } = useWatch();
 
   const [activeTab, setActiveTab] = useState<'all' | 'continue' | 'movies' | 'tv'>('all');
@@ -57,72 +67,135 @@ export const WatchlistPage: React.FC = () => {
 
   // User analytics stats
   const totalWatchedCount = Object.keys(watchHistory).length || 4;
-  const estimatedHours = '48.5 Jam';
+  const estimatedHours = user?.watchHours ? `${user.watchHours} Jam` : '48.5 Jam';
 
   return (
     <div className="pt-20 sm:pt-24 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
       
       {/* ========================================================
-          1. USER PROFILE & VIEWING ANALYTICS DASHBOARD
+          1. HEADER: LOGGED IN USER PROFILE VS GUEST VAULT TEASER
           ======================================================== */}
-      <section className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-surface-900 via-surface-800 to-surface-900 border border-white/10 p-6 sm:p-8 shadow-2xl">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          
-          {/* User Profile Info */}
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-brand-600 to-rose-400 p-0.5 shadow-xl">
-              <div className="w-full h-full bg-surface-900 rounded-[14px] flex items-center justify-center overflow-hidden">
-                <User className="w-8 h-8 text-brand-400" />
+      {isLoggedIn && user ? (
+        /* LOGGED IN USER DASHBOARD */
+        <section className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-surface-900 via-surface-800 to-surface-900 border border-white/10 p-6 sm:p-8 shadow-2xl">
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            
+            {/* User Profile Info */}
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-brand-600 to-rose-400 p-0.5 shadow-xl">
+                <div className="w-full h-full bg-surface-900 rounded-[14px] flex items-center justify-center overflow-hidden">
+                  <img
+                    src={user.avatar}
+                    alt={user.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl sm:text-2xl font-black text-white">
+                    {user.name}
+                  </h1>
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                    <Crown className="w-3 h-3 text-amber-400" />
+                    <span>{user.tier}</span>
+                  </span>
+                </div>
+                <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
+                  Sinkronisasi Cloud Aktif • {user.email} • Anggota sejak {user.memberSince || '2024'}
+                </p>
               </div>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-black text-white">
-                  Koleksi & Ruang Pribadi
-                </h1>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-500/20 text-brand-400 border border-brand-500/30">
-                  VIP Ultra
-                </span>
+
+            {/* Quick Action Share */}
+            <button
+              onClick={() => alert('Tautan daftar tontonan berhasil disalin ke papan klip!')}
+              className="self-start md:self-auto px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold flex items-center gap-2 transition-colors border border-white/10"
+            >
+              <Share2 className="w-4 h-4" />
+              <span>Bagikan Koleksi</span>
+            </button>
+          </div>
+
+          {/* 4 Analytics KPI Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-6 pt-6 border-t border-white/10">
+            <div className="bg-black/30 p-3 sm:p-4 rounded-2xl border border-white/5 space-y-1">
+              <span className="text-[10px] sm:text-xs text-slate-400 uppercase tracking-wider block">Total Jam Tonton</span>
+              <span className="text-lg sm:text-2xl font-black text-brand-400">{estimatedHours}</span>
+            </div>
+
+            <div className="bg-black/30 p-3 sm:p-4 rounded-2xl border border-white/5 space-y-1">
+              <span className="text-[10px] sm:text-xs text-slate-400 uppercase tracking-wider block">Judul Diputar</span>
+              <span className="text-lg sm:text-2xl font-black text-emerald-400">{totalWatchedCount} Judul</span>
+            </div>
+
+            <div className="bg-black/30 p-3 sm:p-4 rounded-2xl border border-white/5 space-y-1">
+              <span className="text-[10px] sm:text-xs text-slate-400 uppercase tracking-wider block">Tersimpan di Cloud</span>
+              <span className="text-lg sm:text-2xl font-black text-amber-400">{watchlist.length} Judul</span>
+            </div>
+
+            <div className="bg-black/30 p-3 sm:p-4 rounded-2xl border border-white/5 space-y-1">
+              <span className="text-[10px] sm:text-xs text-slate-400 uppercase tracking-wider block">Genre Paling Diminati</span>
+              <span className="text-sm sm:text-base font-bold text-white truncate block">Fiksi Ilmiah & Aksi</span>
+            </div>
+          </div>
+        </section>
+      ) : (
+        /* GUEST VISITOR VAULT NOTICE */
+        <section className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-surface-900 via-surface-800 to-brand-950/40 border border-brand-500/30 p-6 sm:p-8 shadow-2xl">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="space-y-3 text-center md:text-left">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-bold">
+                <CloudOff className="w-3.5 h-3.5" />
+                <span>Koleksi Sementara (Mode Tamu)</span>
               </div>
-              <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
-                Kelola daftar simpanan, riwayat pemutaran, dan preferensi tontonan Anda.
+              <h1 className="text-2xl sm:text-3xl font-black text-white">
+                Simpan Koleksi & Riwayat Anda Secara Permanen di Cloud
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
+                Saat ini daftar tontonan Anda hanya tersimpan di memori browser lokal ini. Masuk atau buat akun LiveEuy untuk sinkronisasi otomatis ke Smart TV, tablet, maupun ponsel Anda.
               </p>
             </div>
+
+            <div className="flex items-center gap-3 flex-shrink-0">
+              <button
+                onClick={() => openAuthModal('login')}
+                className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-colors flex items-center gap-2"
+              >
+                <LogIn className="w-4 h-4" />
+                <span>Masuk</span>
+              </button>
+              <button
+                onClick={() => openAuthModal('register')}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-rose-600 hover:from-brand-500 hover:to-rose-500 text-white text-xs font-bold shadow-lg shadow-brand-600/30 transition-all hover:scale-105 active:scale-95 whitespace-nowrap flex items-center gap-2"
+              >
+                <Cloud className="w-4 h-4" />
+                <span>Aktifkan Cloud VIP</span>
+              </button>
+            </div>
           </div>
 
-          {/* Quick Action Share */}
-          <button
-            onClick={() => alert('Tautan daftar tontonan berhasil disalin ke papan klip!')}
-            className="self-start md:self-auto px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold flex items-center gap-2 transition-colors border border-white/10"
-          >
-            <Share2 className="w-4 h-4" />
-            <span>Bagikan Koleksi</span>
-          </button>
-        </div>
-
-        {/* 4 Analytics KPI Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-6 pt-6 border-t border-white/10">
-          <div className="bg-black/30 p-3 sm:p-4 rounded-2xl border border-white/5 space-y-1">
-            <span className="text-[10px] sm:text-xs text-slate-400 uppercase tracking-wider block">Total Jam Tonton</span>
-            <span className="text-lg sm:text-2xl font-black text-brand-400">{estimatedHours}</span>
+          {/* Guest Cloud Features Teaser */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-6 pt-6 border-t border-white/10 text-xs text-slate-300">
+            <div className="flex items-center gap-2 bg-black/20 p-2.5 rounded-xl border border-white/5">
+              <Tv2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+              <span>Akses di Smart TV & HP</span>
+            </div>
+            <div className="flex items-center gap-2 bg-black/20 p-2.5 rounded-xl border border-white/5">
+              <Clock className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+              <span>Lanjut Tonton Tepat Waktu</span>
+            </div>
+            <div className="flex items-center gap-2 bg-black/20 p-2.5 rounded-xl border border-white/5">
+              <BellRing className="w-4 h-4 text-amber-400 flex-shrink-0" />
+              <span>Notifikasi Rilis Episode</span>
+            </div>
+            <div className="flex items-center gap-2 bg-black/20 p-2.5 rounded-xl border border-white/5">
+              <Crown className="w-4 h-4 text-rose-400 flex-shrink-0" />
+              <span>Kualitas 4K Ultra HD</span>
+            </div>
           </div>
-
-          <div className="bg-black/30 p-3 sm:p-4 rounded-2xl border border-white/5 space-y-1">
-            <span className="text-[10px] sm:text-xs text-slate-400 uppercase tracking-wider block">Judul Diputar</span>
-            <span className="text-lg sm:text-2xl font-black text-emerald-400">{totalWatchedCount} Judul</span>
-          </div>
-
-          <div className="bg-black/30 p-3 sm:p-4 rounded-2xl border border-white/5 space-y-1">
-            <span className="text-[10px] sm:text-xs text-slate-400 uppercase tracking-wider block">Tersimpan di Koleksi</span>
-            <span className="text-lg sm:text-2xl font-black text-amber-400">{watchlist.length} Judul</span>
-          </div>
-
-          <div className="bg-black/30 p-3 sm:p-4 rounded-2xl border border-white/5 space-y-1">
-            <span className="text-[10px] sm:text-xs text-slate-400 uppercase tracking-wider block">Genre Paling Diminati</span>
-            <span className="text-sm sm:text-base font-bold text-white truncate block">Fiksi Ilmiah & Aksi</span>
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ========================================================
           2. SEGMENTED CATEGORY TABS
@@ -212,7 +285,7 @@ export const WatchlistPage: React.FC = () => {
       )}
 
       {/* ========================================================
-          4. WATCHLIST ITEMS GRID (If not just continue tab)
+          4. WATCHLIST ITEMS GRID
           ======================================================== */}
       {activeTab !== 'continue' && (
         <section className="space-y-4">
@@ -221,6 +294,11 @@ export const WatchlistPage: React.FC = () => {
               <Bookmark className="w-5 h-5 text-brand-400" />
               <span>Daftar Tontonan Tersimpan ({displayedItems.length})</span>
             </h2>
+            {!isLoggedIn && watchlistItems.length > 0 && (
+              <span className="text-xs text-amber-400/90 font-mono">
+                *Tersimpan di memori browser lokal
+              </span>
+            )}
           </div>
 
           {displayedItems.length > 0 ? (
@@ -235,7 +313,7 @@ export const WatchlistPage: React.FC = () => {
                       e.stopPropagation();
                       toggleWatchlist(item.id);
                     }}
-                    className="absolute top-2 right-2 z-30 p-1.5 rounded-full bg-black/80 hover:bg-rose-600 text-slate-300 hover:text-white transition-colors"
+                    className="absolute top-2 right-2 z-30 p-1.5 rounded-full bg-black/80 hover:bg-rose-600 text-slate-300 hover:text-white transition-colors shadow"
                     title="Hapus dari Koleksi"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -249,9 +327,9 @@ export const WatchlistPage: React.FC = () => {
               <div className="w-16 h-16 rounded-full bg-brand-500/10 text-brand-400 flex items-center justify-center mx-auto">
                 <Bookmark className="w-8 h-8" />
               </div>
-              <h3 className="text-lg font-bold text-white">Koleksi Masih Kosong</h3>
+              <h3 className="text-lg font-bold text-white">Koleksi Anda Masih Kosong</h3>
               <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-                Jelajahi film atau serial kesukaan Anda, lalu klik tanda tambah (+) untuk menambahkannya ke koleksi pribadi ini.
+                Jelajahi film atau serial kesukaan Anda, lalu klik tanda tambah (+) untuk menambahkannya ke koleksi ini.
               </p>
               <button
                 onClick={() => setCurrentTab('home')}
@@ -273,7 +351,7 @@ export const WatchlistPage: React.FC = () => {
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-bold text-white flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-brand-400" />
-              <span>Rekomendasi Berdasarkan Koleksi Anda</span>
+              <span>Rekomendasi Berdasarkan Selera Penonton</span>
             </h3>
             <button
               onClick={() => setCurrentTab('movies')}
