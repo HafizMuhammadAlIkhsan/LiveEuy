@@ -22,7 +22,8 @@ import {
   ChevronDown, 
   User as UserIcon, 
   Check, 
-  X 
+  X,
+  Bookmark
 } from 'lucide-react';
 
 export const HomePage: React.FC = () => {
@@ -85,53 +86,53 @@ export const HomePage: React.FC = () => {
       {isLoggedIn && user ? (
         /* LOGGED IN USER GREETING RIBBON */
         <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 sm:-mt-8 mb-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-surface-800 via-surface-900 to-amber-950/30 border border-amber-500/20 shadow-xl backdrop-blur-md">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 flex-shrink-0">
-                <Crown className="w-5 h-5" />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-[#0c0e14]/90 border border-white/[0.08] shadow-xl backdrop-blur-xl">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center text-amber-400 flex-shrink-0">
+                <Crown className="w-5 h-5 text-amber-400" />
               </div>
               <div>
                 <div className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
-                  <span>Selamat datang kembali, {user.name}!</span>
-                  <span className="px-2 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
+                  <span>Selamat menonton, {user.name}</span>
+                  <span className="px-2 py-0.5 rounded text-[10px] bg-amber-500/15 text-amber-300 font-semibold border border-amber-500/30">
                     {user.tier}
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-400">
-                  Streaming 4K Ultra HD & Dolby Atmos aktif tanpa interupsi iklan.
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Streaming 4K Ultra HD & Dolby Atmos aktif • Sinkronisasi otomatis ke seluruh perangkat Anda.
                 </p>
               </div>
             </div>
 
             <button
               onClick={() => setCurrentTab('watchlist')}
-              className="self-start sm:self-auto flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-colors"
+              className="self-start sm:self-auto flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-white text-xs font-semibold border border-white/10 transition-all cursor-pointer"
             >
-              <span>Koleksi & Statistik Tontonan</span>
-              <ChevronRight className="w-3.5 h-3.5" />
+              <span>Koleksi & Riwayat Saya</span>
+              <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
             </button>
           </div>
         </div>
       ) : (
-        /* GUEST VISITOR PROMOTIONAL BILLBOARD */
+        /* GUEST VISITOR MEMBERSHIP STRIP */
         <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 sm:-mt-8 mb-4">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-brand-950 via-surface-900 to-secondary-950/40 border border-brand-500/30 shadow-2xl backdrop-blur-md">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl bg-[#0c0e14]/95 border border-white/[0.08] shadow-2xl backdrop-blur-xl">
             <div className="flex items-center gap-3.5 text-center md:text-left">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-secondary-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-brand-500/30">
-                <Sparkles className="w-6 h-6 text-white" />
+              <div className="w-11 h-11 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center flex-shrink-0 text-brand-400 shadow-sm">
+                <Film className="w-5 h-5" />
               </div>
               <div>
                 <div className="flex items-center justify-center md:justify-start gap-2">
-                  <span className="text-[11px] font-bold text-brand-400 uppercase tracking-wider">Mode Tamu (Guest)</span>
-                  <span className="px-2 py-0.2 rounded-full text-[9px] font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30">
-                    Coba Gratis
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Mode Pratinjau Tamu</span>
+                  <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-brand-500/15 text-brand-400 border border-brand-500/30">
+                    Katalog Terbuka
                   </span>
                 </div>
-                <h3 className="text-base sm:text-lg font-black text-white mt-0.5">
-                  Buka Kualitas 4K Ultra HD & Dolby Atmos
+                <h3 className="text-sm sm:text-base font-bold text-white mt-0.5">
+                  Buka Kualitas Asli 4K Master & Audio Spasial Dolby Atmos
                 </h3>
-                <p className="text-xs text-slate-300">
-                  Buat akun untuk menyimpan riwayat tontonan, sinkronisasi antar-perangkat, dan nikmati film bioskop bebas iklan.
+                <p className="text-xs text-slate-400 mt-0.5 max-w-xl">
+                  Masuk atau buat akun untuk menyimpan menit tontonan cloud, sinkronisasi ke Smart TV, dan tonton bebas iklan.
                 </p>
               </div>
             </div>
@@ -139,39 +140,43 @@ export const HomePage: React.FC = () => {
             <div className="flex items-center gap-2 flex-shrink-0 w-full md:w-auto justify-end">
               <button
                 onClick={() => openAuthModal('login')}
-                className="flex-1 md:flex-initial px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-colors"
+                className="flex-1 md:flex-initial px-4 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-white border border-white/10 text-xs font-semibold transition-colors cursor-pointer"
               >
                 Masuk Akun
               </button>
               <button
                 onClick={() => openAuthModal('register')}
-                className="flex-1 md:flex-initial px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-secondary-500 hover:from-brand-500 hover:to-secondary-600 text-white text-xs font-bold shadow-lg shadow-brand-600/30 transition-all hover:scale-105 active:scale-95 whitespace-nowrap"
+                className="flex-1 md:flex-initial px-4.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold shadow-md transition-all cursor-pointer whitespace-nowrap"
               >
-                Daftar VIP
+                Daftar VIP Gratis
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Quick Jump Category Chips */}
+      {/* Quick Jump Category Chips - Curated Channels */}
       <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6">
         <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
           {[
-            { label: '🔥 Trending Hari Ini', action: () => setCurrentTab('trending') },
-            { label: '🎬 Film Bioskop 4K', action: () => setCurrentTab('movies') },
-            { label: '📺 Serial TV Populer', action: () => setCurrentTab('tv') },
-            { label: '⭐ Koleksi Saya', action: () => setCurrentTab('watchlist') },
-          ].map((chip, idx) => (
-            <button
-              key={idx}
-              onClick={chip.action}
-              className="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-surface-800/90 hover:bg-surface-700/90 text-slate-200 hover:text-white border border-white/10 hover:border-brand-500/40 transition-all whitespace-nowrap shadow-lg flex items-center gap-1.5 backdrop-blur-md active:scale-95"
-            >
-              {chip.label}
-              <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-            </button>
-          ))}
+            { label: 'Trending Pekan Ini', icon: Flame, action: () => setCurrentTab('trending') },
+            { label: 'Katalog Film Bioskop', icon: Film, action: () => setCurrentTab('movies') },
+            { label: 'Serial & Miniseri', icon: Tv, action: () => setCurrentTab('tv') },
+            { label: 'Daftar Tontonan Saya', icon: Bookmark, action: () => setCurrentTab('watchlist') },
+          ].map((chip, idx) => {
+            const Icon = chip.icon;
+            return (
+              <button
+                key={idx}
+                onClick={chip.action}
+                className="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium bg-[#0f1118]/90 hover:bg-[#161922] text-slate-300 hover:text-white border border-white/[0.08] hover:border-white/20 transition-all whitespace-nowrap shadow-sm flex items-center gap-2 backdrop-blur-md active:scale-95 cursor-pointer"
+              >
+                <Icon className="w-3.5 h-3.5 text-slate-400 group-hover:text-white" />
+                <span>{chip.label}</span>
+                <ChevronRight className="w-3.5 h-3.5 text-slate-500" />
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -245,25 +250,25 @@ export const HomePage: React.FC = () => {
         ) : (
           /* GUEST USER: CLOUD SYNC PROMPT TEASER */
           <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="rounded-3xl bg-surface-800/40 border border-dashed border-white/15 p-5 sm:p-7 flex flex-col md:flex-row items-center justify-between gap-5">
+            <div className="rounded-2xl bg-[#0c0e14]/90 border border-white/[0.08] p-5 sm:p-7 flex flex-col md:flex-row items-center justify-between gap-5 shadow-lg">
               <div className="space-y-1.5 text-center md:text-left">
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-brand-500/10 text-brand-400 text-xs font-semibold">
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>Fitur Riwayat Cloud VIP</span>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/[0.06] text-slate-300 text-xs font-medium border border-white/10">
+                  <Clock className="w-3.5 h-3.5 text-brand-400" />
+                  <span>Sinkronisasi Lintas Layar</span>
                 </div>
                 <h3 className="text-base sm:text-lg font-bold text-white">
-                  Ingin Melanjutkan Tontonan Anda Tanpa Kehilangan Menit Terakhir?
+                  Lanjutkan Tontonan di Menit yang Sama di Semua Perangkat
                 </h3>
-                <p className="text-xs text-slate-400 max-w-xl">
-                  Dalam Mode Tamu, riwayat pemutaran tidak tersinkronisasi. Masuk untuk menyimpan menit film otomatis dan lanjutkan di TV atau ponsel Anda.
+                <p className="text-xs text-slate-400 max-w-xl leading-relaxed">
+                  Mulai menonton di ponsel saat bepergian, lalu lanjutkan di Smart TV atau tablet tepat di menit terakhir Anda tanpa harus mencari ulang.
                 </p>
               </div>
               <button
                 onClick={() => openAuthModal('login')}
-                className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-brand-600/25 transition-all flex-shrink-0 active:scale-95"
+                className="px-5 py-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.15] text-white border border-white/10 text-xs font-bold flex items-center gap-2 transition-all flex-shrink-0 active:scale-95 cursor-pointer"
               >
-                <LogIn className="w-4 h-4" />
-                <span>Masuk Sekarang</span>
+                <LogIn className="w-4 h-4 text-brand-400" />
+                <span>Masuk & Sinkronkan</span>
               </button>
             </div>
           </section>
@@ -310,82 +315,98 @@ export const HomePage: React.FC = () => {
         {!isLoggedIn && (
           <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10 pt-6">
             
-            {/* Subscription Tier Cards */}
+            {/* Subscription Tier Cards - Architectural Cinema Passes */}
             <div className="space-y-4 text-center">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-500/20 text-brand-400 text-xs font-bold">
-                <Crown className="w-3.5 h-3.5" />
-                <span>Pilihan Paket Langganan</span>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.06] text-slate-300 text-xs font-semibold border border-white/10">
+                <Crown className="w-3.5 h-3.5 text-amber-400" />
+                <span>Pilihan Akses Keanggotaan</span>
               </div>
-              <h3 className="text-2xl sm:text-3xl font-extrabold text-white">
-                Pilih Paket Sesuai Gaya Menonton Anda
+              <h3 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                Pilih Pengalaman Menonton yang Sesuai
               </h3>
               <p className="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto">
-                Bebas ganti paket atau batalkan kapan saja dengan jaminan kepuasan tanpa syarat.
+                Akses fleksibel tanpa ikatan kontrak. Anda dapat beralih paket atau berhenti kapan saja.
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 text-left">
                 {/* Free Guest */}
-                <div className="p-6 rounded-3xl bg-surface-900 border border-white/10 space-y-4 flex flex-col justify-between">
-                  <div className="space-y-2">
-                    <span className="text-xs font-bold text-slate-400 uppercase">Tamu (Free Guest)</span>
-                    <h4 className="text-2xl font-black text-white">Gratis</h4>
-                    <p className="text-xs text-slate-400">Pratinjau film & serial dengan kualitas standar.</p>
-                    <ul className="space-y-2 pt-2 text-xs text-slate-300">
+                <div className="p-6 rounded-2xl bg-[#0c0e14] border border-white/[0.08] space-y-5 flex flex-col justify-between hover:border-white/15 transition-all">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Tamu Terbuka</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-white/5 text-slate-400">Dasar</span>
+                    </div>
+                    <div>
+                      <h4 className="text-2xl font-black text-white">Gratis</h4>
+                      <p className="text-xs text-slate-400 mt-1">Akses pratinjau cuplikan dan film pilihan.</p>
+                    </div>
+                    <ul className="space-y-2 pt-2 text-xs text-slate-300 border-t border-white/[0.06]">
                       <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400" /> Resolusi HD 720p</li>
-                      <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400" /> 1 Perangkat Aktif</li>
-                      <li className="flex items-center gap-2 text-slate-500"><X className="w-3.5 h-3.5 text-slate-600" /> Tanpa Dolby Atmos</li>
+                      <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400" /> 1 Layar Aktif</li>
+                      <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400" /> Akses Cuplikan & Trailer</li>
+                      <li className="flex items-center gap-2 text-slate-500"><X className="w-3.5 h-3.5 text-slate-600" /> Tanpa Simpan Riwayat Cloud</li>
                     </ul>
                   </div>
                   <button
                     onClick={() => openAuthModal('login')}
-                    className="w-full py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-colors"
+                    className="w-full py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-slate-300 hover:text-white border border-white/10 text-xs font-bold transition-colors cursor-pointer"
                   >
                     Mode Tamu Aktif
                   </button>
                 </div>
 
                 {/* VIP Standard */}
-                <div className="p-6 rounded-3xl bg-surface-900 border border-white/10 space-y-4 flex flex-col justify-between">
-                  <div className="space-y-2">
-                    <span className="text-xs font-bold text-brand-400 uppercase">VIP Standard</span>
-                    <h4 className="text-2xl font-black text-white">Rp 49.000<span className="text-xs font-normal text-slate-400">/bln</span></h4>
-                    <p className="text-xs text-slate-400">Pengalaman streaming bebas iklan dengan Full HD.</p>
-                    <ul className="space-y-2 pt-2 text-xs text-slate-300">
+                <div className="p-6 rounded-2xl bg-[#0c0e14] border border-white/[0.08] space-y-5 flex flex-col justify-between hover:border-white/15 transition-all">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">VIP Standar</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-brand-500/15 text-brand-400 font-semibold">Paling Efisien</span>
+                    </div>
+                    <div>
+                      <h4 className="text-2xl font-black text-white">Rp 49.000<span className="text-xs font-normal text-slate-400">/bln</span></h4>
+                      <p className="text-xs text-slate-400 mt-1">Streaming Full HD tanpa interupsi komersial.</p>
+                    </div>
+                    <ul className="space-y-2 pt-2 text-xs text-slate-300 border-t border-white/[0.06]">
                       <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400" /> Resolusi Full HD 1080p</li>
-                      <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400" /> Bebas Iklan</li>
-                      <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400" /> 2 Perangkat Sekaligus</li>
-                      <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400" /> Riwayat & Koleksi Cloud</li>
+                      <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400" /> Sepenuhnya Bebas Iklan</li>
+                      <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400" /> 2 Layar Bersamaan</li>
+                      <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-emerald-400" /> Sinkronisasi Riwayat Cloud</li>
                     </ul>
                   </div>
                   <button
                     onClick={() => openAuthModal('register')}
-                    className="w-full py-2.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition-colors"
+                    className="w-full py-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.15] text-white border border-white/10 text-xs font-bold transition-colors cursor-pointer"
                   >
-                    Pilih Standard
+                    Pilih VIP Standar
                   </button>
                 </div>
 
                 {/* VIP Cinema Ultra */}
-                <div className="relative p-6 rounded-3xl bg-gradient-to-b from-brand-950 via-surface-900 to-surface-900 border-2 border-brand-500 shadow-2xl space-y-4 flex flex-col justify-between">
-                  <span className="absolute -top-3 right-6 px-3 py-0.5 rounded-full text-[10px] font-black bg-gradient-to-r from-brand-500 to-secondary-500 text-white shadow">
-                    PALING POPULER
+                <div className="relative p-6 rounded-2xl bg-[#0e111a] border-2 border-brand-500/60 shadow-xl space-y-5 flex flex-col justify-between">
+                  <span className="absolute -top-3 right-5 px-3 py-0.5 rounded-full text-[10px] font-bold bg-brand-600 text-white shadow">
+                    PILIHAN KURATOR
                   </span>
-                  <div className="space-y-2">
-                    <span className="text-xs font-bold text-amber-400 uppercase">VIP Cinema Ultra</span>
-                    <h4 className="text-2xl font-black text-white">Rp 89.000<span className="text-xs font-normal text-slate-400">/bln</span></h4>
-                    <p className="text-xs text-slate-300">Kualitas bioskop premier tertinggi untuk sekeluarga.</p>
-                    <ul className="space-y-2 pt-2 text-xs text-slate-200">
-                      <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-amber-400" /> 4K Ultra HD & Dolby Vision</li>
-                      <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-amber-400" /> Audio Spasial Dolby Atmos</li>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">VIP Cinema Ultra</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 font-semibold border border-amber-500/20">Studio Master</span>
+                    </div>
+                    <div>
+                      <h4 className="text-2xl font-black text-white">Rp 89.000<span className="text-xs font-normal text-slate-400">/bln</span></h4>
+                      <p className="text-xs text-slate-300 mt-1">Standar sinema bioskop tertinggi untuk seluruh keluarga.</p>
+                    </div>
+                    <ul className="space-y-2 pt-2 text-xs text-slate-200 border-t border-white/[0.08]">
+                      <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-amber-400" /> 4K Ultra HD & Dolby Vision Asli</li>
+                      <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-amber-400" /> Tata Suara Spasial Dolby Atmos</li>
                       <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-amber-400" /> 4 Perangkat Bersamaan</li>
-                      <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-amber-400" /> Unduh & Nonton Offline</li>
+                      <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-amber-400" /> Unduh & Nonton Mode Offline</li>
                     </ul>
                   </div>
                   <button
                     onClick={() => openAuthModal('register')}
-                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-secondary-500 hover:from-brand-500 hover:to-secondary-600 text-white text-xs font-bold shadow-lg shadow-brand-600/30 transition-all hover:scale-105 active:scale-95"
+                    className="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold shadow-md transition-all active:scale-[0.98] cursor-pointer"
                   >
-                    Mulai Uji Coba VIP
+                    Mulai Uji Coba VIP Ultra
                   </button>
                 </div>
               </div>

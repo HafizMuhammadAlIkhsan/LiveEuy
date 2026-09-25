@@ -336,7 +336,7 @@ export const MoviesPage: React.FC = () => {
               onClick={() => setActiveUniverse(uni.id)}
               className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${
                 activeUniverse === uni.id
-                  ? 'bg-gradient-to-r from-brand-600 to-secondary-500 text-white shadow-lg shadow-brand-600/20 scale-105'
+                  ? 'bg-brand-600 text-white shadow-md shadow-brand-600/25'
                   : 'bg-surface-800/80 text-slate-300 hover:text-white border border-white/5 hover:border-white/10'
               }`}
             >

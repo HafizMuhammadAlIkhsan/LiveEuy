@@ -82,7 +82,7 @@ export const WatchlistPage: React.FC = () => {
             
             {/* User Profile Info */}
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-brand-600 to-secondary-500 p-0.5 shadow-xl">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white/[0.08] p-0.5 border border-white/15 shadow-xl">
                 <div className="w-full h-full bg-surface-900 rounded-[14px] flex items-center justify-center overflow-hidden">
                   <img
                     src={user.avatar}
@@ -142,35 +142,35 @@ export const WatchlistPage: React.FC = () => {
         </section>
       ) : (
         /* GUEST VISITOR VAULT NOTICE */
-        <section className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-surface-900 via-surface-800 to-brand-950/40 border border-brand-500/30 p-6 sm:p-8 shadow-2xl">
+        <section className="relative rounded-2xl overflow-hidden bg-[#0c0e14]/95 border border-white/[0.08] p-6 sm:p-8 shadow-xl backdrop-blur-xl">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="space-y-3 text-center md:text-left">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-bold">
+            <div className="space-y-2.5 text-center md:text-left">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-semibold">
                 <CloudOff className="w-3.5 h-3.5" />
-                <span>Koleksi Sementara (Mode Tamu)</span>
+                <span>Penyimpanan Sementara (Mode Tamu)</span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-black text-white">
-                Simpan Koleksi & Riwayat Anda Secara Permanen di Cloud
+              <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+                Simpan Koleksi & Riwayat Tontonan di Cloud
               </h1>
               <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
-                Saat ini daftar tontonan Anda hanya tersimpan di memori browser lokal ini. Masuk atau buat akun LiveEuy untuk sinkronisasi otomatis ke Smart TV, tablet, maupun ponsel Anda.
+                Saat ini daftar tontonan Anda tersimpan di penyimpanan browser lokal. Masuk atau buat akun LiveEuy untuk sinkronisasi otomatis ke Smart TV, tablet, maupun ponsel.
               </p>
             </div>
 
-            <div className="flex items-center gap-3 flex-shrink-0">
+            <div className="flex items-center gap-2.5 flex-shrink-0">
               <button
                 onClick={() => openAuthModal('login')}
-                className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-colors flex items-center gap-2"
+                className="px-4 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-white border border-white/10 text-xs font-semibold transition-colors flex items-center gap-2 cursor-pointer"
               >
                 <LogIn className="w-4 h-4" />
                 <span>Masuk</span>
               </button>
               <button
                 onClick={() => openAuthModal('register')}
-                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-secondary-500 hover:from-brand-500 hover:to-secondary-600 text-white text-xs font-bold shadow-lg shadow-brand-600/30 transition-all hover:scale-105 active:scale-95 whitespace-nowrap flex items-center gap-2"
+                className="px-5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold shadow-md transition-all active:scale-95 whitespace-nowrap flex items-center gap-2 cursor-pointer"
               >
                 <Cloud className="w-4 h-4" />
-                <span>Aktifkan Cloud VIP</span>
+                <span>Aktifkan Akun VIP</span>
               </button>
             </div>
           </div>

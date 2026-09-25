@@ -264,7 +264,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
                   {isActive ? (
                     <div
                       key={`bar-${currentMedia.id}`}
-                      className="h-full bg-gradient-to-r from-brand-500 to-secondary-400 rounded-full animate-hero-progress"
+                      className="h-full bg-brand-500 rounded-full animate-hero-progress"
                     />
                   ) : isPast ? (
                     <div className="h-full bg-white/90 rounded-full" />

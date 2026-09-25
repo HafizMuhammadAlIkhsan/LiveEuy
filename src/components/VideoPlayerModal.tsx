@@ -746,7 +746,7 @@ export const VideoPlayerModal: React.FC = () => {
                 />
                 {/* Played Progress Bar */}
                 <div
-                  className="absolute top-0 bottom-0 left-0 bg-gradient-to-r from-brand-600 to-secondary-500 rounded-full"
+                  className="absolute top-0 bottom-0 left-0 bg-brand-500 rounded-full"
                   style={{ width: `${(currentTime / (duration || 1)) * 100}%` }}
                 />
               </div>
