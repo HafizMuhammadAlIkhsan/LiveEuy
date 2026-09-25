@@ -253,6 +253,14 @@ export const DetailModal: React.FC = () => {
                   </span>
                   <span>•</span>
                   <span>{detailItem.releaseYear}</span>
+                  {detailItem.country && (
+                    <>
+                      <span>•</span>
+                      <span className="px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30 font-semibold">
+                        {detailItem.country}
+                      </span>
+                    </>
+                  )}
                   <span>•</span>
                   <span className="px-1.5 py-0.5 rounded border border-white/20">{detailItem.ageRating}</span>
                   <span>•</span>
@@ -276,6 +284,11 @@ export const DetailModal: React.FC = () => {
 
               {/* Sidebar metadata */}
               <div className="bg-surface-800/60 p-4 rounded-2xl border border-white/5 space-y-3 text-xs">
+                <div>
+                  <span className="text-slate-400 block mb-1">Negara Asal:</span>
+                  <p className="text-slate-200 font-medium">{detailItem.country || 'Indonesia'}</p>
+                </div>
+
                 <div>
                   <span className="text-slate-400 block mb-1">Pemeran:</span>
                   <p className="text-slate-200 font-medium">{detailItem.cast.join(', ')}</p>

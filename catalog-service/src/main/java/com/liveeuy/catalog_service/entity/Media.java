@@ -35,6 +35,7 @@ public class Media {
     private String logoUrl;
 
     private Integer releaseYear;
+    private String country;
     private Double rating;
     private Integer matchScore;
 

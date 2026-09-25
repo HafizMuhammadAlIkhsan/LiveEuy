@@ -46,8 +46,10 @@ public class MediaController {
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String genre,
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) String sortBy) {
-        List<MediaItemDTO> mediaList = mediaService.getAllMedia(type, genre, search, sortBy);
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false) String country,
+            @RequestParam(required = false) Integer year) {
+        List<MediaItemDTO> mediaList = mediaService.getAllMedia(type, genre, search, sortBy, country, year);
         return ResponseEntity.ok(ApiResponse.success(mediaList));
     }
 

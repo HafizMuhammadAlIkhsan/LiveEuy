@@ -14,6 +14,27 @@ export const GENRES = [
   'Misteri',
 ];
 
+export const COUNTRIES = [
+  'Semua Negara',
+  'Indonesia',
+  'Korea Selatan',
+  'Amerika Serikat',
+  'Jepang',
+  'Inggris',
+  'Thailand'
+];
+
+export const YEARS = [
+  'Semua Tahun',
+  '2026',
+  '2025',
+  '2024',
+  '2023',
+  '2022',
+  '2021',
+  '2020'
+];
+
 export const MOCK_MEDIA: MediaItem[] = [
   {
     id: 'cyberpunk-neo-nusantara',
@@ -25,6 +46,7 @@ export const MOCK_MEDIA: MediaItem[] = [
     posterUrl: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=600&auto=format&fit=crop&q=80',
     backdropUrl: 'https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=1600&auto=format&fit=crop&q=80',
     releaseYear: 2026,
+    country: 'Indonesia',
     rating: 9.4,
     matchScore: 99,
     ageRating: '18+',
@@ -122,6 +144,7 @@ export const MOCK_MEDIA: MediaItem[] = [
     posterUrl: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600&auto=format&fit=crop&q=80',
     backdropUrl: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1600&auto=format&fit=crop&q=80',
     releaseYear: 2025,
+    country: 'Amerika Serikat',
     rating: 9.1,
     matchScore: 97,
     ageRating: '13+',
@@ -157,6 +180,7 @@ export const MOCK_MEDIA: MediaItem[] = [
     posterUrl: 'https://images.unsplash.com/photo-1509281373149-e957c6296406?w=600&auto=format&fit=crop&q=80',
     backdropUrl: 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=1600&auto=format&fit=crop&q=80',
     releaseYear: 2026,
+    country: 'Indonesia',
     rating: 8.8,
     matchScore: 93,
     ageRating: '18+',
@@ -182,6 +206,7 @@ export const MOCK_MEDIA: MediaItem[] = [
     posterUrl: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=600&auto=format&fit=crop&q=80',
     backdropUrl: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=1600&auto=format&fit=crop&q=80',
     releaseYear: 2025,
+    country: 'Jepang',
     rating: 8.6,
     matchScore: 91,
     ageRating: '16+',
@@ -205,6 +230,7 @@ export const MOCK_MEDIA: MediaItem[] = [
     posterUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&auto=format&fit=crop&q=80',
     backdropUrl: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1600&auto=format&fit=crop&q=80',
     releaseYear: 2026,
+    country: 'Inggris',
     rating: 9.2,
     matchScore: 96,
     ageRating: '16+',
@@ -256,6 +282,7 @@ export const MOCK_MEDIA: MediaItem[] = [
     posterUrl: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=600&auto=format&fit=crop&q=80',
     backdropUrl: 'https://images.unsplash.com/photo-1470246973918-29a93221c455?w=1600&auto=format&fit=crop&q=80',
     releaseYear: 2025,
+    country: 'Indonesia',
     rating: 8.5,
     matchScore: 89,
     ageRating: '13+',
@@ -279,6 +306,7 @@ export const MOCK_MEDIA: MediaItem[] = [
     posterUrl: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600&auto=format&fit=crop&q=80',
     backdropUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1600&auto=format&fit=crop&q=80',
     releaseYear: 2026,
+    country: 'Jepang',
     rating: 9.3,
     matchScore: 98,
     ageRating: 'SU',
@@ -330,6 +358,7 @@ export const MOCK_MEDIA: MediaItem[] = [
     posterUrl: 'https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?w=600&auto=format&fit=crop&q=80',
     backdropUrl: 'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=1600&auto=format&fit=crop&q=80',
     releaseYear: 2025,
+    country: 'Amerika Serikat',
     rating: 8.9,
     matchScore: 94,
     ageRating: '13+',
@@ -352,6 +381,7 @@ export const MOCK_MEDIA: MediaItem[] = [
     posterUrl: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600&auto=format&fit=crop&q=80',
     backdropUrl: 'https://images.unsplash.com/photo-1682687220063-4742bd7fd538?w=1600&auto=format&fit=crop&q=80',
     releaseYear: 2026,
+    country: 'Amerika Serikat',
     rating: 8.7,
     matchScore: 90,
     ageRating: '16+',
@@ -374,6 +404,7 @@ export const MOCK_MEDIA: MediaItem[] = [
     posterUrl: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=600&auto=format&fit=crop&q=80',
     backdropUrl: 'https://images.unsplash.com/photo-1442512595331-e89e73853f31?w=1600&auto=format&fit=crop&q=80',
     releaseYear: 2026,
+    country: 'Indonesia',
     rating: 8.6,
     matchScore: 92,
     ageRating: 'SU',
@@ -396,6 +427,7 @@ export const MOCK_MEDIA: MediaItem[] = [
     posterUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&auto=format&fit=crop&q=80',
     backdropUrl: 'https://images.unsplash.com/photo-1509281373149-e957c6296406?w=1600&auto=format&fit=crop&q=80',
     releaseYear: 2024,
+    country: 'Korea Selatan',
     rating: 5.2,
     matchScore: 58,
     ageRating: '18+',
@@ -417,6 +449,7 @@ export const MOCK_MEDIA: MediaItem[] = [
     posterUrl: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=600&auto=format&fit=crop&q=80',
     backdropUrl: 'https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=1600&auto=format&fit=crop&q=80',
     releaseYear: 2024,
+    country: 'Indonesia',
     rating: 6.4,
     matchScore: 68,
     ageRating: '16+',

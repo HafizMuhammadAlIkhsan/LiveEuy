@@ -33,6 +33,9 @@ public class MediaItem {
     @Schema(description = "Tahun rilis", example = "2026")
     private int releaseYear;
 
+    @Schema(description = "Negara asal produksi", example = "Indonesia")
+    private String country;
+
     @Schema(description = "Rating penonton (skala 1 - 10)", example = "9.4")
     private double rating;
 
@@ -164,4 +167,7 @@ public class MediaItem {
 
     public List<Review> getReviews() { return reviews; }
     public void setReviews(List<Review> reviews) { this.reviews = reviews; }
+
+    public String getCountry() { return country; }
+    public void setCountry(String country) { this.country = country; }
 }

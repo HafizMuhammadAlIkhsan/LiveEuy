@@ -30,6 +30,8 @@ public class MediaRequestDTO {
     @NotNull(message = "Tahun rilis tidak boleh kosong")
     private Integer releaseYear;
 
+    private String country;
+
     private Double rating;
     private Integer matchScore;
     private String ageRating;

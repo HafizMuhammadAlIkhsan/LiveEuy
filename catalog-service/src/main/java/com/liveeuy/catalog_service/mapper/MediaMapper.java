@@ -28,6 +28,7 @@ public class MediaMapper {
                 .backdropUrl(media.getBackdropUrl())
                 .logoUrl(media.getLogoUrl())
                 .releaseYear(media.getReleaseYear())
+                .country(media.getCountry())
                 .rating(media.getRating())
                 .matchScore(media.getMatchScore())
                 .ageRating(media.getAgeRating())
@@ -62,6 +63,7 @@ public class MediaMapper {
         media.setBackdropUrl(dto.getBackdropUrl());
         media.setLogoUrl(dto.getLogoUrl());
         media.setReleaseYear(dto.getReleaseYear());
+        media.setCountry(dto.getCountry());
         media.setRating(dto.getRating());
         media.setMatchScore(dto.getMatchScore());
         media.setAgeRating(dto.getAgeRating());

@@ -24,7 +24,7 @@ public class MediaController {
     }
 
     @GetMapping
-    @Operation(summary = "Dapatkan daftar katalog media", description = "Mendukung filter berdasarkan format ('movie'/'tv'), genre, pencarian teks, dan pengurutan.")
+    @Operation(summary = "Dapatkan daftar katalog media", description = "Mendukung filter berdasarkan format ('movie'/'tv'), genre, pencarian teks, negara asal, tahun rilis, dan pengurutan.")
     public ApiResponse<List<MediaItem>> getAllMedia(
             @Parameter(description = "Filter format: 'all', 'movie', atau 'tv'", example = "movie")
             @RequestParam(required = false, defaultValue = "all") String type,
@@ -32,10 +32,14 @@ public class MediaController {
             @RequestParam(required = false, defaultValue = "Semua Genre") String genre,
             @Parameter(description = "Kata kunci pencarian judul, genre, atau aktor", example = "cyberpunk")
             @RequestParam(required = false) String search,
-            @Parameter(description = "Kriteria pengurutan: 'popular', 'rating', atau 'newest'", example = "popular")
-            @RequestParam(required = false, defaultValue = "popular") String sortBy
+            @Parameter(description = "Kriteria pengurutan: 'popular', 'rating', 'newest', atau 'oldest'", example = "popular")
+            @RequestParam(required = false, defaultValue = "popular") String sortBy,
+            @Parameter(description = "Filter negara asal", example = "Indonesia")
+            @RequestParam(required = false) String country,
+            @Parameter(description = "Filter tahun rilis", example = "2026")
+            @RequestParam(required = false) Integer year
     ) {
-        return ApiResponse.success(mediaService.getAllMedia(type, genre, search, sortBy));
+        return ApiResponse.success(mediaService.getAllMedia(type, genre, search, sortBy, country, year));
     }
 
     @GetMapping("/{id}")

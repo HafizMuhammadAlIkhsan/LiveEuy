@@ -355,6 +355,7 @@ public class MediaDataSeeder implements CommandLineRunner {
         );
 
         media.setReleaseYear(releaseYear);
+        media.setCountry(title.toLowerCase().contains("tokyo") ? "Jepang" : "Indonesia");
         media.setRating(rating);
         media.setMatchScore(matchScore);
         media.setAgeRating(ageRating);

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useWatch } from '../../context/WatchContext';
 import { MediaItem, Episode, Season, User } from '../../types';
-import { GENRES } from '../../data/mockData';
+import { GENRES, COUNTRIES, YEARS } from '../../data/mockData';
 import { 
   Sliders, 
   Film, 
@@ -257,6 +257,7 @@ export const AdminPage: React.FC = () => {
   const [formPosterUrl, setFormPosterUrl] = useState('');
   const [formBackdropUrl, setFormBackdropUrl] = useState('');
   const [formReleaseYear, setFormReleaseYear] = useState<number>(2026);
+  const [formCountry, setFormCountry] = useState('Indonesia');
   const [formRating, setFormRating] = useState<number>(8.5);
   const [formMatchScore, setFormMatchScore] = useState<number>(95);
   const [formAgeRating, setFormAgeRating] = useState<'SU' | '13+' | '16+' | '18+' | '21+'>('13+');
@@ -559,6 +560,7 @@ export const AdminPage: React.FC = () => {
     setFormPosterUrl('https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600&auto=format&fit=crop&q=80');
     setFormBackdropUrl('https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1600&auto=format&fit=crop&q=80');
     setFormReleaseYear(2026);
+    setFormCountry('Indonesia');
     setFormRating(8.8);
     setFormMatchScore(96);
     setFormAgeRating('16+');
@@ -588,6 +590,7 @@ export const AdminPage: React.FC = () => {
     setFormPosterUrl(item.posterUrl);
     setFormBackdropUrl(item.backdropUrl);
     setFormReleaseYear(item.releaseYear);
+    setFormCountry(item.country || 'Indonesia');
     setFormRating(item.rating);
     setFormMatchScore(item.matchScore);
     setFormAgeRating(item.ageRating);
@@ -625,6 +628,7 @@ export const AdminPage: React.FC = () => {
         posterUrl: formPosterUrl,
         backdropUrl: formBackdropUrl,
         releaseYear: formReleaseYear,
+        country: formCountry,
         rating: formRating,
         matchScore: formMatchScore,
         ageRating: formAgeRating,
@@ -654,6 +658,7 @@ export const AdminPage: React.FC = () => {
         posterUrl: formPosterUrl,
         backdropUrl: formBackdropUrl,
         releaseYear: formReleaseYear,
+        country: formCountry,
         rating: formRating,
         matchScore: formMatchScore,
         ageRating: formAgeRating,
@@ -740,7 +745,11 @@ export const AdminPage: React.FC = () => {
       if (filterType !== 'all' && item.type !== filterType) return false;
       if (searchTerm.trim()) {
         const q = searchTerm.toLowerCase();
-        return item.title.toLowerCase().includes(q) || item.director.toLowerCase().includes(q);
+        return (
+          item.title.toLowerCase().includes(q) ||
+          item.director.toLowerCase().includes(q) ||
+          Boolean(item.country && item.country.toLowerCase().includes(q))
+        );
       }
       return true;
     });
@@ -977,12 +986,12 @@ export const AdminPage: React.FC = () => {
       {/* ========================================================
           DASHBOARD 2-COLUMN LAYOUT: SIDEBAR + MAIN CONTENT
           ======================================================== */}
-      <div className="flex flex-col lg:flex-row items-start gap-6">
+      <div className="flex flex-col lg:flex-row items-start gap-6 xl:gap-8">
 
         {/* ========================================================
             LEFT SIDEBAR NAVIGATION (Sticky on Desktop)
             ======================================================== */}
-        <aside className="hidden lg:block w-72 shrink-0 sticky top-24 space-y-4">
+        <aside className="hidden lg:block w-72 xl:w-80 2xl:w-84 shrink-0 sticky top-24 space-y-4">
           <div className="rounded-3xl bg-surface-900/90 backdrop-blur-xl border border-white/10 p-4 shadow-2xl space-y-5">
             
             {/* Sidebar Brand / Admin Badge */}
@@ -1204,9 +1213,9 @@ export const AdminPage: React.FC = () => {
                           className="w-10 h-14 object-cover rounded-lg flex-shrink-0 shadow"
                         />
                         <div className="min-w-0">
-                          <h4 className="font-bold text-white truncate max-w-xs">{item.title}</h4>
+                          <h4 className="font-bold text-white truncate max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl 2xl:max-w-2xl">{item.title}</h4>
                           <span className="text-[11px] text-slate-400 block">
-                            {item.releaseYear} • {item.director}
+                            {item.releaseYear} • {item.country ? `${item.country} • ` : ''}{item.director}
                           </span>
                         </div>
                       </div>
@@ -1768,7 +1777,7 @@ export const AdminPage: React.FC = () => {
                       <td className="py-2.5 px-3 font-semibold text-slate-200">
                         {log.action}
                       </td>
-                      <td className="py-2.5 px-3 text-slate-300 text-[11px] max-w-xs truncate">
+                      <td className="py-2.5 px-3 text-slate-300 text-[11px] max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl 2xl:max-w-2xl truncate">
                         {log.detail}
                       </td>
                       <td className="py-2.5 px-3 text-right font-mono text-slate-400 text-[11px]">
@@ -1861,7 +1870,7 @@ export const AdminPage: React.FC = () => {
                           <span className="text-slate-500 font-mono">Musim #{season.seasonNumber}</span>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
                           {season.episodes.map(ep => (
                             <div key={ep.id} className="p-3 rounded-xl bg-surface-800/80 border border-white/5 flex gap-3 items-center group relative hover:border-white/20 transition-all">
                               <img src={ep.thumbnail} alt={ep.title} className="w-20 aspect-video rounded-lg object-cover flex-shrink-0" />
@@ -2156,7 +2165,7 @@ export const AdminPage: React.FC = () => {
                             alt={item.title}
                             className="w-7 h-9 rounded object-cover flex-shrink-0"
                           />
-                          <span className="font-bold text-white truncate max-w-[180px] sm:max-w-[260px]">
+                          <span className="font-bold text-white truncate max-w-[180px] sm:max-w-[260px] md:max-w-[320px] lg:max-w-[360px] xl:max-w-[480px]">
                             {item.title}
                           </span>
                           <span className="text-[9px] uppercase px-1.5 py-0.2 rounded bg-white/10 text-slate-400 font-mono hidden sm:inline">
@@ -2763,7 +2772,7 @@ export const AdminPage: React.FC = () => {
                         <td className="py-3 px-4">
                           <div className="space-y-1">
                             <div className="flex items-center gap-1.5">
-                              <span className="font-mono text-[11px] font-bold text-white truncate max-w-[150px] block" title={sess.cookieToken}>
+                              <span className="font-mono text-[11px] font-bold text-white truncate max-w-[150px] sm:max-w-[200px] md:max-w-[260px] lg:max-w-[320px] xl:max-w-[400px] block" title={sess.cookieToken}>
                                 {sess.cookieToken}
                               </span>
                               <button
@@ -2860,7 +2869,7 @@ export const AdminPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
             {allMedia.flatMap(m => (m.reviews || []).map(r => ({ ...r, mediaTitle: m.title, mediaId: m.id }))).map((rev, idx) => (
               <div key={idx} className="p-4 rounded-2xl bg-surface-800/60 border border-white/5 space-y-2">
                 <div className="flex items-center justify-between">
@@ -3130,7 +3139,7 @@ export const AdminPage: React.FC = () => {
           ======================================================== */}
       {isMediaModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in overflow-y-auto">
-          <div className="relative w-full max-w-2xl rounded-3xl bg-surface-900 border border-white/10 p-6 sm:p-8 shadow-2xl my-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
+          <div className="relative w-full max-w-2xl lg:max-w-4xl xl:max-w-5xl rounded-3xl bg-surface-900 border border-white/10 p-6 sm:p-8 shadow-2xl my-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
             
             <button
               onClick={() => setIsMediaModalOpen(false)}
@@ -3170,7 +3179,7 @@ export const AdminPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                 <div className="space-y-1">
                   <label className="font-semibold text-slate-300">Tipe Media</label>
                   <select
@@ -3180,6 +3189,19 @@ export const AdminPage: React.FC = () => {
                   >
                     <option value="movie">Film Bioskop</option>
                     <option value="tv">Serial TV</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-semibold text-slate-300">Negara Asal</label>
+                  <select
+                    value={formCountry}
+                    onChange={e => setFormCountry(e.target.value)}
+                    className="w-full bg-surface-800 border border-white/10 rounded-xl px-3 py-2 text-white focus:outline-none"
+                  >
+                    {COUNTRIES.filter(c => c !== 'Semua Negara').map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
                   </select>
                 </div>
 
@@ -3376,22 +3398,40 @@ export const AdminPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Live Image Preview Card */}
-              <div className="flex items-center gap-3 p-3 rounded-2xl bg-surface-800/60 border border-white/5">
-                <div className="w-12 h-16 rounded-lg overflow-hidden bg-black/60 border border-white/10 flex-shrink-0">
-                  <img
-                    src={formPosterUrl}
-                    alt="Poster Preview"
-                    className="w-full h-full object-cover"
-                    onError={(e) => { (e.target as any).src = 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600'; }}
-                  />
+              {/* Live Media & Backdrop Preview Card */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-2xl bg-surface-800/60 border border-white/5">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-12 h-16 rounded-lg overflow-hidden bg-black/60 border border-white/10 flex-shrink-0">
+                    <img
+                      src={formPosterUrl}
+                      alt="Poster Preview"
+                      className="w-full h-full object-cover"
+                      onError={(e) => { (e.target as any).src = 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600'; }}
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold block">Poster Preview (2:3)</span>
+                    <span className="text-xs font-bold text-white truncate block">{formTitle || 'Judul Tayangan'}</span>
+                    <span className="text-[10px] text-brand-400 font-mono truncate block">
+                      {formReleaseYear} • {formQuality} • {formAgeRating}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <span className="text-[10px] text-slate-400 uppercase font-bold block">Live Poster Preview</span>
-                  <span className="text-xs font-bold text-white truncate block">{formTitle || 'Judul Tayangan'}</span>
-                  <span className="text-[10px] text-brand-400 font-mono">
-                    {formReleaseYear} • {formQuality} • {formAgeRating} • {formSelectedGenres.join(', ')}
-                  </span>
+
+                <div className="flex items-center gap-3 border-t sm:border-t-0 sm:border-l border-white/5 pt-2 sm:pt-0 sm:pl-3 min-w-0">
+                  <div className="w-24 aspect-video rounded-lg overflow-hidden bg-black/60 border border-white/10 flex-shrink-0">
+                    <img
+                      src={formBackdropUrl || formPosterUrl}
+                      alt="Backdrop Preview"
+                      className="w-full h-full object-cover"
+                      onError={(e) => { (e.target as any).src = 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600'; }}
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold block">Backdrop 16:9 Widescreen</span>
+                    <span className="text-xs font-medium text-slate-300 truncate block">{formTagline || formTitle || 'Pratinjau Layar Lebar'}</span>
+                    <span className="text-[10px] text-emerald-400 font-mono">16:9 Aspect Ratio</span>
+                  </div>
                 </div>
               </div>
 
@@ -3479,7 +3519,7 @@ export const AdminPage: React.FC = () => {
           ======================================================== */}
       {isEpisodeModalOpen && activeSeries && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-          <div className="relative w-full max-w-lg rounded-3xl bg-surface-900 border border-white/10 p-6 sm:p-8 shadow-2xl space-y-4">
+          <div className="relative w-full max-w-lg lg:max-w-2xl xl:max-w-3xl rounded-3xl bg-surface-900 border border-white/10 p-6 sm:p-8 shadow-2xl space-y-4">
             <button
               onClick={() => setIsEpisodeModalOpen(false)}
               className="absolute top-4 right-4 p-2 rounded-full text-slate-400 hover:text-white"
@@ -3548,7 +3588,7 @@ export const AdminPage: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="font-semibold text-slate-300">URL Thumbnail Episode</label>
+                <label className="font-semibold text-slate-300">URL Thumbnail Episode (16:9)</label>
                 <input
                   type="text"
                   value={epThumbnail}
@@ -3556,6 +3596,25 @@ export const AdminPage: React.FC = () => {
                   className="w-full bg-surface-800 border border-white/10 rounded-xl px-3 py-2 text-white"
                 />
               </div>
+
+              {/* Live 16:9 Thumbnail Preview */}
+              {epThumbnail && (
+                <div className="flex items-center gap-3 p-3 rounded-2xl bg-surface-800/60 border border-white/5">
+                  <div className="w-24 aspect-video rounded-xl overflow-hidden bg-black/60 border border-white/10 flex-shrink-0">
+                    <img
+                      src={epThumbnail}
+                      alt="Thumbnail Preview"
+                      className="w-full h-full object-cover"
+                      onError={(e) => { (e.target as any).src = 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=500'; }}
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold block">Preview Thumbnail 16:9</span>
+                    <span className="text-xs font-bold text-white truncate block">{epTitle || 'Judul Episode'}</span>
+                    <span className="text-[10px] text-brand-400 font-mono">Musim {epSeasonNumber} • Ep {epNumber} • {epDuration || '45m'}</span>
+                  </div>
+                </div>
+              )}
 
               <div className="flex items-center justify-end gap-2 pt-2">
                 <button

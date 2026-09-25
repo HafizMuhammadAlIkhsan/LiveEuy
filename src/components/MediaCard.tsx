@@ -71,6 +71,11 @@ export const MediaCard: React.FC<MediaCardProps> = ({ item, layout = 'carousel' 
               {item.title}
             </h3>
             <span className="text-xs text-slate-400 font-medium">({item.releaseYear})</span>
+            {item.country && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30 font-semibold">
+                {item.country}
+              </span>
+            )}
             <span className="text-[10px] px-1.5 py-0.5 rounded border border-white/20 text-slate-300 font-semibold uppercase">
               {item.ageRating}
             </span>
@@ -279,8 +284,16 @@ export const MediaCard: React.FC<MediaCardProps> = ({ item, layout = 'carousel' 
           {item.title}
         </h3>
         <div className="flex items-center justify-between text-[11px] text-slate-400 mt-0.5">
-          <span>{item.releaseYear}</span>
-          <span className="text-[10px] px-1.5 py-0.2 rounded bg-white/5 border border-white/5 uppercase font-medium">
+          <div className="flex items-center gap-1.5 truncate">
+            <span>{item.releaseYear}</span>
+            {item.country && (
+              <>
+                <span className="text-slate-600">•</span>
+                <span className="text-[10px] text-slate-400 font-medium truncate">{item.country}</span>
+              </>
+            )}
+          </div>
+          <span className="text-[10px] px-1.5 py-0.2 rounded bg-white/5 border border-white/5 uppercase font-medium shrink-0">
             {item.type === 'movie' ? 'Film' : 'Serial'}
           </span>
         </div>

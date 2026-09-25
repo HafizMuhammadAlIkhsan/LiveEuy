@@ -37,6 +37,7 @@ export interface MediaItem {
   backdropUrl: string;
   logoUrl?: string;
   releaseYear: number;
+  country?: string; // Negara asal (e.g. 'Indonesia', 'Korea Selatan', 'Amerika Serikat', dll.)
   rating: number; // 0 - 10
   matchScore: number; // e.g. 98%
   ageRating: 'SU' | '13+' | '16+' | '18+' | '21+';

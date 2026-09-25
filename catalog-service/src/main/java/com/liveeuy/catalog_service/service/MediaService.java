@@ -13,8 +13,9 @@ import java.util.List;
 public interface MediaService {
 
     /**
-     * Mengambil semua media, dengan filter opsional berdasarkan tipe, genre, dan pencarian judul.
+     * Mengambil semua media, dengan filter opsional berdasarkan tipe, genre, pencarian judul, negara asal, dan tahun rilis.
      */
+    List<MediaItemDTO> getAllMedia(String type, String genre, String search, String sortBy, String country, Integer year);
     List<MediaItemDTO> getAllMedia(String type, String genre, String search, String sortBy);
 
     /**

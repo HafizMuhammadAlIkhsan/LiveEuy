@@ -131,13 +131,15 @@ class LiveEuyApiService {
   // CATALOG ENDPOINTS (Spring Boot Service)
   // ==========================================
 
-  async getMedia(params?: { type?: string; genre?: string; search?: string; sortBy?: string }): Promise<MediaItem[]> {
+  async getMedia(params?: { type?: string; genre?: string; country?: string; year?: number; search?: string; sortBy?: string }): Promise<MediaItem[]> {
     const catalogBase = await this.resolveCatalogUrl();
     if (catalogBase) {
       try {
         const query = new URLSearchParams();
         if (params?.type && params.type !== 'all') query.append('type', params.type);
         if (params?.genre && params.genre !== 'Semua Genre') query.append('genre', params.genre);
+        if (params?.country && params.country !== 'Semua Negara') query.append('country', params.country);
+        if (params?.year && params.year > 0) query.append('year', String(params.year));
         if (params?.search) query.append('search', params.search);
         if (params?.sortBy) query.append('sortBy', params.sortBy);
 
@@ -161,6 +163,12 @@ class LiveEuyApiService {
     if (params?.genre && params.genre !== 'Semua Genre') {
       items = items.filter(m => m.genres.includes(params.genre!));
     }
+    if (params?.country && params.country !== 'Semua Negara') {
+      items = items.filter(m => m.country === params.country);
+    }
+    if (params?.year && params.year > 0) {
+      items = items.filter(m => m.releaseYear === params.year);
+    }
     if (params?.search) {
       const q = params.search.toLowerCase();
       items = items.filter(m => 
@@ -171,8 +179,10 @@ class LiveEuyApiService {
     }
     if (params?.sortBy === 'rating') {
       items.sort((a, b) => b.rating - a.rating);
-    } else if (params?.sortBy === 'newest') {
+    } else if (params?.sortBy === 'newest' || params?.sortBy === 'year-desc') {
       items.sort((a, b) => b.releaseYear - a.releaseYear);
+    } else if (params?.sortBy === 'oldest' || params?.sortBy === 'year-asc') {
+      items.sort((a, b) => a.releaseYear - b.releaseYear);
     } else {
       items.sort((a, b) => (a.topRank || 99) - (b.topRank || 99));
     }
@@ -278,6 +288,7 @@ class LiveEuyApiService {
           backdropUrl: item.backdropUrl || '',
           logoUrl: item.logoUrl || '',
           releaseYear: item.releaseYear || new Date().getFullYear(),
+          country: item.country || 'Indonesia',
           rating: item.rating || 8.0,
           matchScore: item.matchScore || 95,
           ageRating: item.ageRating || '13+',
@@ -325,6 +336,7 @@ class LiveEuyApiService {
           backdropUrl: item.backdropUrl,
           logoUrl: item.logoUrl,
           releaseYear: item.releaseYear,
+          country: item.country,
           rating: item.rating,
           matchScore: item.matchScore,
           ageRating: item.ageRating,

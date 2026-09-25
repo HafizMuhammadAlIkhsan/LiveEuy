@@ -31,6 +31,7 @@ public class MediaService {
         cp.setPosterUrl("https://images.unsplash.com/photo-1578632767115-351597cf2477?w=600&auto=format&fit=crop&q=80");
         cp.setBackdropUrl("https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=1600&auto=format&fit=crop&q=80");
         cp.setReleaseYear(2026);
+        cp.setCountry("Indonesia");
         cp.setRating(9.4);
         cp.setMatchScore(99);
         cp.setAgeRating("18+");
@@ -67,6 +68,7 @@ public class MediaService {
         elysium.setPosterUrl("https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600&auto=format&fit=crop&q=80");
         elysium.setBackdropUrl("https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1600&auto=format&fit=crop&q=80");
         elysium.setReleaseYear(2025);
+        elysium.setCountry("Amerika Serikat");
         elysium.setRating(9.1);
         elysium.setMatchScore(97);
         elysium.setAgeRating("13+");
@@ -93,6 +95,7 @@ public class MediaService {
         kabut.setPosterUrl("https://images.unsplash.com/photo-1509281373149-e957c6296406?w=600&auto=format&fit=crop&q=80");
         kabut.setBackdropUrl("https://images.unsplash.com/photo-1448375240586-882707db888b?w=1600&auto=format&fit=crop&q=80");
         kabut.setReleaseYear(2026);
+        kabut.setCountry("Indonesia");
         kabut.setRating(8.8);
         kabut.setMatchScore(93);
         kabut.setAgeRating("18+");
@@ -115,9 +118,15 @@ public class MediaService {
     }
 
     public List<MediaItem> getAllMedia(String type, String genre, String search, String sortBy) {
+        return getAllMedia(type, genre, search, sortBy, null, null);
+    }
+
+    public List<MediaItem> getAllMedia(String type, String genre, String search, String sortBy, String country, Integer year) {
         return mediaStore.values().stream()
                 .filter(m -> type == null || type.equalsIgnoreCase("all") || m.getType().equalsIgnoreCase(type))
                 .filter(m -> genre == null || genre.equalsIgnoreCase("Semua Genre") || m.getGenres().contains(genre))
+                .filter(m -> country == null || country.isBlank() || country.equalsIgnoreCase("Semua Negara") || (m.getCountry() != null && m.getCountry().equalsIgnoreCase(country)))
+                .filter(m -> year == null || year <= 0 || m.getReleaseYear() == year)
                 .filter(m -> {
                     if (search == null || search.trim().isEmpty()) return true;
                     String q = search.toLowerCase();
@@ -128,8 +137,10 @@ public class MediaService {
                 .sorted((a, b) -> {
                     if ("rating".equalsIgnoreCase(sortBy)) {
                         return Double.compare(b.getRating(), a.getRating());
-                    } else if ("newest".equalsIgnoreCase(sortBy)) {
+                    } else if ("newest".equalsIgnoreCase(sortBy) || "year-desc".equalsIgnoreCase(sortBy)) {
                         return Integer.compare(b.getReleaseYear(), a.getReleaseYear());
+                    } else if ("oldest".equalsIgnoreCase(sortBy) || "year-asc".equalsIgnoreCase(sortBy)) {
+                        return Integer.compare(a.getReleaseYear(), b.getReleaseYear());
                     }
                     return Integer.compare(a.getTopRank() != null ? a.getTopRank() : 99,
                                            b.getTopRank() != null ? b.getTopRank() : 99);

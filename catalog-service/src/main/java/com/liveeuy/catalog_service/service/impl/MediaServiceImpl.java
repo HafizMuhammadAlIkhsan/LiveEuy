@@ -29,6 +29,11 @@ public class MediaServiceImpl implements MediaService {
 
     @Override
     public List<MediaItemDTO> getAllMedia(String type, String genre, String search, String sortBy) {
+        return getAllMedia(type, genre, search, sortBy, null, null);
+    }
+
+    @Override
+    public List<MediaItemDTO> getAllMedia(String type, String genre, String search, String sortBy, String country, Integer year) {
         List<Media> mediaList;
 
         if (search != null && !search.isBlank()) {
@@ -46,10 +51,26 @@ public class MediaServiceImpl implements MediaService {
                     .collect(Collectors.toList());
         }
 
+        if (country != null && !country.isBlank() && !country.equalsIgnoreCase("Semua Negara")) {
+            final String finalCountry = country;
+            mediaList = mediaList.stream()
+                    .filter(m -> m.getCountry() != null && m.getCountry().equalsIgnoreCase(finalCountry))
+                    .collect(Collectors.toList());
+        }
+
+        if (year != null && year > 0) {
+            final int finalYear = year;
+            mediaList = mediaList.stream()
+                    .filter(m -> m.getReleaseYear() != null && m.getReleaseYear() == finalYear)
+                    .collect(Collectors.toList());
+        }
+
         if ("rating".equalsIgnoreCase(sortBy)) {
             mediaList.sort(Comparator.comparingDouble((Media m) -> m.getRating() != null ? m.getRating() : 0.0).reversed());
-        } else if ("newest".equalsIgnoreCase(sortBy)) {
+        } else if ("newest".equalsIgnoreCase(sortBy) || "year-desc".equalsIgnoreCase(sortBy)) {
             mediaList.sort(Comparator.comparingInt((Media m) -> m.getReleaseYear() != null ? m.getReleaseYear() : 0).reversed());
+        } else if ("oldest".equalsIgnoreCase(sortBy) || "year-asc".equalsIgnoreCase(sortBy)) {
+            mediaList.sort(Comparator.comparingInt((Media m) -> m.getReleaseYear() != null ? m.getReleaseYear() : 0));
         } else {
             mediaList.sort(Comparator.comparingInt(m -> m.getTopRank() != null ? m.getTopRank() : Integer.MAX_VALUE));
         }
