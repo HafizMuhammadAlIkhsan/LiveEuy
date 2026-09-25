@@ -163,8 +163,8 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
         </div>
       </div>
 
-      {/* Featured Content Details in 1 single responsive layer */}
-      <div className="relative max-w-7xl mx-auto h-full flex flex-col justify-end pt-14 sm:pt-16 md:pt-20 pb-8 sm:pb-10 md:pb-12 px-4 sm:px-6 lg:px-8 z-10">
+      {/* Featured Content Details raised closer to navbar with balanced padding */}
+      <div className="relative max-w-7xl mx-auto h-full flex flex-col justify-end pt-12 sm:pt-14 md:pt-16 pb-16 sm:pb-20 md:pb-24 lg:pb-28 px-4 sm:px-6 lg:px-8 z-10">
         <div 
           key={`content-${currentMedia.id}`}
           className={`max-w-2xl space-y-2 sm:space-y-3.5 ${
@@ -292,7 +292,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
       {/* Floating Sound Toggle Button (Bottom-right, zero vertical layout obstruction) */}
       <button
         onClick={toggleMute}
-        className="absolute bottom-6 sm:bottom-8 right-4 sm:right-8 z-20 p-2.5 sm:p-3 rounded-full glass-panel hover:bg-white/20 text-white transition-all hover:scale-110 active:scale-95 shadow-xl cursor-pointer"
+        className="absolute bottom-8 sm:bottom-12 md:bottom-16 right-4 sm:right-8 z-20 p-2.5 sm:p-3 rounded-full glass-panel hover:bg-white/20 text-white transition-all hover:scale-110 active:scale-95 shadow-xl cursor-pointer"
         title={isMuted ? 'Nyalakan Suara Preview' : 'Bisukan Preview'}
         aria-label="Toggle Sound"
       >
