@@ -1,26 +1,32 @@
 package http
 
 import (
+	_ "github.com/DXR3IN/auth-service/docs"
 	"github.com/DXR3IN/auth-service/internal/config"
+	"github.com/DXR3IN/auth-service/internal/domain"
 	h "github.com/DXR3IN/auth-service/internal/http/handler"
 	"github.com/DXR3IN/auth-service/internal/http/middleware"
 	"github.com/DXR3IN/auth-service/internal/repository"
 	"github.com/DXR3IN/auth-service/internal/service"
-	"github.com/DXR3IN/auth-service/internal/utils"
 	ginpkg "github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-func NewRouter(cfg *config.Config, userRepo repository.UserRepository) *ginpkg.Engine {
+func NewRouter(cfg *config.Config, userRepo repository.UserRepository, jwtMgr domain.TokenManager, sessionRepo domain.SessionRepository, oauthProvider domain.OAuthProvider) *ginpkg.Engine {
 	r := ginpkg.Default()
 
-	jwtMgr := utils.NewJWTManagerFromEnv()
-	authSvc := service.NewAuthService(userRepo, jwtMgr)
-	oauthSvc := service.NewOAuthService(cfg ,userRepo, jwtMgr)
+	// Swagger documentation route
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	authSvc := service.NewAuthService(userRepo, jwtMgr, sessionRepo)
+	oauthSvc := service.NewOAuthService(oauthProvider, userRepo, jwtMgr, sessionRepo)
 	authHandler := h.NewAuthHandler(authSvc)
 	oauthHandler := h.NewOAuthHandler(oauthSvc)
 
 	r.POST("/register", authHandler.Register)
 	r.POST("/login", authHandler.Login)
+	r.POST("/refresh-token", authHandler.RefreshToken)
 
 	//
 	api := r.Group("/api/v1/auth")
@@ -39,3 +45,4 @@ func NewRouter(cfg *config.Config, userRepo repository.UserRepository) *ginpkg.E
 
 	return r
 }
+

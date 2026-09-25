@@ -1,7 +1,11 @@
 package service
 
 import (
+	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
+	"fmt"
 	"time"
 
 	models "github.com/DXR3IN/auth-service/internal/domain"
@@ -16,24 +20,45 @@ var (
 	ErrInvalidSubjectID   = errors.New("token subject is not a valid user ID")
 )
 
+const refreshTokenDuration = 7 * 24 * time.Hour
+
 type AuthService struct {
-	repo repository.UserRepository
-	jwt  *utils.JWTManager
+	repo        repository.UserRepository
+	jwt         models.TokenManager
+	sessionRepo models.SessionRepository
 }
 
 type authResponse struct {
-	Token     string
-	Name      string
-	Email     string
-	CreatedAt time.Time
+	AccessToken  string
+	RefreshToken string
+	Name         string
+	Email        string
+	CreatedAt    time.Time
 }
 
-func NewAuthService(r repository.UserRepository, jwt *utils.JWTManager) *AuthService {
-	return &AuthService{repo: r, jwt: jwt}
+func NewAuthService(r repository.UserRepository, jwt models.TokenManager, sessionRepo models.SessionRepository) *AuthService {
+	return &AuthService{repo: r, jwt: jwt, sessionRepo: sessionRepo}
 }
 
-func (s *AuthService) Register(name, email, password string) (*authResponse, error) {
-	// check if email already used
+func generateRefreshToken(userID string) (*models.RefreshTokenSession, error) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return nil, err
+	}
+
+	tokenStr := hex.EncodeToString(b)
+
+	session := &models.RefreshTokenSession{
+		Token:     tokenStr,
+		UserID:    userID,
+		ExpiresAt: time.Now().Add(refreshTokenDuration),
+		IsRevoked: false,
+	}
+
+	return session, nil
+}
+
+func (s *AuthService) Register(ctx context.Context, name, email, password string, deviceName string) (*authResponse, error) {
 	ex, err := s.repo.FindByEmail(email)
 	if err != nil {
 		return nil, err
@@ -52,14 +77,24 @@ func (s *AuthService) Register(name, email, password string) (*authResponse, err
 		return nil, err
 	}
 
-	token, err := s.jwt.Generate(u.ID)
+	token, err := s.jwt.GenerateAccessToken(u.ID)
 	if err != nil {
 		return nil, err
 	}
-	return &authResponse{Token: token, Name: u.Name, Email: u.Email, CreatedAt: u.CreatedAt}, nil
+	refreshToken, err := generateRefreshToken(u.ID)
+	if err != nil {
+		return nil, err
+	}
+	refreshToken.DeviceName = deviceName
+
+	if err := s.sessionRepo.Save(ctx, refreshToken); err != nil {
+		return nil, err
+	}
+
+	return &authResponse{AccessToken: token, RefreshToken: refreshToken.Token, Name: u.Name, Email: u.Email, CreatedAt: u.CreatedAt}, nil
 }
 
-func (s *AuthService) Login(email, password string) (*authResponse, error) {
+func (s *AuthService) Login(ctx context.Context, email, password string, deviceName string) (*authResponse, error) {
 	u, err := s.repo.FindByEmail(email)
 	if err != nil {
 		return nil, err
@@ -72,13 +107,59 @@ func (s *AuthService) Login(email, password string) (*authResponse, error) {
 		return nil, ErrInvalidCredentials
 	}
 
-	// Generate token
-	token, err := s.jwt.Generate(u.ID)
+	token, err := s.jwt.GenerateAccessToken(u.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	return &authResponse{Token: token, Name: u.Name, Email: u.Email, CreatedAt: u.CreatedAt}, nil
+	refreshToken, err := generateRefreshToken(u.ID)
+	if err != nil {
+		return nil, err
+	}
+	refreshToken.DeviceName = deviceName
+
+	if err := s.sessionRepo.Save(ctx, refreshToken); err != nil {
+		return nil, err
+	}
+
+	return &authResponse{AccessToken: token, RefreshToken: refreshToken.Token, Name: u.Name, Email: u.Email, CreatedAt: u.CreatedAt}, nil
+}
+
+func (s *AuthService) RefreshToken(ctx context.Context, oldRefreshToken string, deviceName string) (string, string, error) {
+	session, err := s.sessionRepo.Get(ctx, oldRefreshToken)
+	if err != nil {
+		return "", "", err
+	}
+
+	if session.IsRevoked {
+		_ = s.sessionRepo.Revoke(ctx, oldRefreshToken)
+		return "", "", errors.New("refresh token sudah dicabut")
+	}
+
+	if session.DeviceName != deviceName {
+		_ = s.sessionRepo.RevokeAllUserTokens(ctx, session.UserID)
+	}
+
+	if err := s.sessionRepo.Revoke(ctx, oldRefreshToken); err != nil {
+		return "", "", fmt.Errorf("gagal menghapus token lama: %w", err)
+	}
+
+	newAccessToken, err := s.jwt.GenerateAccessToken(session.UserID)
+	if err != nil {
+		return "", "", err
+	}
+
+	newRefreshTokenSession, err := generateRefreshToken(session.UserID)
+	if err != nil {
+		return "", "", err
+	}
+	newRefreshTokenSession.DeviceName = deviceName
+
+	if err := s.sessionRepo.Save(ctx, newRefreshTokenSession); err != nil {
+		return "", "", fmt.Errorf("gagal menyimpan token baru ke redis: %w", err)
+	}
+
+	return newAccessToken, newRefreshTokenSession.Token, nil
 }
 
 func (s *AuthService) GetUserDataByID(userID string) (*models.User, error) {

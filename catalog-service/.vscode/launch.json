@@ -1,0 +1,14 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Run Catalog Service",
+            "request": "launch",
+            "mainClass": "com.liveeuy.catalog_service.CatalogServiceApplication",
+            "projectName": "catalog-service",
+            "cwd": "${workspaceFolder}/catalog-service",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}
