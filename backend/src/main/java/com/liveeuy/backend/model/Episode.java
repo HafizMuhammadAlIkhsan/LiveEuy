@@ -42,4 +42,11 @@ public class Episode {
 
     public String getDuration() { return duration; }
     public void setDuration(String duration) { this.duration = duration; }
+
+    // Dual compatibility with Frontend Web
+    public String getOverview() { return synopsis; }
+    public void setOverview(String overview) { this.synopsis = overview; }
+
+    public String getThumbnail() { return thumbnailUrl; }
+    public void setThumbnail(String thumbnail) { this.thumbnailUrl = thumbnail; }
 }

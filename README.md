@@ -1,6 +1,6 @@
 # LiveEuy Mobile — Platform Streaming Video & Sinema Online Modern
 
-![LiveEuy Banner](https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?auto=format&fit=crop&w=1200&q=80)
+![LiveEuy Banner](https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=1200&q=80)
 
 **LiveEuy Mobile** adalah aplikasi pemutar dan penjelajah film & serial televisi modern berbasis **Flutter** (Android & iOS). Aplikasi ini menghadirkan antarmuka bertema *Cinematic Dark Mode* yang responsif, berkinerja tinggi pada 60 FPS konsisten tanpa *jank*, pemutar video berteknologi *Dynamic Ambient Glow*, serta arsitektur berbasis *Async-First* dengan **Flutter Riverpod**.
 
@@ -49,7 +49,7 @@
 - **Tab Ulasan Penonton**: Ruang diskusi ulasan pengguna dengan rating bintang (1–10) serta formulir pengiriman testimoni langsung.
 
 ### 7. 👤 Personalisasi Akun: VIP 4K vs Pengguna Tamu (Guest)
-- **Pengguna Terdaftar (StreamFlix VIP 4K)**:
+- **Pengguna Terdaftar (LiveEuy VIP 4K)**:
   - Lencana akun premium *VIP 4K Dolby Atmos*.
   - Sinkronisasi daftar koleksi tontonan (*Watchlist*) dan kelanjutan durasi tontonan.
   - Akses penuh untuk menulis dan mempublikasikan ulasan film.

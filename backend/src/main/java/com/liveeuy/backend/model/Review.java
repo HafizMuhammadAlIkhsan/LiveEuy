@@ -49,4 +49,11 @@ public class Review {
 
     public int getLikesCount() { return likesCount; }
     public void setLikesCount(int likesCount) { this.likesCount = likesCount; }
+
+    // Dual compatibility with Frontend Web
+    public String getAuthor() { return userName; }
+    public void setAuthor(String author) { this.userName = author; }
+
+    public String getAvatar() { return userAvatarUrl; }
+    public void setAvatar(String avatar) { this.userAvatarUrl = avatar; }
 }

@@ -492,6 +492,63 @@ class MockData {
       director: 'Tommy Dewo',
       cast: ['Abimana Aryasatya'],
     ),
+    const Movie(
+      id: 'sim_7',
+      title: 'Agak Laen',
+      synopsis: 'Empat sekawan penjaga rumah hantu pasar malam panik setelah seorang politisi meninggal mendadak di dalam wahana mereka.',
+      posterUrl:
+          'https://lh3.googleusercontent.com/aida-public/AB6AXuCvSAQfk73Ost_BO_5v-5pKB3ePUfLHybc-BP-j2rlfrzeFouYyXy_BlM-xcZ7j3jW86DKQbxdGQaSsn2wmK3-_-vCJk-xreLuxncjWjBMVxW-FR9Zw5tPyfDda22YTrXZN3KRrZoe7uraGsrMOCP_aYuZD8J8DFYJ1PZ57B_N0iwxeVTgkM3ZD8gaRpHGGUVqGlerbMmGxpoo-wWAYTrIGkC-03QwexPqNyB08ZehAL7w0oDPDV9bC',
+      backdropUrl:
+          'https://lh3.googleusercontent.com/aida-public/AB6AXuCvSAQfk73Ost_BO_5v-5pKB3ePUfLHybc-BP-j2rlfrzeFouYyXy_BlM-xcZ7j3jW86DKQbxdGQaSsn2wmK3-_-vCJk-xreLuxncjWjBMVxW-FR9Zw5tPyfDda22YTrXZN3KRrZoe7uraGsrMOCP_aYuZD8J8DFYJ1PZ57B_N0iwxeVTgkM3ZD8gaRpHGGUVqGlerbMmGxpoo-wWAYTrIGkC-03QwexPqNyB08ZehAL7w0oDPDV9bC',
+      videoUrl: sampleVideo1,
+      matchScore: 98,
+      ageRating: '13+',
+      resolutionBadges: ['4K UHD'],
+      genre: 'Komedi • Horor',
+      durationOrSeasons: '1 Jam 59 Min',
+      releaseYear: 2024,
+      director: 'Muhadkly Acho',
+      cast: ['Bene Dion', 'Boris Bokir', 'Indra Jegel', 'Oki Rengga'],
+      userRating: 9.2,
+    ),
+    const Movie(
+      id: 'sim_8',
+      title: 'Si Juki The Movie: Harta Pulau Monyet',
+      synopsis: 'Juki dan kawan-kawan berlayar menemukan peta harta karun misterius peninggalan nenek moyang demi menyelamatkan kampung.',
+      posterUrl:
+          'https://lh3.googleusercontent.com/aida-public/AB6AXuBlN--UlSbmVjzTLxb2o9qdL8Q8OhlaFHUBX3KHmBUwdWpmxhMzE8Q54ZWlrL5ll0oQNOjs-kACU6V4_P57Yn3ff8g41Saf8ne-6b2ggJU5WSTE2vdgg7S4FeewD0AMQDdcdFjE5JNvppE8Ovn3UFGtwwgFm4iy0COa4vwefzqCb9ocN2daeCE2CQJafAAcvok2g_rHBIuo5AamlS3uKXm0I7O_9OS5B5SsVl0ImjuIETKl_EzDOwVf',
+      backdropUrl:
+          'https://lh3.googleusercontent.com/aida-public/AB6AXuBlN--UlSbmVjzTLxb2o9qdL8Q8OhlaFHUBX3KHmBUwdWpmxhMzE8Q54ZWlrL5ll0oQNOjs-kACU6V4_P57Yn3ff8g41Saf8ne-6b2ggJU5WSTE2vdgg7S4FeewD0AMQDdcdFjE5JNvppE8Ovn3UFGtwwgFm4iy0COa4vwefzqCb9ocN2daeCE2CQJafAAcvok2g_rHBIuo5AamlS3uKXm0I7O_9OS5B5SsVl0ImjuIETKl_EzDOwVf',
+      videoUrl: sampleVideo2,
+      matchScore: 93,
+      ageRating: 'SU',
+      resolutionBadges: ['FHD 1080p'],
+      genre: 'Animasi • Petualangan',
+      durationOrSeasons: '1 Jam 47 Min',
+      releaseYear: 2024,
+      director: 'Faza Meonk',
+      cast: ['Faza Meonk', 'Indro Warkop', 'Jaja Mihardja'],
+      userRating: 8.6,
+    ),
+    const Movie(
+      id: 'sim_9',
+      title: 'Rencana Besar',
+      synopsis: 'Penggelapan dana 17 miliar di bank terkemuka membongkar skandal konspirasi elite politik dan kekuasaan korup.',
+      posterUrl:
+          'https://lh3.googleusercontent.com/aida-public/AB6AXuDySM2QF80YwYvVgxuS1EHEONYlbR_veTvdaMeVOCmaMIXvSk7kcCHgOJfyzAIRBdKPKslvII6nsesuk2Jrxnwvh3Vpn5qpt7qwECVUQYNwAlJNVEdC9pqt6wFoXODXp6fwynYefx8yxW9yD7WcDXvQ8cUlignXLMTDJNWNYk1cHxkCVLXQH8aNCLoXwz_NbulIebm5jjHPW5zYkqWs5yrL3rYul5CURveLxVkLd5drYANEUon_8Rx9',
+      backdropUrl:
+          'https://lh3.googleusercontent.com/aida-public/AB6AXuDySM2QF80YwYvVgxuS1EHEONYlbR_veTvdaMeVOCmaMIXvSk7kcCHgOJfyzAIRBdKPKslvII6nsesuk2Jrxnwvh3Vpn5qpt7qwECVUQYNwAlJNVEdC9pqt6wFoXODXp6fwynYefx8yxW9yD7WcDXvQ8cUlignXLMTDJNWNYk1cHxkCVLXQH8aNCLoXwz_NbulIebm5jjHPW5zYkqWs5yrL3rYul5CURveLxVkLd5drYANEUon_8Rx9',
+      videoUrl: sampleVideo4,
+      matchScore: 94,
+      ageRating: '16+',
+      resolutionBadges: ['4K UHD'],
+      genre: 'Drama • Kriminal',
+      durationOrSeasons: '1 Musim (6 Episode)',
+      releaseYear: 2023,
+      director: 'Danial Rifki',
+      cast: ['Dwi Sasono', 'Adipati Dolken', 'Prisia Nasution'],
+      userRating: 8.8,
+    ),
   ];
 
   static List<Movie> get popularMovies => similarMovies;

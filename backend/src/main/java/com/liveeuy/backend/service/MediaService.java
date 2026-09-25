@@ -70,9 +70,35 @@ public class MediaService {
                 true, 2, 8.5, 0.0, null
         );
 
+        MediaItem mCyberpunk = new MediaItem(
+                "cyberpunk-neo-nusantara", "Cyberpunk: Neo Nusantara",
+                "Di megalopolis Nusantara pada tahun 2099, seorang mantan agen siber terpaksa berhadapan dengan sindikat AI misterius yang mengendalikan aliran data dan memori seluruh warga kota.",
+                "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=600&auto=format&fit=crop&q=80",
+                "https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=1600&auto=format&fit=crop&q=80",
+                "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
+                99.0, "18+", List.of("4K UHD", "Dolby Vision", "Dolby Atmos"), "Fiksi Ilmiah, Aksi",
+                "2 Musim", 2026, "Timo Tjahjanto",
+                List.of("Iko Uwais", "Chelsea Islan", "Reza Rahadian", "Tara Basro"),
+                true, 1, 9.4, 0.0, null
+        );
+
+        MediaItem m3 = new MediaItem(
+                "m3", "The Shadow Strays",
+                "Seorang pembunuh bayaran muda bernama 13 menantang organisasi pembunuh terkuat demi menyelamatkan seorang anak laki-laki yang diculik mafia.",
+                "https://lh3.googleusercontent.com/aida-public/AB6AXuCJLiMdFenbqVD-CublKi6On_k_ymnMERa6D-OjWW2ColGnO09RD3G9V6DGZG1-a_bFHM1dSIOso97uiuVxGM-Tpw090uM6ZpXthuKT4E6_yX1ylXRqIlN2li0RVYNifH--UwoWtfgOYPWik__ZPP5c9bvCzgzat61XkY2K4morzGQh_l0KbKX4ib2wot_6L0KBfi-UTkZ1gDJ64ov2v0gZKEDejXyCY1Ko5EtYq5Sfufr_HTUJIdfH",
+                "https://lh3.googleusercontent.com/aida-public/AB6AXuCZ0xbfQIFfSpAShzjeOOZskzsuS7t8k1yVubeKxbmSIeb95GaRwgxYF-jIM1WG-sVp0LNxaKp3a1PT9R4hlg6CIfEA5ZdYrzI21zKBwPNaFZNAA4FSAXeZ1d5Xnv9b58lJtFSX49jMrwkOSHBwqurp3CNEUprffoECBnhd1yN5qG_rDGtp67E0Zcth_ynC9oK_StgdqbVDLxQcqeeDd0MV5lMSwC3UCu15Hxk4_4hMJ-oaml-c48B-",
+                "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+                97.0, "18+", List.of("4K UHD", "Dolby Atmos"), "Aksi & Laga",
+                "2 Jam 24 Min", 2024, "Timo Tjahjanto",
+                List.of("Aurora Ribero", "Hana Malasan", "Ali Fikry", "Adipati Dolken"),
+                true, 3, 9.1, 0.0, null
+        );
+
         mediaDatabase.put(mHero.getId(), mHero);
         mediaDatabase.put(m1.getId(), m1);
         mediaDatabase.put(m2.getId(), m2);
+        mediaDatabase.put(mCyberpunk.getId(), mCyberpunk);
+        mediaDatabase.put(m3.getId(), m3);
 
         // Initial Reviews
         List<Review> reviews = new ArrayList<>();

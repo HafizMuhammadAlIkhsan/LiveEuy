@@ -1,3 +1,5 @@
+import 'season_model.dart';
+
 class Movie {
   final String id;
   final String title;
@@ -9,7 +11,7 @@ class Movie {
   final String ageRating; // e.g. 18+, 13+, SU
   final List<String> resolutionBadges; // e.g. ["4K UHD", "Dolby Vision", "HDR10"]
   final String genre;
-  final String durationOrSeasons; // e.g. "1 Jamp 48 Min" or "2 Musim"
+  final String durationOrSeasons; // e.g. "1 Jam 48 Min" or "2 Musim"
   final int releaseYear;
   final String director;
   final List<String> cast;
@@ -17,6 +19,7 @@ class Movie {
   final int? top10Rank;
   final double userRating;
   final double continueWatchingProgress; // 0.0 to 1.0
+  final List<Season> seasons;
 
   const Movie({
     required this.id,
@@ -37,30 +40,133 @@ class Movie {
     this.top10Rank,
     this.userRating = 4.8,
     this.continueWatchingProgress = 0.0,
+    this.seasons = const [],
   });
 
   Movie copyWith({
+    String? id,
+    String? title,
+    String? synopsis,
+    String? posterUrl,
+    String? backdropUrl,
+    String? videoUrl,
+    double? matchScore,
+    String? ageRating,
+    List<String>? resolutionBadges,
+    String? genre,
+    String? durationOrSeasons,
+    int? releaseYear,
+    String? director,
+    List<String>? cast,
+    bool? isTop10,
+    int? top10Rank,
+    double? userRating,
     double? continueWatchingProgress,
+    List<Season>? seasons,
   }) {
     return Movie(
-      id: id,
-      title: title,
+      id: id ?? this.id,
+      title: title ?? this.title,
+      synopsis: synopsis ?? this.synopsis,
+      posterUrl: posterUrl ?? this.posterUrl,
+      backdropUrl: backdropUrl ?? this.backdropUrl,
+      videoUrl: videoUrl ?? this.videoUrl,
+      matchScore: matchScore ?? this.matchScore,
+      ageRating: ageRating ?? this.ageRating,
+      resolutionBadges: resolutionBadges ?? this.resolutionBadges,
+      genre: genre ?? this.genre,
+      durationOrSeasons: durationOrSeasons ?? this.durationOrSeasons,
+      releaseYear: releaseYear ?? this.releaseYear,
+      director: director ?? this.director,
+      cast: cast ?? this.cast,
+      isTop10: isTop10 ?? this.isTop10,
+      top10Rank: top10Rank ?? this.top10Rank,
+      userRating: userRating ?? this.userRating,
+      continueWatchingProgress:
+          continueWatchingProgress ?? this.continueWatchingProgress,
+      seasons: seasons ?? this.seasons,
+    );
+  }
+
+  factory Movie.fromJson(Map<String, dynamic> json) {
+    // Dual compatibility with Web (overview vs synopsis, rating vs userRating, topRank vs top10Rank, genres vs genre)
+    final synopsis =
+        json['synopsis'] as String? ?? json['overview'] as String? ?? '';
+    final genre = json['genre'] as String? ??
+        (json['genres'] is List && (json['genres'] as List).isNotEmpty
+            ? (json['genres'] as List).first.toString()
+            : '');
+    final userRating = (json['userRating'] as num?)?.toDouble() ??
+        (json['rating'] as num?)?.toDouble() ??
+        4.8;
+    final top10Rank = (json['top10Rank'] as num?)?.toInt() ??
+        (json['topRank'] as num?)?.toInt();
+    final isTop10 = json['isTop10'] as bool? ??
+        (top10Rank != null && top10Rank > 0);
+
+    List<String> badges = [];
+    if (json['resolutionBadges'] is List) {
+      badges = (json['resolutionBadges'] as List)
+          .map((e) => e.toString())
+          .toList();
+    } else {
+      if (json['quality'] != null) badges.add(json['quality'].toString());
+      if (json['audio'] != null) badges.add(json['audio'].toString());
+    }
+
+    return Movie(
+      id: json['id'] as String? ?? '',
+      title: json['title'] as String? ?? '',
       synopsis: synopsis,
-      posterUrl: posterUrl,
-      backdropUrl: backdropUrl,
-      videoUrl: videoUrl,
-      matchScore: matchScore,
-      ageRating: ageRating,
-      resolutionBadges: resolutionBadges,
+      posterUrl: json['posterUrl'] as String? ?? '',
+      backdropUrl: json['backdropUrl'] as String? ?? '',
+      videoUrl: json['videoUrl'] as String? ?? '',
+      matchScore: (json['matchScore'] as num?)?.toDouble() ?? 0.0,
+      ageRating: json['ageRating'] as String? ?? '',
+      resolutionBadges: badges,
       genre: genre,
-      durationOrSeasons: durationOrSeasons,
-      releaseYear: releaseYear,
-      director: director,
-      cast: cast,
+      durationOrSeasons: json['durationOrSeasons'] as String? ??
+          json['duration'] as String? ??
+          '',
+      releaseYear: (json['releaseYear'] as num?)?.toInt() ?? 2024,
+      director: json['director'] as String? ?? '',
+      cast: (json['cast'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          const [],
       isTop10: isTop10,
       top10Rank: top10Rank,
       userRating: userRating,
-      continueWatchingProgress: continueWatchingProgress ?? this.continueWatchingProgress,
+      continueWatchingProgress:
+          (json['continueWatchingProgress'] as num?)?.toDouble() ?? 0.0,
+      seasons: (json['seasons'] as List<dynamic>?)
+              ?.map((e) => Season.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'synopsis': synopsis,
+      'posterUrl': posterUrl,
+      'backdropUrl': backdropUrl,
+      'videoUrl': videoUrl,
+      'matchScore': matchScore,
+      'ageRating': ageRating,
+      'resolutionBadges': resolutionBadges,
+      'genre': genre,
+      'durationOrSeasons': durationOrSeasons,
+      'releaseYear': releaseYear,
+      'director': director,
+      'cast': cast,
+      'isTop10': isTop10,
+      if (top10Rank != null) 'top10Rank': top10Rank,
+      'userRating': userRating,
+      'continueWatchingProgress': continueWatchingProgress,
+      'seasons': seasons.map((s) => s.toJson()).toList(),
+    };
   }
 }

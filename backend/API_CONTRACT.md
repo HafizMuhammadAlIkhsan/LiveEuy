@@ -156,3 +156,20 @@ Semua endpoint mengembalikan struktur pembungkus JSON standar:
 | `userRating` | `Double` | Rata-rata rating bintang 1.0-10.0 |
 | `continueWatchingProgress` | `Double` | Progres tontonan pengguna (0.0-1.0) |
 | `seasons` | `List<Season>` | Daftar musim & episode (khusus serial) |
+
+---
+
+### 🔄 Interoperabilitas & Keselarasan Frontend Web (Universal Compatibility)
+Untuk menjamin kompatibilitas tanpa *breaking changes* antara **Web (React)** dan **Mobile (Flutter)**:
+
+| Field Standar Backend / Mobile | Alias Kompatibel Web (`src/types.ts`) | Keterangan / Normalisasi |
+|---|---|---|
+| `synopsis` | `overview` | Kedua field disediakan oleh backend |
+| `genre` | `genres: List<String>` | `genres` berupa array token, `genre` string utama |
+| `userRating` | `rating` | Skala rating numerik yang sama (0 - 10) |
+| `top10Rank` | `topRank` | Urutan peringkat Top 10 (1 - 10) |
+| `resolutionBadges` | `quality`, `audio` | Berisi badge resolusi & audio terpadu |
+| `userName` (Review) | `author` | Nama penulis ulasan |
+| `userAvatarUrl` (Review) | `avatar` | URL avatar penulis ulasan |
+| `thumbnailUrl` (Episode) | `thumbnail` | URL gambar cuplikan episode |
+

@@ -108,4 +108,21 @@ public class MediaItem {
 
     public List<Season> getSeasons() { return seasons; }
     public void setSeasons(List<Season> seasons) { this.seasons = seasons; }
+
+    // Dual compatibility with Frontend Web (src/types.ts)
+    public String getOverview() { return synopsis; }
+    public void setOverview(String overview) { this.synopsis = overview; }
+
+    public double getRating() { return userRating; }
+    public void setRating(double rating) { this.userRating = rating; }
+
+    public Integer getTopRank() { return top10Rank; }
+    public void setTopRank(Integer topRank) {
+        this.top10Rank = topRank;
+        this.isTop10 = (topRank != null && topRank > 0);
+    }
+
+    public List<String> getGenres() {
+        return (genre != null && !genre.isBlank()) ? List.of(genre.split(",\\s*")) : List.of();
+    }
 }
