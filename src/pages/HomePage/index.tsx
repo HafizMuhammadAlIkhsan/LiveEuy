@@ -37,7 +37,13 @@ export const HomePage: React.FC = () => {
 
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
-  const featuredItems = allMedia.filter(item => item.isFeatured);
+  // Ensure at least 6-7 rich featured film slides are available for the Netflix-style slider
+  const featuredItems = (() => {
+    const featured = allMedia.filter(item => item.isFeatured);
+    if (featured.length >= 5) return featured;
+    const additional = allMedia.filter(item => !item.isFeatured && (item.topRank || item.isTrending));
+    return [...featured, ...additional].slice(0, 7);
+  })();
   const trendingItems = allMedia.filter(item => item.isTrending);
   const actionItems = allMedia.filter(item => item.genres.includes('Aksi') || item.genres.includes('Fiksi Ilmiah'));
   const dramaItems = allMedia.filter(item => item.genres.includes('Drama') || item.genres.includes('Thriller'));

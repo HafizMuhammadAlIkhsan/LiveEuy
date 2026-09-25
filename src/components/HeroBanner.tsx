@@ -25,6 +25,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
   const [isMuted, setIsMuted] = useState(true);
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const thumbnailStripRef = useRef<HTMLDivElement>(null);
 
   const currentMedia = featuredItems[currentIndex] || featuredItems[0];
   const inWatchlist = currentMedia ? isInWatchlist(currentMedia.id) : false;
@@ -68,6 +69,16 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
     }
   }, [currentIndex]);
 
+  // Auto-scroll active card into view in the thumbnail strip
+  useEffect(() => {
+    if (thumbnailStripRef.current) {
+      const activeEl = thumbnailStripRef.current.children[currentIndex] as HTMLElement;
+      if (activeEl) {
+        activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+    }
+  }, [currentIndex]);
+
   const toggleMute = () => {
     if (videoRef.current) {
       videoRef.current.muted = !isMuted;
@@ -91,7 +102,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
     <div 
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
-      className="relative w-full h-[78vh] min-h-[520px] sm:h-[82vh] sm:min-h-[580px] lg:h-[85vh] lg:min-h-[620px] overflow-hidden select-none"
+      className="relative w-full h-[82vh] min-h-[580px] sm:h-[86vh] sm:min-h-[640px] lg:h-[88vh] lg:min-h-[680px] overflow-hidden select-none group"
     >
       
       {/* Background Media with Ken Burns cinematic zoom and smooth crossfade */}
@@ -122,7 +133,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
         <div className="absolute inset-x-0 top-0 h-20 sm:h-24 md:h-28 bg-gradient-to-b from-[#08090d]/80 via-[#08090d]/30 to-transparent pointer-events-none z-10" />
 
         {/* 2. Bottom shadow vignette */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#08090d] via-[#08090d]/50 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#08090d] via-[#08090d]/60 to-transparent" />
 
         {/* 3. Left shadow for readable typography */}
         <div className="absolute inset-0 bg-gradient-to-r from-[#08090d] via-[#08090d]/70 to-transparent w-full md:w-3/4" />
@@ -131,11 +142,43 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-brand-600/10 via-transparent to-transparent pointer-events-none" />
       </div>
 
+      {/* Netflix Large Edge Chevrons (Appear on hover for desktop/tablet) */}
+      <button
+        onClick={handlePrev}
+        className="hidden md:flex items-center justify-center absolute left-3 lg:left-5 top-1/2 -translate-y-1/2 z-30 w-11 h-11 lg:w-13 lg:h-13 rounded-full bg-black/40 hover:bg-black/80 backdrop-blur-md text-white/70 hover:text-white border border-white/10 hover:border-white/30 transition-all hover:scale-110 active:scale-95 shadow-2xl opacity-0 group-hover:opacity-100 duration-300"
+        aria-label="Slide Film Sebelumnya"
+      >
+        <ChevronLeft className="w-6 h-6 lg:w-7 lg:h-7 -translate-x-0.5" />
+      </button>
+
+      <button
+        onClick={handleNext}
+        className="hidden md:flex items-center justify-center absolute right-3 lg:right-5 top-1/2 -translate-y-1/2 z-30 w-11 h-11 lg:w-13 lg:h-13 rounded-full bg-black/40 hover:bg-black/80 backdrop-blur-md text-white/70 hover:text-white border border-white/10 hover:border-white/30 transition-all hover:scale-110 active:scale-95 shadow-2xl opacity-0 group-hover:opacity-100 duration-300"
+        aria-label="Slide Film Selanjutnya"
+      >
+        <ChevronRight className="w-6 h-6 lg:w-7 lg:h-7 translate-x-0.5" />
+      </button>
+
+      {/* Netflix-Style Maturity & Audio Badge on Right Edge */}
+      <div className="hidden lg:flex items-center gap-2 absolute right-0 top-1/3 z-20">
+        <div className="border-l-4 border-brand-500 bg-black/70 backdrop-blur-md py-1.5 px-3 rounded-l-xl border-y border-r-0 border-white/10 shadow-xl flex items-center gap-2.5 text-xs font-bold text-white">
+          <span className="font-mono text-slate-200">{currentMedia.ageRating}</span>
+          <span className="w-1 h-1 rounded-full bg-slate-500" />
+          <span className="text-[11px] text-brand-300">{currentMedia.quality}</span>
+          {currentMedia.audio && (
+            <>
+              <span className="w-1 h-1 rounded-full bg-slate-500" />
+              <span className="text-[10px] text-slate-300 uppercase tracking-wider">{currentMedia.audio}</span>
+            </>
+          )}
+        </div>
+      </div>
+
       {/* Featured Content Details raised closer to navbar with balanced padding */}
-      <div className="relative max-w-7xl mx-auto h-full flex flex-col justify-end pt-14 sm:pt-16 md:pt-20 pb-8 sm:pb-12 md:pb-14 px-4 sm:px-6 lg:px-8 z-10">
+      <div className="relative max-w-7xl mx-auto h-full flex flex-col justify-end pt-14 sm:pt-16 md:pt-20 pb-6 sm:pb-8 md:pb-10 px-4 sm:px-6 lg:px-8 z-10">
         <div 
           key={`content-${currentMedia.id}`}
-          className={`max-w-2xl space-y-2.5 sm:space-y-4 ${
+          className={`max-w-2xl space-y-2 sm:space-y-3.5 ${
             direction === 'next' ? 'animate-hero-next' : 'animate-hero-prev'
           }`}
         >
@@ -193,8 +236,8 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
             ))}
           </div>
 
-          {/* Action Buttons (Responsive flex for mobile vs desktop) */}
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-2 sm:pt-3">
+          {/* Action Buttons */}
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-1.5 sm:pt-2">
             <button
               onClick={() => openPlayer(currentMedia)}
               className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm sm:text-base shadow-xl shadow-brand-600/30 hover:scale-105 active:scale-95 transition-all cursor-pointer"
@@ -230,57 +273,120 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
           </div>
         </div>
 
-        {/* Floating Controls: Mute Toggle & Carousel Switchers positioned comfortably at the bottom */}
-        <div className="absolute bottom-8 sm:bottom-12 md:bottom-14 right-4 sm:right-6 md:right-8 flex items-center gap-2 sm:gap-3 z-20">
-          <button
-            onClick={toggleMute}
-            className="p-2 sm:p-3 rounded-full glass-panel hover:bg-white/20 text-white transition-transform hover:scale-110 active:scale-95 shadow-lg"
-            title={isMuted ? 'Nyalakan Suara Preview' : 'Bisukan Preview'}
-            aria-label="Toggle Sound"
-          >
-            {isMuted ? <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" /> : <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />}
-          </button>
+        {/* ========================================================
+            NETFLIX-STYLE HERO SLIDER DOCK (Thumbnails + Multi-Segment Bars)
+            ======================================================== */}
+        <div className="mt-5 sm:mt-7 pt-3 border-t border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
+          
+          {/* Netflix Multi-Segment Story Progress Bar & Counter */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 w-44 sm:w-56">
+              {featuredItems.map((item, idx) => {
+                const isActive = idx === currentIndex;
+                const isPast = idx < currentIndex;
+                return (
+                  <button
+                    key={item.id || idx}
+                    onClick={() => changeSlide(idx, idx >= currentIndex ? 'next' : 'prev')}
+                    className="flex-1 h-1 sm:h-1.5 rounded-full overflow-hidden bg-white/20 hover:bg-white/40 transition-colors relative cursor-pointer"
+                    title={item.title}
+                  >
+                    {isActive ? (
+                      <div
+                        key={`bar-${currentMedia.id}`}
+                        className="h-full bg-gradient-to-r from-brand-500 to-secondary-400 rounded-full animate-hero-progress"
+                      />
+                    ) : isPast ? (
+                      <div className="h-full bg-white/90 rounded-full" />
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
 
-          {featuredItems.length > 1 && (
-            <div className="flex items-center gap-1.5 glass-panel p-1.5 rounded-full hidden xs:flex shadow-xl">
+            <span className="text-xs font-mono font-bold text-slate-400 whitespace-nowrap">
+              <span className="text-white">0{currentIndex + 1}</span> / 0{featuredItems.length}
+            </span>
+          </div>
+
+          {/* Right: Netflix Interactive Thumbnail Carousel Strip */}
+          <div className="flex items-center gap-2 sm:gap-3 w-full md:w-auto overflow-hidden justify-between md:justify-end">
+            
+            {/* Quick Prev / Next controls */}
+            <div className="flex items-center gap-1 flex-shrink-0">
               <button
                 onClick={handlePrev}
-                className="p-1.5 rounded-full hover:bg-white/20 text-white transition-colors"
-                aria-label="Previous Featured"
+                className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl glass-panel hover:bg-white/20 text-white transition-all active:scale-95 cursor-pointer"
+                aria-label="Slide Sebelumnya"
+                title="Slide Sebelumnya"
               >
-                <ChevronLeft className="w-3.5 h-3.5" />
+                <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </button>
-              <div className="flex items-center gap-1.5 px-1">
-                {featuredItems.map((item, idx) => {
-                  const isActive = idx === currentIndex;
-                  return (
-                    <button
-                      key={item.id || idx}
-                      onClick={() => changeSlide(idx, idx >= currentIndex ? 'next' : 'prev')}
-                      className={`relative h-2 rounded-full overflow-hidden transition-all duration-300 ${
-                        isActive ? 'w-8 sm:w-10 bg-white/20' : 'w-2 bg-white/30 hover:bg-white/60'
-                      }`}
-                      aria-label={`Slide ${idx + 1}`}
-                    >
-                      {isActive && (
-                        <div
-                          key={`progress-${currentMedia.id}`}
-                          className="h-full bg-gradient-to-r from-brand-500 to-secondary-400 rounded-full animate-hero-progress"
-                        />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
               <button
                 onClick={handleNext}
-                className="p-1.5 rounded-full hover:bg-white/20 text-white transition-colors"
-                aria-label="Next Featured"
+                className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl glass-panel hover:bg-white/20 text-white transition-all active:scale-95 cursor-pointer"
+                aria-label="Slide Selanjutnya"
+                title="Slide Selanjutnya"
               >
-                <ChevronRight className="w-3.5 h-3.5" />
+                <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </button>
             </div>
-          )}
+
+            {/* Thumbnail cards strip with smooth auto-scroll */}
+            <div 
+              ref={thumbnailStripRef}
+              className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1 px-0.5 max-w-[240px] xs:max-w-[320px] sm:max-w-[440px] md:max-w-[520px] scroll-smooth"
+            >
+              {featuredItems.map((item, idx) => {
+                const isActive = idx === currentIndex;
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => changeSlide(idx, idx >= currentIndex ? 'next' : 'prev')}
+                    className={`group relative flex-shrink-0 w-20 xs:w-24 sm:w-28 h-12 xs:h-14 sm:h-16 rounded-xl overflow-hidden cursor-pointer transition-all duration-300 ${
+                      isActive
+                        ? 'ring-2 ring-brand-500 shadow-xl shadow-brand-500/40 scale-105 z-10 brightness-110'
+                        : 'opacity-50 hover:opacity-100 hover:scale-102 border border-white/10 brightness-90 hover:brightness-100'
+                    }`}
+                  >
+                    <img
+                      src={item.backdropUrl || item.posterUrl}
+                      alt={item.title}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
+                    
+                    <div className="absolute inset-x-1.5 bottom-1 text-left">
+                      <p className="text-[9px] xs:text-[10px] font-bold text-white truncate drop-shadow leading-tight">
+                        {item.title}
+                      </p>
+                      <div className="flex items-center gap-1 text-[8px] text-brand-300 font-medium">
+                        <span>★ {item.rating}</span>
+                        {item.topRank && <span>• #{item.topRank}</span>}
+                      </div>
+                    </div>
+
+                    {isActive && (
+                      <span className="absolute top-1 right-1 px-1.5 py-0.2 rounded bg-brand-600 text-white text-[7px] font-extrabold uppercase tracking-wider shadow">
+                        Tayang
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Sound Mute Button */}
+            <button
+              onClick={toggleMute}
+              className="p-2 sm:p-2.5 rounded-lg sm:rounded-xl glass-panel hover:bg-white/20 text-white transition-transform hover:scale-105 active:scale-95 flex-shrink-0"
+              title={isMuted ? 'Nyalakan Suara Preview' : 'Bisukan Preview'}
+              aria-label="Toggle Sound"
+            >
+              {isMuted ? <VolumeX className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
+            </button>
+          </div>
+
         </div>
 
       </div>
@@ -288,3 +394,4 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
   );
 
 };
+
