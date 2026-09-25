@@ -46,7 +46,8 @@ com.liveeuy.backend/
 │   ├── Episode.java          # Entitas Episode
 │   ├── Season.java           # Entitas Musim
 │   ├── Review.java           # Entitas Ulasan
-│   └── WatchProgress.java    # Entitas Durasi Tontonan
+│   ├── WatchProgress.java    # Entitas Durasi Tontonan
+│   └── User.java             # Entitas Profil & Status Pengguna VIP/Tamu
 ├── dto/
 │   ├── ApiResponse.java      # Wrapper respon standar JSON
 │   ├── ReviewRequest.java    # DTO kirim review
@@ -59,3 +60,12 @@ com.liveeuy.backend/
     ├── WatchProgressController.java # Endpoints /api/v1/user/progress
     └── ReviewController.java # Endpoints /api/v1/media/{id}/reviews
 ```
+
+---
+
+## 🛡️ Panduan Database & Anti-Konflik
+Untuk mencegah terjadinya konflik skema database antar tim backend, silakan baca dan patuhi panduan berikut:
+- 📖 [**DATABASE_GUIDELINES.md**](./DATABASE_GUIDELINES.md): Pedoman arsitektur skema, Flyway migrations, ERD Mermaid, UPSERT anti race-condition, dan checklist PR.
+- 🐳 [**docker-compose.yml**](./docker-compose.yml): Menjalankan PostgreSQL lokal terisolasi via `docker compose up -d postgres`.
+- 📜 [**V20260924_01__init_schema.sql**](./src/main/resources/db/migration/V20260924_01__init_schema.sql): Script DDL Flyway awal siap pakai.
+

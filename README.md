@@ -91,6 +91,7 @@
 - **Framework**: Spring Boot 3.3.4 (Java 17+)
 - **Dokumentasi API**: SpringDoc OpenAPI & Swagger UI
 - **Spesifikasi Kontrak**: [`API_CONTRACT.md`](./API_CONTRACT.md)
+- **Pedoman Database Anti-Konflik**: [`backend/DATABASE_GUIDELINES.md`](./backend/DATABASE_GUIDELINES.md) *(Flyway, ERD, Docker Compose, Idempotent Upsert)*
 - **Interactive Swagger UI**: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
 - **OpenAPI Schema**: [http://localhost:8080/api-docs](http://localhost:8080/api-docs)
 
