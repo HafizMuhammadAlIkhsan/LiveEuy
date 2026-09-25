@@ -91,7 +91,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
     <div 
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
-      className="relative w-full h-[76vh] min-h-[500px] sm:h-[80vh] sm:min-h-[560px] lg:h-[84vh] lg:min-h-[600px] overflow-hidden select-none group"
+      className="relative w-full h-[80vh] min-h-[540px] sm:h-[84vh] sm:min-h-[580px] lg:h-[86vh] lg:min-h-[620px] overflow-hidden select-none group"
     >
       
       {/* Background Media with Ken Burns cinematic zoom and smooth crossfade */}
@@ -163,8 +163,8 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
         </div>
       </div>
 
-      {/* Featured Content Details raised closer to navbar with balanced padding */}
-      <div className="relative max-w-7xl mx-auto h-full flex flex-col justify-end pt-8 sm:pt-10 md:pt-12 pb-20 sm:pb-24 md:pb-28 lg:pb-32 px-4 sm:px-6 lg:px-8 z-10">
+      {/* Featured Content Details with balanced spacing below navbar */}
+      <div className="relative max-w-7xl mx-auto h-full flex flex-col justify-end pt-16 sm:pt-20 md:pt-24 pb-12 sm:pb-14 md:pb-16 lg:pb-20 px-4 sm:px-6 lg:px-8 z-10">
         <div 
           key={`content-${currentMedia.id}`}
           className={`max-w-2xl space-y-2 sm:space-y-3.5 ${
