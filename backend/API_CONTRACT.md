@@ -173,3 +173,208 @@ Untuk menjamin kompatibilitas tanpa *breaking changes* antara **Web (React)** da
 | `userAvatarUrl` (Review) | `avatar` | URL avatar penulis ulasan |
 | `thumbnailUrl` (Episode) | `thumbnail` | URL gambar cuplikan episode |
 
+---
+
+## 🔐 5. Autentikasi, Refresh Token, & Manajemen Cookie (`/api/v1/auth`)
+
+Sistem autentikasi LiveEuy mengadopsi standar industri modern (**Short-lived Access Token** + **Long-lived Refresh Token with Cookie HttpOnly**) yang aman dari celah XSS dan CSRF, serta mendukung klien multiplatform (**Web React** dan **Mobile Flutter**).
+
+```
+   ┌────────────────────────────────────────────────────────┐
+   │                  ALUR SILENT REFRESH                   │
+   │                                                        │
+   │  [Frontend / Mobile]               [Spring Boot]       │
+   │          │                               │             │
+   │          │─── POST /api/v1/auth/login ──>│             │
+   │          │<── 200 OK (AccessToken) ─────│             │
+   │          │    + Set-Cookie (HttpOnly)    │             │
+   │          │                               │             │
+   │          │─── GET /api/v1/media (401) ──>│ (Token Exp) │
+   │          │<── 401 Unauthorized ──────────│             │
+   │          │                               │             │
+   │          │─── POST /auth/refresh ───────>│ (Kirim      │
+   │          │    (Cookie otomatis terkirim) │  Cookie /   │
+   │          │<── 200 OK (New AccessToken) ──│  Body)      │
+   │          │    + New Rotated Cookie       │             │
+   │          │                               │             │
+   │          │─── Retry GET /media (200) ───>│ (Sukses!)   │
+   └────────────────────────────────────────────────────────┘
+```
+
+---
+
+### a. Login Pengguna (`POST /api/v1/auth/login`)
+- **Method**: `POST`
+- **Path**: `/api/v1/auth/login`
+- **Request Body**:
+  ```json
+  {
+    "email": "hafiz@streamflix.id",
+    "password": "password123",
+    "rememberMe": true
+  }
+  ```
+- **Response Headers**:
+  ```http
+  Set-Cookie: refreshToken=eyJhbGciOi...; Path=/api/v1/auth; Max-Age=604800; HttpOnly; SameSite=Lax
+  ```
+- **Response Body**:
+  ```json
+  {
+    "success": true,
+    "message": "Login berhasil. Selamat datang kembali!",
+    "data": {
+      "accessToken": "eyJhbGciOi...",
+      "refreshToken": "eyJhbGciOi...",
+      "tokenType": "Bearer",
+      "expiresIn": 900,
+      "user": {
+        "id": "user_hafiz",
+        "name": "Hafiz Muhammad",
+        "email": "hafiz@streamflix.id",
+        "avatarUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120",
+        "membershipTier": "VIP_4K"
+      }
+    },
+    "timestamp": "2026-09-25T10:00:00"
+  }
+  ```
+
+---
+
+### b. Refresh Access Token (`POST /api/v1/auth/refresh`)
+- **Method**: `POST`
+- **Path**: `/api/v1/auth/refresh`
+- **Mekanisme Dual-Mode (Web & Mobile)**:
+  - **Web**: Browser **otomatis mengirimkan cookie** `refreshToken` melalui header `Cookie: refreshToken=...` (Cukup pastikan `withCredentials: true` atau `credentials: 'include'`).
+  - **Mobile**: Klien mobile dapat mengirimkan JSON body `{ "refreshToken": "..." }` jika tidak mengandalkan cookie storage.
+- **Keamanan (Refresh Token Rotation)**:
+  - Token lama langsung dicabut dari server begitu digunakan.
+  - Backend menerbitkan pasangan Access Token baru + Refresh Token baru via `Set-Cookie`.
+- **Response Body**:
+  ```json
+  {
+    "success": true,
+    "message": "Access token berhasil diperbarui",
+    "data": {
+      "accessToken": "eyJhbGciOi...NEW_ACCESS_TOKEN",
+      "refreshToken": "eyJhbGciOi...NEW_REFRESH_TOKEN",
+      "tokenType": "Bearer",
+      "expiresIn": 900,
+      "user": { ... }
+    }
+  }
+  ```
+
+---
+
+### c. Logout Pengguna (`POST /api/v1/auth/logout`)
+- **Method**: `POST`
+- **Path**: `/api/v1/auth/logout`
+- **Efek Operasi**:
+  - Mencabut refresh token dari daftar token aktif di server.
+  - Mengembalikan instruksi penghapusan cookie ke browser:
+    ```http
+    Set-Cookie: refreshToken=; Path=/api/v1/auth; Max-Age=0; HttpOnly; SameSite=Lax
+    ```
+
+---
+
+### d. Profil Pengguna Aktif (`GET /api/v1/auth/me`)
+- **Method**: `GET`
+- **Path**: `/api/v1/auth/me`
+- **Header**: `Authorization: Bearer <accessToken>`
+- **Response Body**: Mengembalikan data profil `User` pengguna saat ini.
+
+---
+
+### 💻 Referensi Implementasi Klien Frontend (React 18 + Axios)
+
+Berikut adalah referensi implementasi lengkap untuk tim Frontend Web (`src/api/authApi.ts` atau Axios Interceptor):
+
+```typescript
+import axios from 'axios';
+
+export const apiClient = axios.create({
+  baseURL: 'http://localhost:8080/api/v1',
+  withCredentials: true, // WAJIB: agar browser menyertakan HttpOnly cookie ke backend
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+let inMemoryAccessToken: string | null = null;
+
+export const setAccessToken = (token: string | null) => {
+  inMemoryAccessToken = token;
+};
+
+// 1. Request Interceptor: Pasang Bearer token jika tersedia
+apiClient.interceptors.request.use((config) => {
+  if (inMemoryAccessToken && !config.headers.Authorization) {
+    config.headers.Authorization = `Bearer ${inMemoryAccessToken}`;
+  }
+  return config;
+});
+
+// 2. Response Interceptor: Tangani 401 dan jalankan Silent Refresh
+let isRefreshing = false;
+let failedQueue: Array<{ resolve: (token: string) => void; reject: (err: any) => void }> = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) prom.reject(error);
+    else prom.resolve(token!);
+  });
+  failedQueue = [];
+};
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Jika error 401 dan bukan request refresh/login itu sendiri
+    if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/auth/')) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then((token) => {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return apiClient(originalRequest);
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        // Panggil endpoint refresh (Cookie HttpOnly terkirim otomatis oleh browser)
+        const res = await axios.post(
+          'http://localhost:8080/api/v1/auth/refresh',
+          {},
+          { withCredentials: true }
+        );
+
+        const newAccessToken = res.data.data.accessToken;
+        setAccessToken(newAccessToken);
+        processQueue(null, newAccessToken);
+
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        return apiClient(originalRequest);
+      } catch (refreshErr) {
+        processQueue(refreshErr, null);
+        setAccessToken(null);
+        // Arahkan ke halaman login jika refresh token kedaluwarsa
+        return Promise.reject(refreshErr);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+```
+
+

@@ -20,6 +20,12 @@ class AppColors {
   static const Color surfaceLayer3 = Color(0xFF292934);
   static const Color surfaceLayerHighest = Color(0xFF34343F);
 
+  // LiveEuy Brand Colors (aligned with dev-frontend)
+  static const Color brand400 = Color(0xFFFB7185); // rose-400
+  static const Color brand500 = Color(0xFFF43F5E); // rose-500 / primary brand
+  static const Color brand600 = Color(0xFFE11D48); // rose-600
+  static const Color brandSlate400 = Color(0xFF94A3B8); // slate-400 subtitle
+
   // StreamFlix Primary & Accent Colors
   static const Color primary = Color(0xFFC1C1FF);
   static const Color primaryContainer = Color(0xFF433FFE);
