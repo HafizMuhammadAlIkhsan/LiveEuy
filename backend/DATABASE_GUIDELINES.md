@@ -39,6 +39,7 @@ erDiagram
     USERS ||--o{ WATCHLIST : owns
     USERS ||--o{ WATCH_PROGRESS : tracks
     USERS ||--o{ REVIEWS : writes
+    USERS ||--o{ REFRESH_TOKENS : issues
     
     MEDIA_ITEMS ||--o{ SEASONS : has
     MEDIA_ITEMS ||--o{ REVIEWS : receives
@@ -56,6 +57,17 @@ erDiagram
         VARCHAR(32) membership_tier
         TIMESTAMP created_at
         TIMESTAMP updated_at
+    }
+
+    REFRESH_TOKENS {
+        VARCHAR(64) id PK
+        VARCHAR(64) user_id FK
+        VARCHAR(255) token_hash UK
+        TIMESTAMP expires_at
+        BOOLEAN is_revoked
+        VARCHAR(255) replaced_by_token
+        TIMESTAMP created_at
+        TIMESTAMP revoked_at
     }
 
     MEDIA_ITEMS {
@@ -150,6 +162,25 @@ Untuk mencegah duplikasi item dalam koleksi:
 INSERT INTO watchlist (id, user_id, media_id, created_at)
 VALUES (?, ?, ?, NOW())
 ON CONFLICT (user_id, media_id) DO NOTHING;
+```
+
+### 3. Refresh Token Rotation (RTR) & Anti-Replay Detection
+Untuk memastikan Refresh Token hanya dapat digunakan satu kali:
+
+```sql
+-- Cabut token lama saat pengguna meminta Access Token baru
+UPDATE refresh_tokens
+SET is_revoked = TRUE,
+    revoked_at = NOW(),
+    replaced_by_token = ?
+WHERE token_hash = ? AND is_revoked = FALSE;
+
+-- Jika query di atas mengembalikan 0 baris (artinya token sudah pernah dicabut),
+-- anggap sebagai REPLAY ATTACK dan hanguskan seluruh token user:
+UPDATE refresh_tokens
+SET is_revoked = TRUE,
+    revoked_at = NOW()
+WHERE user_id = ?;
 ```
 
 ---

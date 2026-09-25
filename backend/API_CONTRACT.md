@@ -203,7 +203,42 @@ Sistem autentikasi LiveEuy mengadopsi standar industri modern (**Short-lived Acc
 
 ---
 
-### a. Login Pengguna (`POST /api/v1/auth/login`)
+### a. Registrasi Pengguna Baru (`POST /api/v1/auth/register`)
+- **Method**: `POST`
+- **Path**: `/api/v1/auth/register`
+- **Request Body**:
+  ```json
+  {
+    "name": "Aria Pratama",
+    "email": "aria@liveeuy.id",
+    "password": "PasswordKuat123!"
+  }
+  ```
+- **Response Body (`201 Created` / `200 OK`)**:
+  ```json
+  {
+    "success": true,
+    "message": "Registrasi berhasil. Akun Anda telah siap!",
+    "data": {
+      "accessToken": "eyJhbGciOi...",
+      "refreshToken": "eyJhbGciOi...",
+      "tokenType": "Bearer",
+      "expiresIn": 900,
+      "user": {
+        "id": "usr_99812",
+        "name": "Aria Pratama",
+        "email": "aria@liveeuy.id",
+        "avatarUrl": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120",
+        "membershipTier": "REGULAR"
+      }
+    },
+    "timestamp": "2026-09-25T11:00:00"
+  }
+  ```
+
+---
+
+### b. Login Pengguna (`POST /api/v1/auth/login`)
 - **Method**: `POST`
 - **Path**: `/api/v1/auth/login`
 - **Request Body**:
@@ -242,7 +277,7 @@ Sistem autentikasi LiveEuy mengadopsi standar industri modern (**Short-lived Acc
 
 ---
 
-### b. Refresh Access Token (`POST /api/v1/auth/refresh`)
+### c. Refresh Access Token (`POST /api/v1/auth/refresh`)
 - **Method**: `POST`
 - **Path**: `/api/v1/auth/refresh`
 - **Mekanisme Dual-Mode (Web & Mobile)**:
@@ -268,7 +303,7 @@ Sistem autentikasi LiveEuy mengadopsi standar industri modern (**Short-lived Acc
 
 ---
 
-### c. Logout Pengguna (`POST /api/v1/auth/logout`)
+### d. Logout Pengguna (`POST /api/v1/auth/logout`)
 - **Method**: `POST`
 - **Path**: `/api/v1/auth/logout`
 - **Efek Operasi**:
@@ -280,7 +315,7 @@ Sistem autentikasi LiveEuy mengadopsi standar industri modern (**Short-lived Acc
 
 ---
 
-### d. Profil Pengguna Aktif (`GET /api/v1/auth/me`)
+### e. Profil Pengguna Aktif (`GET /api/v1/auth/me`)
 - **Method**: `GET`
 - **Path**: `/api/v1/auth/me`
 - **Header**: `Authorization: Bearer <accessToken>`
@@ -376,5 +411,98 @@ apiClient.interceptors.response.use(
   }
 );
 ```
+
+---
+
+### 📱 Referensi Implementasi Klien Mobile (Flutter + `flutter_secure_storage`)
+
+Berikut adalah referensi implementasi lengkap untuk tim Mobile Flutter (`lib/core/storage/token_storage_service.dart` & `ApiClient` retry interceptor):
+
+#### 1. Penyimpanan Token Terenkripsi (`TokenStorageService`)
+```dart
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+class TokenStorageService {
+  static const _accessTokenKey = 'liveeuy_access_token';
+  static const _refreshTokenKey = 'liveeuy_refresh_token';
+
+  static const _storage = FlutterSecureStorage(
+    aOptions: AndroidOptions(
+      encryptedSharedPreferences: true,
+      resetOnError: true,
+    ),
+    iOptions: IOSOptions(
+      accessibility: KeychainAccessibility.first_unlock,
+    ),
+  );
+
+  static Future<void> saveTokens({
+    required String accessToken,
+    required String refreshToken,
+  }) async {
+    await Future.wait([
+      _storage.write(key: _accessTokenKey, value: accessToken),
+      _storage.write(key: _refreshTokenKey, value: refreshToken),
+    ]);
+  }
+
+  static Future<String?> getAccessToken() => _storage.read(key: _accessTokenKey);
+  static Future<String?> getRefreshToken() => _storage.read(key: _refreshTokenKey);
+
+  static Future<void> clearTokens() async {
+    await Future.wait([
+      _storage.delete(key: _accessTokenKey),
+      _storage.delete(key: _refreshTokenKey),
+    ]);
+  }
+}
+```
+
+#### 2. Mekanisme Silent Refresh di Mobile Client
+```dart
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
+Future<http.Response> executeWithAutoRefresh(
+  Future<http.Response> Function(String? token) requestFn,
+) async {
+  String? accessToken = await TokenStorageService.getAccessToken();
+  var response = await requestFn(accessToken);
+
+  // Jika token expired (401), lakukan silent refresh via body JSON
+  if (response.statusCode == 401) {
+    final refreshToken = await TokenStorageService.getRefreshToken();
+    if (refreshToken == null) {
+      await TokenStorageService.clearTokens();
+      return response;
+    }
+
+    final refreshRes = await http.post(
+      Uri.parse('http://10.0.2.2:8080/api/v1/auth/refresh'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'refreshToken': refreshToken}),
+    );
+
+    if (refreshRes.statusCode == 200) {
+      final data = jsonDecode(refreshRes.body)['data'];
+      final newAccessToken = data['accessToken'] as String;
+      final newRefreshToken = data['refreshToken'] as String;
+
+      await TokenStorageService.saveTokens(
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken,
+      );
+
+      // Ulangi request asli dengan accessToken yang baru
+      response = await requestFn(newAccessToken);
+    } else {
+      await TokenStorageService.clearTokens();
+    }
+  }
+
+  return response;
+}
+```
+
 
 
