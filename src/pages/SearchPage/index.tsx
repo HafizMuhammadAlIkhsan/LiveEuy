@@ -94,7 +94,7 @@ export const SearchPage: React.FC = () => {
   }, [allMedia]);
 
   return (
-    <div className="pt-24 sm:pt-28 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+    <div className="pt-24 sm:pt-28 pb-20 cinema-layout-container space-y-8">
       
       {/* ========================================================
           1. HERO DISCOVERY SEARCH INPUT
@@ -278,7 +278,7 @@ export const SearchPage: React.FC = () => {
           4. RESULTS GRID
           ======================================================== */}
       {searchResults.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
+        <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-8 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
           {searchResults.map(item => (
             <MediaCard key={item.id} item={item} layout="grid" />
           ))}
@@ -313,7 +313,7 @@ export const SearchPage: React.FC = () => {
               <Flame className="w-4 h-4 text-rose-500" />
               <span>Mungkin Anda Tertarik Menonton Ini:</span>
             </h4>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
+            <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-8 gap-3 sm:gap-4 md:gap-5">
               {recommendations.map(item => (
                 <MediaCard key={item.id} item={item} layout="grid" />
               ))}

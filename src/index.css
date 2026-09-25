@@ -8,6 +8,11 @@
   }
 }
 
+/* Widescreen 16:9 Cinema Container for Laptops and Desktop Displays */
+.cinema-layout-container {
+  @apply max-w-7xl xl:max-w-[1440px] 2xl:max-w-[1680px] 3xl:max-w-cinema mx-auto px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-14;
+}
+
 /* Custom Scrollbar for movie carousels */
 .scrollbar-none::-webkit-scrollbar {
   display: none;

@@ -38,8 +38,8 @@ export const MediaCard: React.FC<MediaCardProps> = ({ item, layout = 'carousel' 
         onClick={() => openDetail(item)}
         className="group relative flex flex-col sm:flex-row items-stretch sm:items-center gap-4 p-3.5 sm:p-4 rounded-2xl bg-surface-900/70 hover:bg-surface-800/90 border border-white/5 hover:border-brand-500/30 transition-all duration-300 cursor-pointer shadow-lg hover:shadow-brand-500/10"
       >
-        {/* Thumbnail / Backdrop */}
-        <div className="relative w-full sm:w-48 md:w-56 aspect-[16/9] flex-none rounded-xl overflow-hidden bg-surface-800 border border-white/10 shadow-md">
+        {/* Thumbnail / Backdrop (16:9 Widescreen) */}
+        <div className="relative w-full sm:w-48 md:w-56 lg:w-64 xl:w-72 aspect-[16/9] flex-none rounded-xl overflow-hidden bg-surface-800 border border-white/10 shadow-md">
           <img
             src={item.backdropUrl || item.posterUrl}
             alt={item.title}
@@ -153,7 +153,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({ item, layout = 'carousel' 
 
   const containerClasses = layout === 'grid'
     ? 'relative w-full group cursor-pointer transition-all duration-300'
-    : 'relative flex-none w-[140px] xs:w-[165px] sm:w-[200px] md:w-[230px] lg:w-[240px] group cursor-pointer transition-all duration-300';
+    : 'relative flex-none w-[140px] xs:w-[165px] sm:w-[200px] md:w-[230px] lg:w-[240px] xl:w-[260px] 2xl:w-[280px] 3xl:w-[300px] group cursor-pointer transition-all duration-300';
 
   return (
     <div

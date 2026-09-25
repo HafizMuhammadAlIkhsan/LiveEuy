@@ -96,11 +96,11 @@ export const DetailModal: React.FC = () => {
       onClick={closeDetail}
     >
       <div 
-        className="relative w-full max-w-4xl bg-surface-900 border-t sm:border border-white/10 rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl text-slate-100 max-h-[94vh] sm:max-h-[92vh] flex flex-col"
+        className="relative w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-[1240px] bg-surface-900 border-t sm:border border-white/10 rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl text-slate-100 max-h-[94vh] sm:max-h-[92vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header Backdrop Banner */}
-        <div className="relative h-56 sm:h-80 md:h-96 w-full flex-shrink-0">
+        {/* Header Backdrop Banner (16:9 Cinema Widescreen) */}
+        <div className="relative aspect-[16/9] min-h-[220px] sm:min-h-[320px] md:min-h-[400px] max-h-[500px] w-full flex-shrink-0">
           <img
             src={detailItem.backdropUrl}
             alt={detailItem.title}

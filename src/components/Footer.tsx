@@ -12,7 +12,7 @@ export const Footer: React.FC = () => {
 
   return (
     <footer className="border-t border-white/[0.08] bg-[#08090d] text-slate-400 text-xs pt-12 pb-24 md:pb-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+      <div className="cinema-layout-container space-y-10">
         
         {/* Top Branding & Meta */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

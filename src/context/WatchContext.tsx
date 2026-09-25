@@ -323,16 +323,28 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const addMedia = (item: MediaItem) => {
     setMediaList(prev => [item, ...prev]);
     addAuditLog('Tambah Film/Serial Baru', 'media', `Menambahkan "${item.title}" (${item.type === 'movie' ? 'Film' : 'Serial TV'}) ke katalog.`);
+    // Asynchronous backend database sync
+    apiService.createMedia(item).catch(err => {
+      console.warn('Sync backend database error on addMedia:', err);
+    });
   };
 
   const updateMedia = (id: string, updated: Partial<MediaItem>) => {
     setMediaList(prev => prev.map(m => m.id === id ? { ...m, ...updated } : m));
     addAuditLog('Ubah Data Film', 'media', `Memperbarui detail film ID: "${id}".`);
+    // Asynchronous backend database sync
+    apiService.updateMedia(id, updated).catch(err => {
+      console.warn('Sync backend database error on updateMedia:', err);
+    });
   };
 
   const deleteMedia = (id: string) => {
     setMediaList(prev => prev.filter(m => m.id !== id));
     addAuditLog('Hapus Film dari Katalog', 'media', `Menghapus film ID: "${id}" dari database.`);
+    // Asynchronous backend database sync
+    apiService.deleteMedia(id).catch(err => {
+      console.warn('Sync backend database error on deleteMedia:', err);
+    });
   };
 
   const resetMediaToDefault = () => {

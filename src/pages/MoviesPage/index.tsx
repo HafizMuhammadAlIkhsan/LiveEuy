@@ -205,7 +205,7 @@ export const MoviesPage: React.FC = () => {
   const inWatchlist = marqueeMovie ? isInWatchlist(marqueeMovie.id) : false;
 
   return (
-    <div className="pt-20 sm:pt-24 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+    <div className="pt-20 sm:pt-24 pb-20 cinema-layout-container space-y-8">
       
       {/* Guest Mode Notice */}
       {!isLoggedIn && (
@@ -226,11 +226,11 @@ export const MoviesPage: React.FC = () => {
       )}
 
       {/* ========================================================
-          1. THEATRICAL CINEMA MARQUEE BILLBOARD
+          1. THEATRICAL CINEMA MARQUEE BILLBOARD (16:9 Cinema Widescreen)
           ======================================================== */}
       {marqueeMovie && (
         <section className="relative rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-black group">
-          <div className="relative aspect-[21/9] min-h-[360px] sm:min-h-[460px] md:min-h-[500px] w-full">
+          <div className="relative aspect-[16/9] min-h-[380px] sm:min-h-[460px] md:min-h-[500px] lg:min-h-[540px] xl:max-h-[640px] 2xl:max-h-[720px] w-full">
             <img
               src={marqueeMovie.backdropUrl}
               alt={marqueeMovie.title}
@@ -741,7 +741,7 @@ export const MoviesPage: React.FC = () => {
           ======================================================== */}
       {filteredMovies.length > 0 ? (
         layoutMode === 'grid' ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
+          <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-8 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
             {filteredMovies.map(item => (
               <MediaCard key={item.id} item={item} layout="grid" />
             ))}

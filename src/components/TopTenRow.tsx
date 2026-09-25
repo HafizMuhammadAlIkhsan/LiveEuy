@@ -28,7 +28,7 @@ export const TopTenRow: React.FC<TopTenRowProps> = ({ items }) => {
   return (
     <div className="relative py-6 group/topten">
       {/* Header */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
+      <div className="cinema-layout-container mb-4">
         <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight flex items-center gap-2">
           <Flame className="w-6 h-6 text-brand-500 fill-brand-500" />
           <span>Top 10 Tontonan Terpopuler di Indonesia Hari Ini</span>
@@ -39,7 +39,7 @@ export const TopTenRow: React.FC<TopTenRowProps> = ({ items }) => {
       </div>
 
       {/* Row with Rank Numbers */}
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="relative cinema-layout-container">
         
         {/* Navigation Arrows */}
         <button

@@ -144,7 +144,7 @@ export const Navbar: React.FC = () => {
               ? 'bg-gradient-to-r from-brand-600 via-indigo-600 to-blue-700 text-white'
               : 'bg-gradient-to-r from-rose-600 via-pink-600 to-amber-700 text-white'
           }`}>
-            <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-3">
+            <div className="cinema-layout-container flex items-center justify-between gap-2 sm:gap-3">
               <div className="flex items-center gap-2 min-w-0">
                 <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-white/20 text-white border border-white/30 flex items-center gap-1 shadow-sm">
                   <Sparkles className="w-3 h-3 text-amber-300 animate-pulse" />
@@ -186,7 +186,7 @@ export const Navbar: React.FC = () => {
           </div>
         )}
 
-        <div className={`max-w-7xl mx-auto px-3.5 sm:px-5 lg:px-8 transition-all ${
+        <div className={`cinema-layout-container transition-all ${
           isScrolled ? 'py-2 sm:py-2.5 md:py-3' : 'py-3 sm:py-3.5 md:py-4'
         }`}>
           <div className="flex items-center justify-between gap-2 sm:gap-3 md:gap-4">

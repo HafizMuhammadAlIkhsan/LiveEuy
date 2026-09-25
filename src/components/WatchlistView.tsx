@@ -28,7 +28,7 @@ export const WatchlistView: React.FC = () => {
   });
 
   return (
-    <div className="pt-24 pb-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+    <div className="pt-24 pb-16 cinema-layout-container space-y-12">
       
       {/* Page Header */}
       <div className="border-b border-white/10 pb-6 flex items-center justify-between">

@@ -41,7 +41,7 @@ export const MediaRow: React.FC<MediaRowProps> = ({
   return (
     <div className="relative py-4 group/row">
       {/* Row Header */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-end justify-between mb-3.5">
+      <div className="cinema-layout-container flex items-end justify-between mb-3.5">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight flex items-center gap-2">
             {title}
@@ -66,7 +66,7 @@ export const MediaRow: React.FC<MediaRowProps> = ({
       </div>
 
       {/* Row Carousel Area */}
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="relative cinema-layout-container">
         
         {/* Left Scroll Arrow */}
         {canScrollLeft && (

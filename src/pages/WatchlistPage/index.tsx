@@ -70,7 +70,7 @@ export const WatchlistPage: React.FC = () => {
   const estimatedHours = user?.watchHours ? `${user.watchHours} Jam` : '48.5 Jam';
 
   return (
-    <div className="pt-20 sm:pt-24 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+    <div className="pt-20 sm:pt-24 pb-20 cinema-layout-container space-y-10">
       
       {/* ========================================================
           1. HEADER: LOGGED IN USER PROFILE VS GUEST VAULT TEASER
@@ -239,7 +239,7 @@ export const WatchlistPage: React.FC = () => {
             <span className="text-xs text-slate-400">{continueWatchingItems.length} Tayangan Aktif</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
             {continueWatchingItems.map(item => {
               const prog = watchHistory[item.id];
               const remMinutes = Math.max(1, Math.round((prog.duration - prog.currentTime) / 60));
@@ -302,7 +302,7 @@ export const WatchlistPage: React.FC = () => {
           </div>
 
           {displayedItems.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
+            <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-8 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
               {displayedItems.map(item => (
                 <div key={item.id} className="relative group">
                   <MediaCard item={item} layout="grid" />
@@ -361,7 +361,7 @@ export const WatchlistPage: React.FC = () => {
             </button>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-8 gap-3 sm:gap-4 md:gap-5">
             {recommendedItems.map(item => (
               <MediaCard key={item.id} item={item} layout="grid" />
             ))}

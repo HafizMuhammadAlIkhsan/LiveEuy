@@ -74,7 +74,7 @@ export const TrendingPage: React.FC = () => {
   };
 
   return (
-    <div className="pt-20 sm:pt-24 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+    <div className="pt-20 sm:pt-24 pb-20 cinema-layout-container space-y-12">
       
       {/* ========================================================
           1. HEADER & LIVE TRENDING PULSE

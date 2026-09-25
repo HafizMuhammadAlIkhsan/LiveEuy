@@ -7,6 +7,18 @@ export default {
   darkMode: 'class',
   theme: {
     extend: {
+      screens: {
+        'xs': '480px',
+        '3xl': '1800px',
+        '4xl': '1920px',
+      },
+      maxWidth: {
+        'cinema': '1840px',
+      },
+      aspectRatio: {
+        '16/9': '16 / 9',
+        '21/9': '21 / 9',
+      },
       colors: {
         primary: {
           DEFAULT: '#433FFE',

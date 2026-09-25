@@ -91,7 +91,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
     <div 
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
-      className="relative w-full h-[80vh] min-h-[540px] sm:h-[84vh] sm:min-h-[580px] lg:h-[86vh] lg:min-h-[620px] overflow-hidden select-none group"
+      className="relative w-full h-[80vh] min-h-[540px] sm:h-[84vh] sm:min-h-[580px] lg:h-[86vh] lg:min-h-[620px] xl:h-[88vh] xl:min-h-[680px] 2xl:h-[90vh] 2xl:min-h-[740px] 2xl:max-h-[960px] overflow-hidden select-none group"
     >
       
       {/* Background Media with Ken Burns cinematic zoom and smooth crossfade */}
@@ -125,7 +125,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
         <div className="absolute inset-0 bg-gradient-to-t from-[#08090d] via-[#08090d]/60 to-transparent" />
 
         {/* 3. Left shadow for readable typography */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#08090d] via-[#08090d]/70 to-transparent w-full md:w-3/4" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#08090d] via-[#08090d]/70 to-transparent w-full md:w-3/4 xl:w-2/3" />
 
         {/* 4. Radial atmospheric glow */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-brand-600/10 via-transparent to-transparent pointer-events-none" />
@@ -134,7 +134,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
       {/* Netflix Large Edge Chevrons (Appear on hover for desktop/tablet) */}
       <button
         onClick={handlePrev}
-        className="hidden md:flex items-center justify-center absolute left-3 lg:left-5 top-1/2 -translate-y-1/2 z-30 w-11 h-11 lg:w-13 lg:h-13 rounded-full bg-black/40 hover:bg-black/80 backdrop-blur-md text-white/70 hover:text-white border border-white/10 hover:border-white/30 transition-all hover:scale-110 active:scale-95 shadow-2xl opacity-0 group-hover:opacity-100 duration-300 cursor-pointer"
+        className="hidden md:flex items-center justify-center absolute left-3 lg:left-5 xl:left-8 2xl:left-12 top-1/2 -translate-y-1/2 z-30 w-11 h-11 lg:w-13 lg:h-13 rounded-full bg-black/40 hover:bg-black/80 backdrop-blur-md text-white/70 hover:text-white border border-white/10 hover:border-white/30 transition-all hover:scale-110 active:scale-95 shadow-2xl opacity-0 group-hover:opacity-100 duration-300 cursor-pointer"
         aria-label="Slide Film Sebelumnya"
       >
         <ChevronLeft className="w-6 h-6 lg:w-7 lg:h-7 -translate-x-0.5" />
@@ -142,17 +142,17 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
 
       <button
         onClick={handleNext}
-        className="hidden md:flex items-center justify-center absolute right-3 lg:right-5 top-1/2 -translate-y-1/2 z-30 w-11 h-11 lg:w-13 lg:h-13 rounded-full bg-black/40 hover:bg-black/80 backdrop-blur-md text-white/70 hover:text-white border border-white/10 hover:border-white/30 transition-all hover:scale-110 active:scale-95 shadow-2xl opacity-0 group-hover:opacity-100 duration-300 cursor-pointer"
+        className="hidden md:flex items-center justify-center absolute right-3 lg:right-5 xl:right-8 2xl:right-12 top-1/2 -translate-y-1/2 z-30 w-11 h-11 lg:w-13 lg:h-13 rounded-full bg-black/40 hover:bg-black/80 backdrop-blur-md text-white/70 hover:text-white border border-white/10 hover:border-white/30 transition-all hover:scale-110 active:scale-95 shadow-2xl opacity-0 group-hover:opacity-100 duration-300 cursor-pointer"
         aria-label="Slide Film Selanjutnya"
       >
         <ChevronRight className="w-6 h-6 lg:w-7 lg:h-7 translate-x-0.5" />
       </button>
 
       {/* Featured Content Details with balanced spacing below navbar */}
-      <div className="relative max-w-7xl mx-auto h-full flex flex-col justify-end pt-16 sm:pt-20 md:pt-24 pb-12 sm:pb-14 md:pb-16 lg:pb-20 px-4 sm:px-6 lg:px-8 z-10">
+      <div className="relative cinema-layout-container h-full flex flex-col justify-end pt-16 sm:pt-20 md:pt-24 pb-12 sm:pb-14 md:pb-16 lg:pb-20 xl:pb-24 z-10">
         <div 
           key={`content-${currentMedia.id}`}
-          className={`max-w-2xl space-y-2 sm:space-y-3.5 ${
+          className={`max-w-2xl xl:max-w-3xl 2xl:max-w-4xl space-y-2 sm:space-y-3.5 ${
             direction === 'next' ? 'animate-hero-next' : 'animate-hero-prev'
           }`}
         >

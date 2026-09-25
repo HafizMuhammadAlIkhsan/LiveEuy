@@ -259,6 +259,121 @@ class LiveEuyApiService {
       comment
     };
   }
+
+  // ==========================================
+  // ADMIN CMS CATALOG DATABASE ENDPOINTS
+  // ==========================================
+
+  async createMedia(item: Partial<MediaItem>): Promise<MediaItem | null> {
+    const catalogBase = await this.resolveCatalogUrl();
+    if (catalogBase) {
+      try {
+        const payload = {
+          title: item.title,
+          originalTitle: item.originalTitle || item.title,
+          type: item.type || 'movie',
+          tagline: item.tagline || '',
+          overview: item.overview || '',
+          posterUrl: item.posterUrl || '',
+          backdropUrl: item.backdropUrl || '',
+          logoUrl: item.logoUrl || '',
+          releaseYear: item.releaseYear || new Date().getFullYear(),
+          rating: item.rating || 8.0,
+          matchScore: item.matchScore || 95,
+          ageRating: item.ageRating || '13+',
+          duration: item.duration || '2j 00m',
+          totalSeasons: item.totalSeasons || 1,
+          genres: item.genres || ['Aksi'],
+          cast: item.cast || [],
+          director: item.director || '',
+          videoUrl: item.videoUrl || '',
+          trailerUrl: item.trailerUrl || '',
+          isTrending: !!item.isTrending,
+          isFeatured: !!item.isFeatured,
+          topRank: item.topRank || null,
+          quality: item.quality || '4K UHD',
+          audio: item.audio || 'Dolby Atmos'
+        };
+
+        const res = await fetch(`${catalogBase}/media`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          const json = await res.json();
+          return json.data || null;
+        }
+      } catch (err) {
+        console.warn('Gagal menambah media ke database backend Spring Boot:', err);
+      }
+    }
+    return null;
+  }
+
+  async updateMedia(id: string, item: Partial<MediaItem>): Promise<MediaItem | null> {
+    const catalogBase = await this.resolveCatalogUrl();
+    if (catalogBase) {
+      try {
+        const payload = {
+          title: item.title,
+          originalTitle: item.originalTitle,
+          type: item.type,
+          tagline: item.tagline,
+          overview: item.overview,
+          posterUrl: item.posterUrl,
+          backdropUrl: item.backdropUrl,
+          logoUrl: item.logoUrl,
+          releaseYear: item.releaseYear,
+          rating: item.rating,
+          matchScore: item.matchScore,
+          ageRating: item.ageRating,
+          duration: item.duration,
+          totalSeasons: item.totalSeasons,
+          genres: item.genres,
+          cast: item.cast,
+          director: item.director,
+          videoUrl: item.videoUrl,
+          trailerUrl: item.trailerUrl,
+          isTrending: item.isTrending,
+          isFeatured: item.isFeatured,
+          topRank: item.topRank,
+          quality: item.quality,
+          audio: item.audio
+        };
+
+        const res = await fetch(`${catalogBase}/media/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          const json = await res.json();
+          return json.data || null;
+        }
+      } catch (err) {
+        console.warn('Gagal memperbarui media di database backend Spring Boot:', err);
+      }
+    }
+    return null;
+  }
+
+  async deleteMedia(id: string): Promise<boolean> {
+    const catalogBase = await this.resolveCatalogUrl();
+    if (catalogBase) {
+      try {
+        const res = await fetch(`${catalogBase}/media/${id}`, {
+          method: 'DELETE'
+        });
+        if (res.ok) {
+          return true;
+        }
+      } catch (err) {
+        console.warn('Gagal menghapus media dari database backend Spring Boot:', err);
+      }
+    }
+    return false;
+  }
 }
 
 export const apiService = new LiveEuyApiService();

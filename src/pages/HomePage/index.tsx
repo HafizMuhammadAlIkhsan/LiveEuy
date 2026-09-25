@@ -85,7 +85,7 @@ export const HomePage: React.FC = () => {
           ======================================================== */}
       {isLoggedIn && user ? (
         /* LOGGED IN USER GREETING RIBBON */
-        <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 sm:-mt-8 mb-4">
+        <div className="relative z-20 cinema-layout-container -mt-6 sm:-mt-8 mb-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-[#0c0e14]/90 border border-white/[0.08] shadow-xl backdrop-blur-xl">
             <div className="flex items-center gap-3.5">
               <div className="w-10 h-10 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center text-amber-400 flex-shrink-0">
@@ -115,7 +115,7 @@ export const HomePage: React.FC = () => {
         </div>
       ) : (
         /* GUEST VISITOR MEMBERSHIP STRIP */
-        <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 sm:-mt-8 mb-4">
+        <div className="relative z-20 cinema-layout-container -mt-6 sm:-mt-8 mb-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl bg-[#0c0e14]/95 border border-white/[0.08] shadow-2xl backdrop-blur-xl">
             <div className="flex items-center gap-3.5 text-center md:text-left">
               <div className="w-11 h-11 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center flex-shrink-0 text-brand-400 shadow-sm">
@@ -156,7 +156,7 @@ export const HomePage: React.FC = () => {
       )}
 
       {/* Quick Jump Category Chips - Curated Channels */}
-      <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6">
+      <div className="relative z-20 cinema-layout-container mb-6">
         <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
           {[
             { label: 'Trending Pekan Ini', icon: Flame, action: () => setCurrentTab('trending') },
@@ -188,7 +188,7 @@ export const HomePage: React.FC = () => {
         {isLoggedIn ? (
           /* LOGGED IN USER: ACTIVE PROGRESS */
           continueWatchingItems.length > 0 && (
-            <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
+            <section className="cinema-layout-container space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Clock className="w-5 h-5 text-emerald-400" />
@@ -205,8 +205,8 @@ export const HomePage: React.FC = () => {
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                {continueWatchingItems.slice(0, 3).map(item => {
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+                {continueWatchingItems.slice(0, 4).map(item => {
                   const prog = watchHistory[item.id];
                   const remMinutes = Math.max(1, Math.round((prog.duration - prog.currentTime) / 60));
                   return (
@@ -215,7 +215,7 @@ export const HomePage: React.FC = () => {
                       onClick={() => openPlayer(item)}
                       className="group relative rounded-2xl overflow-hidden bg-surface-800/80 border border-white/5 hover:border-brand-500/40 p-3 transition-all cursor-pointer hover:shadow-xl hover:shadow-brand-500/10 flex gap-4 items-center"
                     >
-                      <div className="relative w-28 aspect-video rounded-xl overflow-hidden bg-black flex-shrink-0">
+                      <div className="relative w-28 sm:w-32 aspect-video rounded-xl overflow-hidden bg-black flex-shrink-0">
                         <img
                           src={item.backdropUrl}
                           alt={item.title}
@@ -249,7 +249,7 @@ export const HomePage: React.FC = () => {
           )
         ) : (
           /* GUEST USER: CLOUD SYNC PROMPT TEASER */
-          <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <section className="cinema-layout-container">
             <div className="rounded-2xl bg-[#0c0e14]/90 border border-white/[0.08] p-5 sm:p-7 flex flex-col md:flex-row items-center justify-between gap-5 shadow-lg">
               <div className="space-y-1.5 text-center md:text-left">
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/[0.06] text-slate-300 text-xs font-medium border border-white/10">
@@ -313,7 +313,7 @@ export const HomePage: React.FC = () => {
             GUEST ONLY SECTION: SUBSCRIPTION PLANS & FAQ
             ======================================================== */}
         {!isLoggedIn && (
-          <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10 pt-6">
+          <section className="cinema-layout-container space-y-10 pt-6">
             
             {/* Subscription Tier Cards - Architectural Cinema Passes */}
             <div className="space-y-4 text-center">

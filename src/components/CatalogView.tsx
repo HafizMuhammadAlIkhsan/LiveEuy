@@ -51,7 +51,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
   }, [allMedia, forcedType, typeFilter, selectedGenre, searchQuery, sortBy]);
 
   return (
-    <div className="pt-24 pb-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="pt-24 pb-16 cinema-layout-container">
       {/* Title Header */}
       <div className="mb-6 space-y-1">
         <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
