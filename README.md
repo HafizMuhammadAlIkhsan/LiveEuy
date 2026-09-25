@@ -1,188 +1,174 @@
-# LiveEuy - Platform Streaming Video & Sinema Online Modern
+# LiveEuy — Platform Streaming Video & Sinema Online Modern
 
 ![LiveEuy Banner](https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=1200&auto=format&fit=crop&q=80)
 
-**LiveEuy** adalah antarmuka web streaming video on demand (VOD) dan sinema modern yang responsif, berkinerja tinggi, dan ramah pengguna (*user-friendly*), dibangun dengan **React 18**, **TypeScript**, **Tailwind CSS**, dan **Vite**.
+**LiveEuy** adalah platform streaming video on demand (VOD) dan sinema modern yang mencakup ekosistem lengkap:
+* 🌐 **Web Frontend**: React 18 + TypeScript + Tailwind CSS (Cinematic Aesthetic, Dark Theme `#08090d`, Ambient Glow)
+* 📱 **Mobile Client**: Flutter (Android & iOS) dengan Riverpod state management & Clean Architecture
+* ⚙️ **Backend Microservices**:
+  * **Auth Service**: Golang + Gin + GORM + JWT + Google OAuth
+  * **Catalog Service**: Spring Boot 3.3 + PostgreSQL/Neon DB + Swagger OpenAPI
+  * **Starter Backend**: Spring Boot 3 + Flyway Schema Migrations + Docker Compose
 
 ---
 
-## 🌟 Fitur Utama
+## 🌟 Fitur Utama (Web & Mobile)
 
-### 1. 🎬 Pemutar Video Interaktif Tingkat Lanjut (Advanced Video Player)
-- **Playback Nyata (Real Streams)**: Terintegrasi dengan stream MP4 berkualitas tinggi.
-- **Efek Cahaya Sinema (Ambient Glow)**: Efek proyeksi pencahayaan dinamis di sekitar layar pemutar video untuk pengalaman menonton ala bioskop premium.
-- **Bilah Progres & Scrubbing Interaktif**: Dilengkapi dengan preview timestamp melayang (*hover time tooltip*) dan indikator buffering.
-- **Kontrol Lengkap**:
-  - Tombol Putar / Jeda (Play/Pause)
-  - Lompat Maju & Mundur 10 Detik
-  - Tombol **"Lewati Intro" (Skip Intro)** otomatis pada 30 detik pertama
-  - Pengatur Kecepatan Putar (0.75x, 1x, 1.25x, 1.5x, 2x)
-  - Pemilih Resolusi Kualitas (4K UHD, 1080p, 720p, Otomatis)
-  - Pemilih Subtitle / Terjemahan (Bahasa Indonesia, English, Japanese, Nonaktif)
-  - Dukungan **Picture-in-Picture (PiP)** dan **Layar Penuh (Fullscreen)**
-  - Panel **Statistik Diagnostik Pemutaran (Stats for Nerds)**: Bitrate, FPS, buffer health, dan audio codec
-  - Tombol otomatis menuju **Episode Selanjutnya** untuk serial TV
+### 1. 🎬 Pemutar Video Sinematik (Advanced Cinema Video Player)
+* **Real Streams & Adaptive Playback**: Terintegrasi stream video MP4 berkualitas tinggi.
+* **Dynamic Ambient Glow**: Efek pendaran cahaya dinamis di sekitar layar pemutar video ala bioskop.
+* **Scrubbing & Timeline Interaktif**: Hover preview timestamp, buffer health indicator, and scrubbing akurat.
+* **Kontrol Lengkap**:
+  * Putar / Jeda, Lompat Maju & Mundur 10 Detik
+  * Tombol **"Lewati Intro" (Skip Intro)** otomatis
+  * Pengatur Kecepatan Putar (0.75x, 1x, 1.25x, 1.5x, 2x)
+  * Pemilih Resolusi Kualitas (4K UHD, 1080p, 720p, Otomatis)
+  * Pemilih Subtitle / Terjemahan (Bahasa Indonesia, English, Japanese, Nonaktif)
+  * Dukungan **Picture-in-Picture (PiP)** dan **Layar Penuh (Fullscreen)**
+  * Panel **Statistik Diagnostik Pemutaran (Stats for Nerds)**: Bitrate, FPS, buffer health, codec
+  * Auto-Play **Episode Selanjutnya** untuk serial TV
 
-### 2. 🎮 Pintasan Keyboard (Keyboard Shortcuts)
-| Tombol | Aksi |
-| :--- | :--- |
-| `Spasi` / `K` | Putar / Jeda (Play / Pause) |
-| `F` | Layar Penuh (Toggle Fullscreen) |
-| `M` | Bisukan / Nyalakan Suara (Mute / Unmute) |
-| `Panah Kiri` / `Panah Kanan` | Mundur / Maju 10 detik |
-| `Panah Atas` / `Panah Bawah` | Naikkan / Turunkan Volume |
-| `Esc` | Keluar dari Pemutar / Modal |
+### 2. 🍿 Hero Billboard Showcase & Rotasi Carousel
+* Banner sorotan film/serial terpopuler dengan rotasi otomatis dan Ken Burns effect.
+* Background video teaser interaktif dengan toggle mute/unmute audio.
+* Match score rating, badge batas usia (SU, 13+, 16+, 18+), dan badge teknologi (4K UHD / Dolby Vision / Atmos).
+* Tombol aksi cepat: *Putar Sekarang*, *Tambah ke Koleksi*, dan *Detail Info*.
 
-### 3. 🍿 Hero Showcase & Preview Otomatis
-- Banner sorotan film/serial terpopuler dengan rotasi otomatis.
-- Background video teaser dengan tombol nyala/bisu audio.
-- Match score rating, badge usia, resolusi (4K UHD / Dolby Vision), dan ringkasan sinopsis.
-- Tombol aksi cepat: *Putar Sekarang*, *Tambah ke Koleksi*, dan *Detail Info*.
+### 3. 📈 Baris Kategori & Top 10 Indonesia
+* **Top 10 Hari Ini di Indonesia**: Tipografi angka peringkat besar ala Netflix.
+* **Lanjutkan Menonton (Continue Watching)**: Progress bar tersimpan persisten secara otomatis.
+* **Koleksi Tematik**: *Aksi & Pahlawan Super*, *Drama Periode*, *Fiksi Ilmiah (Sci-Fi)*, dll.
 
-### 4. 📈 Baris Kategori & Top 10 Indonesia
-- **Top 10 Hari Ini**: Menampilkan tipografi angka peringkat berukuran besar yang artistik.
-- **Sedang Populer di Indonesia**: Baris tayangan paling banyak ditonton.
-- **Genre Carousels**: Aksi & Fiksi Ilmiah, Drama & Cerita Penuh Misteri, Animasi & Komedi.
-- **Lanjutkan Menonton (Continue Watching)**: Bar progres tontonan tersimpan otomatis di LocalStorage.
+### 4. 🔍 Pencarian Instan & Filter Multikriteria
+* Pencarian cepat dengan debouncing cerdas.
+* Filter multi-kategori: Format (Semua/Film/Serial), chip Genre, dan Pengurutan (Popular, Rating, Newest).
 
-### 5. 🔍 Pencarian Cepat & Filter Multikriteria
-- Input pencarian instan dengan auto-suggestions dan dropdown hasil pencarian.
-- Halaman eksplorasi dengan filter berdasarkan Format (Semua / Film / Serial), chip Genre (Aksi, Fiksi Ilmiah, Horor, Drama, Komedi, dll.), serta pengurutan (Terpopuler, Rating Tertinggi, Rilis Terbaru).
+### 5. 📋 Modal Detail Tayangan Komprehensif (4 Tab Interaktif)
+* **Tab Ringkasan**: Sinopsis lengkap, sutradara, aktor, rating usia, dan detail teknis.
+* **Tab Episode & Musim**: Season selector interaktif dengan durasi dan thumbnail per episode.
+* **Tab Mirip Ini**: Rekomendasi tayangan terkait dengan genre serupa.
+* **Tab Ulasan Penonton**: Rating bintang 1-10 dan form pengiriman review real-time.
 
-### 6. 📋 Modal Detail Komprehensif
-- Tab **Ringkasan**: Sinopsis, daftar aktor, sutradara, genre, dan rating usia.
-- Tab **Episode & Musim**: Pemilih musim interaktif dengan daftar episode, durasi, thumbnail, dan ringkasan tiap episode.
-- Tab **Mirip Ini**: Rekomendasi tayangan terkait dengan genre serupa.
-- Tab **Ulasan Pengguna**: Formulir interaktif untuk memberikan rating 1-10 bintang dan ulasan komentar real-time.
+### 6. 👤 Diferensiasi Pengguna Login (VIP Ultra 4K) vs Tamu (Guest)
+* **Pengguna Login (VIP Ultra)**:
+  * Akses stream 4K UHD & Dolby Vision/Atmos.
+  * Sinkronisasi koleksi watchlist dan continue watching antar-perangkat.
+  * Hak memposting ulasan film.
+* **Mode Tamu (Guest Mode)**:
+  * Eksplorasi katalog terbuka dengan penyimpanan tontonan lokal browser.
+  * Ajakan upgrade ke VIP Ultra dengan demo login 1-klik.
 
-### 7. 👤 Diferensiasi Pengguna Login (VIP Ultra) vs Tamu (Guest)
-- **Top Navbar**:
-  - *Pengguna Login*: Menampilkan badge `👑 VIP Ultra`, avatar profil interaktif dengan menu informasi akun, beralih ke mode demo tamu, dan tombol logout.
-  - *Tamu (Guest)*: Menampilkan badge `Mode Tamu`, tombol "Masuk", dan tombol gradien "Daftar VIP".
-- **Halaman Beranda (HomePage)**:
-  - *Pengguna Login*: Ribbon ucapan selamat datang personal, akses instan baris "Lanjutkan Menonton" dengan progress bar real-time.
-  - *Tamu*: Banner promosi promo uji coba gratis 7 hari, kartu penjelasan sinkronisasi lintas perangkat cloud, tabel perbandingan paket langganan (Gratis vs VIP Standard vs VIP Cinema Ultra), serta akordion FAQ.
-- **Halaman Koleksi (WatchlistPage)**:
-  - *Pengguna Login*: Dashboard profil VIP Ultra dengan 4 KPI Analytics (*Total Jam Tonton, Judul Diputar, Koleksi Cloud, Genre Favorit*), manajer tontonan aktif, dan opsi bagikan playlist.
-  - *Tamu*: Notifikasi status penyimpanan lokal sementara (browser cache), ajakan migrasi ke cloud, serta 4 kartu keuntungan akun VIP.
-- **Halaman Film (MoviesPage) & Serial (SeriesPage)**:
-  - *Tamu*: Banner informatif penanda mode pratinjau kualitas HD dengan tombol satu-klik untuk masuk/buka akses 4K Dolby Atmos.
-- **Ulasan & Pemutar Video**:
-  - Modal detail membatasi formulir kirim review hanya untuk akun terdaftar (tamu diarahkan masuk).
-  - Pemutar video menampilkan badge resolusi aktif sesuai status akun (Tamu HD vs VIP 4K).
-- **Modal Autentikasi Pintar (AuthModal)**:
-  - Form login dan registrasi akun.
-  - Fitur **Demo Instan 1-Klik**: *Masuk Cepat sebagai Hafiz Muhammad (VIP Cinema Ultra)* atau *Budi Santoso (Member Standar)* untuk kemudahan demonstrasi pengujian.
 ---
 
 ## 🛠️ Arsitektur Teknologi
 
-### Frontend (Client-side)
-- **Library UI**: React 18
-- **Bahasa**: TypeScript (Strict Mode)
-- **Styling**: Tailwind CSS 3.4 & PostCSS (Glassmorphism, Dark Theme `#08090d`, Custom Ambient Glow)
-- **Ikon**: Lucide React
-- **Build Tool**: Vite 5
-- **Layer API**: `src/services/api.ts` (Automatic fallback to mock data if offline)
-- **Penyimpanan State**: React Context API + LocalStorage persistence
+### 1. Web Frontend
+* **Library**: React 18, TypeScript, Tailwind CSS 3.4
+* **Build Tool**: Vite 5
+* **Layer API**: `src/services/api.ts` (Auto-detect backend status dengan fallback mulus ke local mock data)
+* **Icons**: Lucide React
 
-### Backend & Dokumentasi API
-- **Framework**: Spring Boot 3.3.4 (Java 17+)
-- **Dokumentasi API**: SpringDoc OpenAPI & Swagger UI
-- **Spesifikasi Kontrak**: [`API_CONTRACT.md`](./API_CONTRACT.md)
-- **Pedoman Database Anti-Konflik**: [`backend/DATABASE_GUIDELINES.md`](./backend/DATABASE_GUIDELINES.md) *(Flyway, ERD, Docker Compose, Idempotent Upsert)*
-- **Interactive Swagger UI**: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
-- **OpenAPI Schema**: [http://localhost:8080/api-docs](http://localhost:8080/api-docs)
+### 2. Mobile Client (Flutter)
+* **Framework**: Flutter 3.22+, Dart 3.4+
+* **State Management**: Flutter Riverpod
+* **Target OS**: Android (API 21+) & iOS (12.0+)
+
+### 3. Backend Microservices & API
+* **Auth Service**: Golang (Gin, GORM, PostgreSQL, JWT, OAuth2) — Port `8080`
+* **Catalog Service**: Spring Boot 3.3.4 (Java 17, JPA, PostgreSQL/Neon, OpenAPI Swagger) — Port `8081`
+* **Monolith / Starter API**: Spring Boot 3.3.4 — Port `8080`
+* **Kontrak API OpenAPI**: [`API_CONTRACT.md`](./API_CONTRACT.md)
+* **Pedoman Database Anti-Konflik**: [`backend/DATABASE_GUIDELINES.md`](./backend/DATABASE_GUIDELINES.md)
 
 ---
 
-## 🚀 Panduan Memulai (Getting Started)
+## 🚀 Panduan Menjalankan Aplikasi
 
-### 1. Menjalankan Frontend (React + Vite)
+### 1. Web Frontend (React + Vite)
 ```bash
 npm install
 npm run dev
 ```
 Buka browser pada URL yang ditampilkan di terminal (default: `http://localhost:3000`).
 
-### 2. Menjalankan Backend (Spring Boot + Swagger)
-```bash
-cd backend
-mvn spring-boot:run
-```
-*Atau menggunakan Docker:*
-```bash
-cd backend
-docker build -t liveeuy-backend .
-docker run -p 8080:8080 liveeuy-backend
-```
-Buka Swagger UI di: **http://localhost:8080/swagger-ui.html**
+### 2. Backend Services
 
-### 3. Build untuk Produksi
+#### a. Catalog Service (Spring Boot)
 ```bash
-npm run build
+cd catalog-service
+./mvnw spring-boot:run
 ```
-Hasil build optimal siap deploy akan tersimpan di direktori `dist/`.
+Swagger UI: [http://localhost:8081/api/v1/swagger-ui.html](http://localhost:8081/api/v1/swagger-ui.html)
+
+#### b. Auth Service (Golang)
+```bash
+cd auth-service
+go run cmd/server/main.go
+```
+
+#### c. Starter Backend (Spring Boot + Docker Compose)
+```bash
+cd backend
+docker compose up -d postgres
+./mvnw spring-boot:run
+```
+Swagger UI: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
+
+### 3. Mobile Client (Flutter)
+```bash
+flutter pub get
+flutter run
+```
 
 ---
 
-## 📁 Struktur Direktori Bersih & Modular (Full-Stack Microservices & Clean Architecture)
+## 📁 Struktur Direktori Proyek
+
 ```
 LiveEuy/
 ├── index.html
 ├── package.json
-├── postcss.config.js
-├── tailwind.config.js
-├── tsconfig.json
 ├── vite.config.ts
-├── API_CONTRACT.md                    # Spesifikasi OpenAPI & Kontrak REST
-├── auth-service/                      # Microservice Autentikasi (Golang + GORM + JWT + OAuth)
+├── API_CONTRACT.md                    # Dokumentasi & Kontrak Endpoint OpenAPI
+│
+├── auth-service/                      # Microservice Autentikasi (Golang)
 │   ├── cmd/server/main.go
-│   ├── internal/                      # Config, Domain, HTTP Handlers, Migrations, Services
+│   ├── internal/                      # Config, Domain, Handlers, Migrations, Repositories
 │   └── Dockerfile
-├── catalog-service/                   # Microservice Katalog Media (Spring Boot 3 + PostgreSQL/Neon)
+│
+├── catalog-service/                   # Microservice Katalog Media (Spring Boot)
 │   ├── src/main/java/com/liveeuy/catalog_service/
 │   │   ├── controller/MediaController.java
 │   │   ├── entity/Media.java
 │   │   ├── repository/MediaRepository.java
 │   │   └── service/MediaService.java
 │   └── pom.xml
-├── backend/                           # Monolith / Starter API (Spring Boot 3 + Flyway)
-│   ├── src/main/
-│   └── pom.xml
-├── src/                               # Frontend (React 18 + TypeScript + Tailwind)
+│
+├── backend/                           # Backend Starter & Database Guidelines
+│   ├── DATABASE_GUIDELINES.md
+│   ├── docker-compose.yml
+│   └── src/main/resources/db/migration/
+│
+├── lib/                               # Mobile App Flutter Client
+│   ├── main.dart
+│   ├── core/                          # Theme, Data Mock
+│   ├── features/                      # Auth, Home, Detail, Player, Search Screens
+│   ├── models/                        # Movie, Episode, Review Models
+│   ├── providers/                     # Riverpod State Notifiers
+│   └── shared/                        # Widgets (Ambient Glow, Glassmorphic Cards)
+│
+├── src/                               # Web Frontend (React + TypeScript)
 │   ├── main.tsx
 │   ├── App.tsx
-│   ├── index.css
-│   ├── types.ts
-│   ├── context/
-│   │   └── WatchContext.tsx
-│   ├── data/
-│   │   └── mockData.ts
-│   ├── pages/
+│   ├── context/WatchContext.tsx
+│   ├── data/mockData.ts
+│   ├── pages/                         # Clean Page Architecture
 │   │   ├── HomePage/
-│   │   │   └── index.tsx              # Cinematic Showcase, Hero Carousel, Top 10, Continue Watching
 │   │   ├── MoviesPage/
-│   │   │   └── index.tsx              # Theatrical Cinema Marquee, Universe Spotlight, Duration & Era Filter
 │   │   ├── SeriesPage/
-│   │   │   └── index.tsx              # Binge Spotlight, Airing Calendar, In-Page Episode Explorer
 │   │   ├── TrendingPage/
-│   │   │   └── index.tsx              # Top 3 Podium (Gold/Silver/Bronze), Velocity Meters, Leaderboard
 │   │   ├── WatchlistPage/
-│   │   │   └── index.tsx              # User Analytics (Watch hours, KPI cards), Continue Manager, Custom Grid
-│   │   ├── SearchPage/
-│   │   │   └── index.tsx              # Large Discovery Hub, Visual Category Cards, Faceted Filter
-│   │   └── index.ts                   # Clean Barrel Export
-│   ├── components/
-│   │   ├── Navbar.tsx                 # Responsive Top & Bottom Native Mobile Nav
-│   │   ├── HeroBanner.tsx
-│   │   ├── MediaCard.tsx
-│   │   ├── MediaRow.tsx
-│   │   ├── TopTenRow.tsx
-│   │   ├── VideoPlayerModal.tsx
-│   │   ├── DetailModal.tsx
-│   │   ├── AuthModal.tsx
-│   │   └── Footer.tsx
-│   └── services/
-│       └── api.ts
+│   │   └── SearchPage/
+│   ├── components/                    # Navbar, Player, Hero, Modals, Footer
+│   └── services/api.ts                # Full-Stack API Integration Layer
 ```
