@@ -16,6 +16,7 @@ import {
   Crown, 
   ShieldCheck,
   ArrowLeft,
+  ArrowRight,
   BarChart3,
   Globe,
   Radio
@@ -36,13 +37,15 @@ export const Navbar: React.FC = () => {
     isLoggedIn,
     logout,
     openAuthModal,
-    login
+    login,
+    broadcastAnnouncement
   } = useWatch();
 
   const [isScrolled, setIsScrolled] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [isAnnouncementDismissed, setIsAnnouncementDismissed] = useState(false);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
@@ -108,11 +111,66 @@ export const Navbar: React.FC = () => {
       <header
         className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${
           isScrolled
-            ? 'bg-[#08090d]/95 backdrop-blur-md border-b border-white/[0.08] shadow-lg py-3 sm:py-3.5'
-            : 'bg-gradient-to-b from-black/85 via-black/40 to-transparent py-4 sm:py-5'
+            ? 'bg-[#08090d]/95 backdrop-blur-md border-b border-white/[0.08] shadow-lg'
+            : 'bg-gradient-to-b from-black/90 via-black/50 to-transparent'
         }`}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Broadcast Announcement Bar (Controlled by Admin in CMS) */}
+        {!isInAdminPage && broadcastAnnouncement.isActive && !isAnnouncementDismissed && (
+          <div className={`w-full py-1.5 px-3 sm:px-6 transition-all text-xs font-medium border-b border-white/10 shadow-md ${
+            broadcastAnnouncement.type === 'promo'
+              ? 'bg-gradient-to-r from-amber-600 via-brand-600 to-indigo-700 text-white'
+              : broadcastAnnouncement.type === 'event'
+              ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 text-white'
+              : broadcastAnnouncement.type === 'info'
+              ? 'bg-gradient-to-r from-brand-600 via-indigo-600 to-blue-700 text-white'
+              : 'bg-gradient-to-r from-rose-600 via-pink-600 to-amber-700 text-white'
+          }`}>
+            <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-white/20 text-white border border-white/30 flex items-center gap-1 shadow-sm">
+                  <Sparkles className="w-3 h-3 text-amber-300 animate-pulse" />
+                  {broadcastAnnouncement.badge}
+                </span>
+                <span className="font-bold truncate text-[11px] sm:text-xs">
+                  {broadcastAnnouncement.title}
+                </span>
+                <span className="hidden md:inline text-white/80 text-[11px] truncate">
+                  — {broadcastAnnouncement.description}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {broadcastAnnouncement.actionText && (
+                  <button
+                    onClick={() => {
+                      if (broadcastAnnouncement.targetTab) {
+                        setCurrentTab(broadcastAnnouncement.targetTab);
+                      } else if (!isLoggedIn) {
+                        openAuthModal('register');
+                      }
+                    }}
+                    className="px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-white text-slate-950 hover:bg-slate-100 text-[10px] sm:text-xs font-bold transition-all shadow hover:scale-105 active:scale-95 flex items-center gap-1"
+                  >
+                    <span>{broadcastAnnouncement.actionText}</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </button>
+                )}
+                <button
+                  onClick={() => setIsAnnouncementDismissed(true)}
+                  className="p-1 rounded-full hover:bg-white/20 text-white/80 hover:text-white transition-colors"
+                  title="Tutup Pengumuman"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ${
+          isScrolled ? 'py-2.5 sm:py-3' : 'py-3.5 sm:py-4.5'
+        }`}>
           <div className="flex items-center justify-between gap-4">
             
             {/* Logo & Navigation */}

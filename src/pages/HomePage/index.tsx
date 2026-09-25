@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useWatch } from '../../context/WatchContext';
+import { MediaItem } from '../../types';
 import { HeroBanner } from '../../components/HeroBanner';
 import { MediaRow } from '../../components/MediaRow';
 import { TopTenRow } from '../../components/TopTenRow';
@@ -12,16 +13,16 @@ import {
   CheckCircle2, 
   ShieldCheck, 
   Wifi, 
-  DownloadCloud,
-  ChevronRight,
-  Clock,
-  Crown,
-  LogIn,
-  HelpCircle,
-  ChevronDown,
-  User as UserIcon,
-  Check,
-  X
+  DownloadCloud, 
+  ChevronRight, 
+  Clock, 
+  Crown, 
+  LogIn, 
+  HelpCircle, 
+  ChevronDown, 
+  User as UserIcon, 
+  Check, 
+  X 
 } from 'lucide-react';
 
 export const HomePage: React.FC = () => {
@@ -32,18 +33,21 @@ export const HomePage: React.FC = () => {
     openPlayer, 
     user, 
     isLoggedIn, 
-    openAuthModal 
+    openAuthModal,
+    featuredOrder
   } = useWatch();
 
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
-  // Provide 10 blockbuster film slides for the slider
-  const featuredItems = (() => {
-    const featured = allMedia.filter(item => item.isFeatured);
-    if (featured.length >= 10) return featured.slice(0, 10);
-    const additional = allMedia.filter(item => !featured.some(f => f.id === item.id));
-    return [...featured, ...additional].slice(0, 10);
-  })();
+  // Provide ordered blockbuster film slides according to admin CMS configuration
+  const featuredItems = useMemo(() => {
+    const ordered = featuredOrder
+      .map(id => allMedia.find(m => m.id === id))
+      .filter((m): m is MediaItem => Boolean(m));
+    if (ordered.length >= 5) return ordered;
+    const remaining = allMedia.filter(m => !ordered.some(o => o.id === m.id));
+    return [...ordered, ...remaining].slice(0, 10);
+  }, [allMedia, featuredOrder]);
   const trendingItems = allMedia.filter(item => item.isTrending);
   const actionItems = allMedia.filter(item => item.genres.includes('Aksi') || item.genres.includes('Fiksi Ilmiah'));
   const dramaItems = allMedia.filter(item => item.genres.includes('Drama') || item.genres.includes('Thriller'));

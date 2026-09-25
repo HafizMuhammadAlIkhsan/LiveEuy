@@ -99,3 +99,29 @@ export interface VisitorSession {
   userEmail?: string;
   isCurrentDevice?: boolean;
 }
+
+export type AnnouncementType = 'promo' | 'event' | 'info' | 'alert';
+
+export interface BroadcastAnnouncement {
+  id: string;
+  isActive: boolean;
+  type: AnnouncementType;
+  badge: string;
+  title: string;
+  description: string;
+  actionText: string;
+  actionUrl?: string;
+  targetTab?: ViewTab;
+  expiresAt?: string;
+}
+
+export interface AdminAuditLog {
+  id: string;
+  timestamp: string;
+  actor: string;
+  actorEmail: string;
+  action: string;
+  category: 'media' | 'banner' | 'user' | 'tracking' | 'system';
+  detail: string;
+  ipAddress?: string;
+}

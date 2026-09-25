@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { MediaItem, Episode, WatchProgress, ViewTab, User, VisitorSession } from '../types';
+import { MediaItem, Episode, WatchProgress, ViewTab, User, VisitorSession, BroadcastAnnouncement, AdminAuditLog } from '../types';
 import { MOCK_MEDIA } from '../data/mockData';
 import { apiService } from '../services/api';
 import { trackCurrentVisitor, getStoredSessions, resetVisitorTracking } from '../utils/cookieTracker';
@@ -36,6 +36,19 @@ interface WatchContextType {
   updateMedia: (id: string, updated: Partial<MediaItem>) => void;
   deleteMedia: (id: string) => void;
   resetMediaToDefault: () => void;
+  // Broadcast Announcement Banner
+  broadcastAnnouncement: BroadcastAnnouncement;
+  updateBroadcastAnnouncement: (updated: Partial<BroadcastAnnouncement>) => void;
+  toggleBroadcastAnnouncement: () => void;
+  // Hero Carousel Order & Featured Items
+  featuredOrder: string[];
+  setFeaturedOrder: (order: string[]) => void;
+  toggleFeaturedItem: (id: string) => void;
+  moveFeaturedItem: (id: string, direction: 'up' | 'down') => void;
+  // Admin Audit Logs
+  auditLogs: AdminAuditLog[];
+  addAuditLog: (action: string, category: AdminAuditLog['category'], detail: string) => void;
+  clearAuditLogs: () => void;
   // Authentication & Guest State
   user: User | null;
   isLoggedIn: boolean;
@@ -78,6 +91,40 @@ const getInitialTab = (): ViewTab => {
   }
   return 'home';
 };
+
+const DEFAULT_ANNOUNCEMENT: BroadcastAnnouncement = {
+  id: 'announcement-01',
+  isActive: true,
+  type: 'promo',
+  badge: 'PROMO VIP ULTRA',
+  title: 'Diskon Spesial 50% Akses Bioskop 4K',
+  description: 'Buka seluruh tayangan bioskop 4K UHD & Dolby Atmos tanpa batas di semua perangkat.',
+  actionText: 'Klaim Sekarang',
+  targetTab: 'home'
+};
+
+const DEFAULT_AUDIT_LOGS: AdminAuditLog[] = [
+  {
+    id: 'log-01',
+    timestamp: '24 Sep 2026, 15:30:12',
+    actor: 'Hafiz Muhammad',
+    actorEmail: 'hafiz@liveeuy.id',
+    action: 'Inisialisasi Sistem CMS',
+    category: 'system',
+    detail: 'Sistem live tracking cookie dan modul statistik analitik diaktifkan.',
+    ipAddress: '180.252.164.88'
+  },
+  {
+    id: 'log-02',
+    timestamp: '24 Sep 2026, 15:42:00',
+    actor: 'Hafiz Muhammad',
+    actorEmail: 'hafiz@liveeuy.id',
+    action: 'Pembaruan Navbar Terpisah',
+    category: 'banner',
+    detail: 'Navbar admin console dan tampilan penonton berhasil dipisahkan.',
+    ipAddress: '180.252.164.88'
+  }
+];
 
 const WatchContext = createContext<WatchContextType | undefined>(undefined);
 
@@ -131,16 +178,156 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [mediaList]);
 
+  // Admin Audit Logs State
+  const [auditLogs, setAuditLogs] = useState<AdminAuditLog[]>(() => {
+    try {
+      const saved = localStorage.getItem('liveeuy_audit_logs');
+      return saved ? JSON.parse(saved) : DEFAULT_AUDIT_LOGS;
+    } catch {
+      return DEFAULT_AUDIT_LOGS;
+    }
+  });
+
+  const addAuditLog = (action: string, category: AdminAuditLog['category'], detail: string) => {
+    const newLog: AdminAuditLog = {
+      id: `audit-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      timestamp: new Date().toLocaleDateString('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      }),
+      actor: user?.name || 'Administrator',
+      actorEmail: user?.email || 'hafiz@liveeuy.id',
+      action,
+      category,
+      detail,
+      ipAddress: currentSession?.ipAddress || '180.252.164.88'
+    };
+    setAuditLogs(prev => {
+      const next = [newLog, ...prev].slice(0, 100);
+      try {
+        localStorage.setItem('liveeuy_audit_logs', JSON.stringify(next));
+      } catch (e) {
+        console.error(e);
+      }
+      return next;
+    });
+  };
+
+  const clearAuditLogs = () => {
+    setAuditLogs([]);
+    try {
+      localStorage.removeItem('liveeuy_audit_logs');
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  // Broadcast Announcement State
+  const [broadcastAnnouncement, setBroadcastAnnouncement] = useState<BroadcastAnnouncement>(() => {
+    try {
+      const saved = localStorage.getItem('liveeuy_announcement');
+      return saved ? JSON.parse(saved) : DEFAULT_ANNOUNCEMENT;
+    } catch {
+      return DEFAULT_ANNOUNCEMENT;
+    }
+  });
+
+  const updateBroadcastAnnouncement = (updated: Partial<BroadcastAnnouncement>) => {
+    setBroadcastAnnouncement(prev => {
+      const next = { ...prev, ...updated };
+      try {
+        localStorage.setItem('liveeuy_announcement', JSON.stringify(next));
+      } catch (e) {
+        console.error(e);
+      }
+      return next;
+    });
+    addAuditLog('Perbarui Banner Promo/Pengumuman', 'banner', `Pesan diperbarui: "${updated.title || broadcastAnnouncement.title}"`);
+  };
+
+  const toggleBroadcastAnnouncement = () => {
+    setBroadcastAnnouncement(prev => {
+      const next = { ...prev, isActive: !prev.isActive };
+      try {
+        localStorage.setItem('liveeuy_announcement', JSON.stringify(next));
+      } catch (e) {
+        console.error(e);
+      }
+      return next;
+    });
+    addAuditLog('Ubah Status Banner', 'banner', `Status banner diubah menjadi: ${!broadcastAnnouncement.isActive ? 'Aktif' : 'Nonaktif'}`);
+  };
+
+  // Hero Carousel Order & Featured Items
+  const [featuredOrder, setFeaturedOrder] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('liveeuy_featured_order');
+      if (saved) return JSON.parse(saved);
+      return MOCK_MEDIA.filter(m => m.isFeatured).map(m => m.id);
+    } catch {
+      return MOCK_MEDIA.filter(m => m.isFeatured).map(m => m.id);
+    }
+  });
+
+  const saveFeaturedOrder = (newOrder: string[]) => {
+    setFeaturedOrder(newOrder);
+    try {
+      localStorage.setItem('liveeuy_featured_order', JSON.stringify(newOrder));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const toggleFeaturedItem = (id: string) => {
+    const isNowFeatured = !featuredOrder.includes(id);
+    let newOrder: string[];
+    if (isNowFeatured) {
+      newOrder = [...featuredOrder, id];
+    } else {
+      newOrder = featuredOrder.filter(item => item !== id);
+    }
+    saveFeaturedOrder(newOrder);
+    updateMedia(id, { isFeatured: isNowFeatured });
+    addAuditLog(
+      isNowFeatured ? 'Pin ke Hero Banner' : 'Hapus dari Hero Banner',
+      'banner',
+      `Film ID "${id}" ${isNowFeatured ? 'ditambahkan ke' : 'dikeluarkan dari'} sorotan utama carousel beranda.`
+    );
+  };
+
+  const moveFeaturedItem = (id: string, direction: 'up' | 'down') => {
+    const idx = featuredOrder.indexOf(id);
+    if (idx === -1) return;
+    const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= featuredOrder.length) return;
+    const copy = [...featuredOrder];
+    const [moved] = copy.splice(idx, 1);
+    copy.splice(targetIdx, 0, moved);
+    saveFeaturedOrder(copy);
+    addAuditLog(
+      'Ubah Urutan Carousel',
+      'banner',
+      `Posisi film "${id}" dipindahkan ke urutan ${targetIdx + 1} di Hero Carousel.`
+    );
+  };
+
   const addMedia = (item: MediaItem) => {
     setMediaList(prev => [item, ...prev]);
+    addAuditLog('Tambah Film/Serial Baru', 'media', `Menambahkan "${item.title}" (${item.type === 'movie' ? 'Film' : 'Serial TV'}) ke katalog.`);
   };
 
   const updateMedia = (id: string, updated: Partial<MediaItem>) => {
     setMediaList(prev => prev.map(m => m.id === id ? { ...m, ...updated } : m));
+    addAuditLog('Ubah Data Film', 'media', `Memperbarui detail film ID: "${id}".`);
   };
 
   const deleteMedia = (id: string) => {
     setMediaList(prev => prev.filter(m => m.id !== id));
+    addAuditLog('Hapus Film dari Katalog', 'media', `Menghapus film ID: "${id}" dari database.`);
   };
 
   const resetMediaToDefault = () => {
@@ -150,6 +337,7 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch (e) {
       console.error(e);
     }
+    addAuditLog('Reset Katalog ke Standar', 'media', 'Mengembalikan seluruh katalog film ke data bawaan awal.');
   };
 
   const [watchlist, setWatchlist] = useState<string[]>(() => {
@@ -452,6 +640,16 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         updateMedia,
         deleteMedia,
         resetMediaToDefault,
+        broadcastAnnouncement,
+        updateBroadcastAnnouncement,
+        toggleBroadcastAnnouncement,
+        featuredOrder,
+        setFeaturedOrder: saveFeaturedOrder,
+        toggleFeaturedItem,
+        moveFeaturedItem,
+        auditLogs,
+        addAuditLog,
+        clearAuditLogs,
         user,
         isLoggedIn: Boolean(user),
         login,

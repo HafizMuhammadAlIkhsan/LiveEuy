@@ -47,10 +47,16 @@ import {
   Award,
   Eye,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  ArrowUp,
+  ArrowDown,
+  Download,
+  Megaphone,
+  FileSpreadsheet,
+  History
 } from 'lucide-react';
 
-export type AdminModuleId = 'media' | 'episodes' | 'users' | 'tracking' | 'analytics' | 'reviews' | 'system';
+export type AdminModuleId = 'media' | 'banner' | 'episodes' | 'users' | 'tracking' | 'analytics' | 'reviews' | 'system';
 
 export interface SidebarNavItem {
   id: AdminModuleId;
@@ -67,6 +73,17 @@ export interface SidebarNavGroup {
   items: SidebarNavItem[];
 }
 
+const exportToCSV = (filename: string, rows: (string | number)[][]) => {
+  const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement('a');
+  link.setAttribute('href', encodedUri);
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
 export const AdminPage: React.FC = () => {
   const { 
     allMedia, 
@@ -80,7 +97,15 @@ export const AdminPage: React.FC = () => {
     visitorSessions,
     currentSession,
     refreshTracking,
-    resetTracking
+    resetTracking,
+    broadcastAnnouncement,
+    updateBroadcastAnnouncement,
+    toggleBroadcastAnnouncement,
+    featuredOrder,
+    toggleFeaturedItem,
+    moveFeaturedItem,
+    auditLogs,
+    clearAuditLogs
   } = useWatch();
 
   // Active Admin Sub-Module Tab
@@ -101,6 +126,36 @@ export const AdminPage: React.FC = () => {
   // Tracking Search & Filter
   const [trackingSearch, setTrackingSearch] = useState('');
   const [trackingFilterOS, setTrackingFilterOS] = useState<'all' | 'macOS' | 'Windows' | 'iOS' | 'Android'>('all');
+
+  // Banner & Announcement Editor State
+  const [announcementForm, setAnnouncementForm] = useState({
+    badge: broadcastAnnouncement.badge,
+    title: broadcastAnnouncement.title,
+    description: broadcastAnnouncement.description,
+    actionText: broadcastAnnouncement.actionText,
+    type: broadcastAnnouncement.type,
+    targetTab: broadcastAnnouncement.targetTab || 'home'
+  });
+  const [isAnnouncementSaved, setIsAnnouncementSaved] = useState(false);
+  const [bannerSearchTerm, setBannerSearchTerm] = useState('');
+  const [auditLogFilter, setAuditLogFilter] = useState<'all' | 'media' | 'banner' | 'user' | 'tracking' | 'system'>('all');
+
+  useEffect(() => {
+    setAnnouncementForm({
+      badge: broadcastAnnouncement.badge,
+      title: broadcastAnnouncement.title,
+      description: broadcastAnnouncement.description,
+      actionText: broadcastAnnouncement.actionText,
+      type: broadcastAnnouncement.type,
+      targetTab: broadcastAnnouncement.targetTab || 'home'
+    });
+  }, [broadcastAnnouncement]);
+
+  const handleSaveAnnouncement = () => {
+    updateBroadcastAnnouncement(announcementForm);
+    setIsAnnouncementSaved(true);
+    setTimeout(() => setIsAnnouncementSaved(false), 2500);
+  };
 
   // Search in admin table
   const [searchTerm, setSearchTerm] = useState('');
@@ -337,6 +392,70 @@ export const AdminPage: React.FC = () => {
 
     return result;
   }, [mediaAnalyticsList, analyticsFilterType, analyticsSearch, analyticsSortBy]);
+
+  // Export Analytics to CSV
+  const exportAnalyticsCSV = () => {
+    const headers = ['Peringkat', 'Judul Konten', 'Tipe', 'Genre', 'Rating', 'Total Views', 'Total Jam Tonton', 'Penyelesaian (%)', 'Jumlah Ulasan'];
+    const sorted = [...mediaAnalyticsList].sort((a, b) => b.views - a.views);
+    const rows = sorted.map((item, idx) => [
+      idx + 1,
+      item.title,
+      item.type === 'movie' ? 'Film' : 'Serial TV',
+      item.genres.join('; '),
+      item.rating,
+      item.views,
+      item.watchHours,
+      `${item.completionRate}%`,
+      item.reviews?.length || 0
+    ]);
+    exportToCSV('liveeuy-analytics-report.csv', [headers, ...rows]);
+    showToast('Laporan statistik & performa tayangan berhasil diekspor ke file CSV!');
+  };
+
+  // Export Tracking Logs to CSV
+  const exportTrackingCSV = () => {
+    const headers = ['Session ID', 'Cookie Token', 'IP Address', 'Kota', 'Negara', 'Device Type', 'Sistem Operasi', 'Browser', 'Resolusi Layar', 'Halaman Terakhir', 'Terakhir Aktif'];
+    const rows = filteredTracking.map(sess => [
+      sess.sessionId,
+      sess.cookieToken,
+      sess.ipAddress,
+      sess.city || 'Indonesia',
+      sess.country || 'ID',
+      sess.deviceType,
+      sess.os,
+      sess.browser,
+      sess.screenResolution,
+      sess.currentPage,
+      sess.lastActive
+    ]);
+    exportToCSV('liveeuy-visitor-logs.csv', [headers, ...rows]);
+    showToast('Laporan log visitor, IP dan perangkat berhasil diekspor ke file CSV!');
+  };
+
+  // Hero Carousel Order Items
+  const heroCarouselItems = useMemo(() => {
+    return featuredOrder
+      .map(id => allMedia.find(m => m.id === id))
+      .filter((m): m is MediaItem => Boolean(m));
+  }, [allMedia, featuredOrder]);
+
+  const candidateForHero = useMemo(() => {
+    return allMedia.filter(m => {
+      const notInCarousel = !featuredOrder.includes(m.id);
+      if (!notInCarousel) return false;
+      if (bannerSearchTerm.trim()) {
+        const q = bannerSearchTerm.toLowerCase();
+        return m.title.toLowerCase().includes(q) || m.genres.some(g => g.toLowerCase().includes(q));
+      }
+      return true;
+    });
+  }, [allMedia, featuredOrder, bannerSearchTerm]);
+
+  // Filtered Audit Logs
+  const filteredAuditLogs = useMemo(() => {
+    if (auditLogFilter === 'all') return auditLogs;
+    return auditLogs.filter(log => log.category === auditLogFilter);
+  }, [auditLogs, auditLogFilter]);
 
   // Notification Banner
   const [successToast, setSuccessToast] = useState<string | null>(null);
@@ -603,6 +722,17 @@ export const AdminPage: React.FC = () => {
           badgeColor: 'bg-brand-500/20 text-brand-300 border-brand-500/30'
         },
         {
+          id: 'banner',
+          label: 'Banner & Pengumuman',
+          desc: 'Hero carousel & broadcast promo',
+          icon: Megaphone,
+          badge: broadcastAnnouncement.isActive ? 'Live' : 'Off',
+          badgeColor: broadcastAnnouncement.isActive
+            ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+            : 'bg-white/10 text-slate-400 border-white/10',
+          pulse: broadcastAnnouncement.isActive
+        },
+        {
           id: 'episodes',
           label: 'Episode & Musim',
           desc: 'Manajemen serial TV',
@@ -696,6 +826,7 @@ export const AdminPage: React.FC = () => {
               <span className="text-slate-600">/</span>
               <span className="text-brand-400 font-bold capitalize">
                 {activeModule === 'media' && 'Katalog & CMS Media'}
+                {activeModule === 'banner' && 'Banner & Pengumuman'}
                 {activeModule === 'episodes' && 'Episode & Musim Serial'}
                 {activeModule === 'analytics' && 'Statistik & Rating Tayangan'}
                 {activeModule === 'users' && 'Pengguna & Langganan VIP'}
@@ -1106,6 +1237,478 @@ export const AdminPage: React.FC = () => {
       )}
 
       {/* ========================================================
+          MODULE: BANNER & PENGUMUMAN (BROADCAST & HERO CAROUSEL)
+          ======================================================== */}
+      {activeModule === 'banner' && (
+        <section className="space-y-6 animate-fade-in">
+          
+          {/* Header & Subtitle */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold mb-1">
+                <Megaphone className="w-3.5 h-3.5 text-amber-400" />
+                <span>Pusat Siaran Pengumuman & Hero Carousel</span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black text-white">Manajemen Banner & Urutan Hero Carousel</h2>
+              <p className="text-xs text-slate-400">
+                Atur pengumuman promo/event siaran langsung yang tampil di atas website penonton serta urutan film di slider utama beranda.
+              </p>
+            </div>
+
+            {/* Quick Status Pill */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={toggleBroadcastAnnouncement}
+                className={`px-4 py-2 rounded-2xl font-bold text-xs flex items-center gap-2 transition-all shadow-lg active:scale-95 ${
+                  broadcastAnnouncement.isActive
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30'
+                    : 'bg-white/10 text-slate-300 border border-white/10 hover:bg-white/15'
+                }`}
+              >
+                <span className={`w-2.5 h-2.5 rounded-full ${broadcastAnnouncement.isActive ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
+                <span>Banner Siaran: {broadcastAnnouncement.isActive ? 'Sedang Tayang' : 'Dinonaktifkan'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Grid Layout: 2 Columns on Desktop */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            {/* COLUMN 1: Broadcast Announcement Editor (5 cols) */}
+            <div className="lg:col-span-5 space-y-5">
+              <div className="bg-surface-800/60 p-5 sm:p-6 rounded-3xl border border-white/5 space-y-4">
+                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <div>
+                    <h3 className="font-bold text-white text-sm sm:text-base flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-amber-400" />
+                      <span>Siaran Pengumuman / Running Text</span>
+                    </h3>
+                    <p className="text-[11px] text-slate-400">
+                      Tampil di bagian paling atas navbar penonton.
+                    </p>
+                  </div>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-black uppercase ${
+                    broadcastAnnouncement.isActive
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                      : 'bg-white/10 text-slate-400'
+                  }`}>
+                    {broadcastAnnouncement.isActive ? 'Aktif' : 'Nonaktif'}
+                  </span>
+                </div>
+
+                {/* Live Preview Card */}
+                <div className="space-y-1.5">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                    Pratinjau Nyata (Live Preview):
+                  </span>
+                  <div className={`p-2.5 rounded-2xl border border-white/15 text-xs text-white shadow-xl ${
+                    announcementForm.type === 'promo'
+                      ? 'bg-gradient-to-r from-amber-600 via-brand-600 to-indigo-700'
+                      : announcementForm.type === 'event'
+                      ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700'
+                      : announcementForm.type === 'info'
+                      ? 'bg-gradient-to-r from-brand-600 via-indigo-600 to-blue-700'
+                      : 'bg-gradient-to-r from-rose-600 via-pink-600 to-amber-700'
+                  }`}>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-white/20 text-white border border-white/30 truncate flex-shrink-0">
+                          {announcementForm.badge || 'BADGE'}
+                        </span>
+                        <span className="font-bold text-xs truncate">
+                          {announcementForm.title || 'Judul Pengumuman'}
+                        </span>
+                      </div>
+                      {announcementForm.actionText && (
+                        <span className="px-2 py-0.5 rounded-full bg-white text-slate-900 text-[10px] font-bold flex-shrink-0">
+                          {announcementForm.actionText}
+                        </span>
+                      )}
+                    </div>
+                    {announcementForm.description && (
+                      <p className="text-[10px] text-white/80 mt-1 line-clamp-1">
+                        {announcementForm.description}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Editor Form */}
+                <div className="space-y-3 pt-2">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-300 block mb-1.5">
+                      Gaya & Tema Warna Banner
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { id: 'promo', label: 'Promo VIP (Gold)', bg: 'bg-gradient-to-r from-amber-600 to-brand-600' },
+                        { id: 'event', label: 'Event Rilis (Hijau)', bg: 'bg-gradient-to-r from-emerald-600 to-teal-600' },
+                        { id: 'info', label: 'Info Sistem (Biru)', bg: 'bg-gradient-to-r from-brand-600 to-blue-600' },
+                        { id: 'alert', label: 'Pemberitahuan (Merah)', bg: 'bg-gradient-to-r from-rose-600 to-pink-600' },
+                      ].map(theme => (
+                        <button
+                          key={theme.id}
+                          type="button"
+                          onClick={() => setAnnouncementForm(prev => ({ ...prev, type: theme.id as any }))}
+                          className={`p-2 rounded-xl text-left text-xs font-semibold text-white border transition-all ${
+                            announcementForm.type === theme.id
+                              ? 'border-white ring-2 ring-white/30 scale-[1.02] ' + theme.bg
+                              : 'border-white/10 bg-surface-900/80 hover:border-white/20'
+                          }`}
+                        >
+                          {theme.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-slate-300 block mb-1">
+                      Teks Badge
+                    </label>
+                    <input
+                      type="text"
+                      value={announcementForm.badge}
+                      onChange={e => setAnnouncementForm(prev => ({ ...prev, badge: e.target.value }))}
+                      placeholder="Contoh: PROMO SPESIAL, RILIS EKSKLUSIF"
+                      className="w-full bg-surface-900 border border-white/10 focus:border-amber-400 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-slate-300 block mb-1">
+                      Judul Pengumuman
+                    </label>
+                    <input
+                      type="text"
+                      value={announcementForm.title}
+                      onChange={e => setAnnouncementForm(prev => ({ ...prev, title: e.target.value }))}
+                      placeholder="Contoh: Diskon 50% Langganan VIP Ultra Akhir Pekan Ini"
+                      className="w-full bg-surface-900 border border-white/10 focus:border-amber-400 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-slate-300 block mb-1">
+                      Keterangan / Subtitle Lengkap
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={announcementForm.description}
+                      onChange={e => setAnnouncementForm(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Contoh: Buka tayangan 4K UHD, audio Dolby Atmos, dan tonton bebas iklan di 4 perangkat."
+                      className="w-full bg-surface-900 border border-white/10 focus:border-amber-400 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs font-semibold text-slate-300 block mb-1">
+                        Teks Tombol Aksi
+                      </label>
+                      <input
+                        type="text"
+                        value={announcementForm.actionText}
+                        onChange={e => setAnnouncementForm(prev => ({ ...prev, actionText: e.target.value }))}
+                        placeholder="Contoh: Klaim Sekarang"
+                        className="w-full bg-surface-900 border border-white/10 focus:border-amber-400 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-slate-300 block mb-1">
+                        Halaman Tujuan
+                      </label>
+                      <select
+                        value={announcementForm.targetTab}
+                        onChange={e => setAnnouncementForm(prev => ({ ...prev, targetTab: e.target.value as any }))}
+                        className="w-full bg-surface-900 border border-white/10 focus:border-amber-400 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                      >
+                        <option value="home">Beranda</option>
+                        <option value="movies">Katalog Film</option>
+                        <option value="tv">Serial TV</option>
+                        <option value="trending">Trending</option>
+                        <option value="watchlist">Koleksi Saya</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Save Button */}
+                  <div className="pt-2">
+                    <button
+                      onClick={handleSaveAnnouncement}
+                      className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold transition-all shadow-lg shadow-amber-500/20 active:scale-95 flex items-center justify-center gap-2"
+                    >
+                      {isAnnouncementSaved ? (
+                        <>
+                          <Check className="w-4 h-4 text-slate-950" />
+                          <span>Berhasil Disimpan & Diterbitkan!</span>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="w-4 h-4 text-slate-950" />
+                          <span>Simpan & Terapkan Banner</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* COLUMN 2: Hero Carousel Slider Manager (7 cols) */}
+            <div className="lg:col-span-7 space-y-5">
+              <div className="bg-surface-800/60 p-5 sm:p-6 rounded-3xl border border-white/5 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
+                  <div>
+                    <h3 className="font-bold text-white text-sm sm:text-base flex items-center gap-2">
+                      <Film className="w-4 h-4 text-brand-400" />
+                      <span>Urutan Film di Hero Banner Beranda</span>
+                    </h3>
+                    <p className="text-[11px] text-slate-400">
+                      Film pada posisi #1 akan otomatis tampil pertama saat penonton membuka website.
+                    </p>
+                  </div>
+                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30">
+                    {heroCarouselItems.length} Film Aktif
+                  </span>
+                </div>
+
+                {/* Ordered List of Carousel Items */}
+                <div className="space-y-2.5 max-h-[460px] overflow-y-auto custom-scrollbar pr-1">
+                  {heroCarouselItems.map((item, index) => (
+                    <div
+                      key={item.id}
+                      className="p-3 rounded-2xl bg-surface-900/90 border border-white/5 hover:border-white/20 transition-all flex items-center justify-between gap-3 group"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        {/* Position Badge */}
+                        <div className={`w-8 h-8 rounded-xl font-black text-xs flex items-center justify-center flex-shrink-0 ${
+                          index === 0
+                            ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/30 ring-2 ring-amber-400'
+                            : 'bg-surface-800 text-slate-300 border border-white/10'
+                        }`}>
+                          #{index + 1}
+                        </div>
+
+                        {/* Thumbnail */}
+                        <img
+                          src={item.backdropUrl || item.posterUrl}
+                          alt={item.title}
+                          className="w-16 h-10 object-cover rounded-lg flex-shrink-0 shadow border border-white/10"
+                        />
+
+                        {/* Details */}
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-bold text-white text-xs sm:text-sm truncate group-hover:text-brand-400 transition-colors">
+                              {item.title}
+                            </h4>
+                            {index === 0 && (
+                              <span className="px-1.5 py-0.2 rounded text-[9px] font-black uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                UTAMA
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
+                            <span>{item.releaseYear}</span>
+                            <span>•</span>
+                            <span className="capitalize">{item.type === 'movie' ? 'Film' : 'Serial'}</span>
+                            <span>•</span>
+                            <span className="text-amber-400 font-semibold">★ {item.rating}</span>
+                            <span>•</span>
+                            <span className="truncate max-w-[120px]">{item.genres.slice(0, 2).join(', ')}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Reorder and Remove Controls */}
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <button
+                          disabled={index === 0}
+                          onClick={() => moveFeaturedItem(item.id, 'up')}
+                          className="p-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 disabled:opacity-30 disabled:hover:bg-surface-800 text-slate-200 transition-colors"
+                          title="Geser Naik"
+                        >
+                          <ArrowUp className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          disabled={index === heroCarouselItems.length - 1}
+                          onClick={() => moveFeaturedItem(item.id, 'down')}
+                          className="p-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 disabled:opacity-30 disabled:hover:bg-surface-800 text-slate-200 transition-colors"
+                          title="Geser Turun"
+                        >
+                          <ArrowDown className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => toggleFeaturedItem(item.id)}
+                          className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-colors ml-1"
+                          title="Keluarkan dari Hero Banner"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Add More Media to Hero Banner Section */}
+                <div className="pt-3 border-t border-white/10 space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-xs font-bold text-slate-300">
+                      Tambahkan Film Lain ke Hero Banner:
+                    </span>
+                    <div className="relative w-44">
+                      <Search className="w-3 h-3 text-slate-400 absolute left-2.5 top-2.5" />
+                      <input
+                        type="text"
+                        value={bannerSearchTerm}
+                        onChange={e => setBannerSearchTerm(e.target.value)}
+                        placeholder="Cari judul film..."
+                        className="w-full bg-surface-900 border border-white/10 rounded-xl pl-7 pr-2.5 py-1 text-[11px] text-white placeholder-slate-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto custom-scrollbar">
+                    {candidateForHero.slice(0, 6).map(cand => (
+                      <div
+                        key={cand.id}
+                        className="p-2 rounded-xl bg-surface-900 border border-white/5 flex items-center justify-between gap-2 hover:border-white/15 transition-colors"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <img
+                            src={cand.posterUrl}
+                            alt={cand.title}
+                            className="w-7 h-10 object-cover rounded flex-shrink-0"
+                          />
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold text-white truncate">{cand.title}</p>
+                            <span className="text-[10px] text-slate-400">★ {cand.rating} • {cand.releaseYear}</span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => toggleFeaturedItem(cand.id)}
+                          className="px-2 py-1 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-[10px] font-bold transition-all flex items-center gap-1 shadow-sm flex-shrink-0"
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span>Pin</span>
+                        </button>
+                      </div>
+                    ))}
+                    {candidateForHero.length === 0 && (
+                      <div className="col-span-2 text-center py-4 text-xs text-slate-500">
+                        Semua film sudah ada di carousel atau tidak cocok dengan pencarian.
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+
+          {/* Section 3: Audit Trail Log Aktivitas Admin */}
+          <div className="bg-surface-800/60 p-5 sm:p-6 rounded-3xl border border-white/5 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
+              <div>
+                <h3 className="font-bold text-white text-sm sm:text-base flex items-center gap-2">
+                  <History className="w-4 h-4 text-emerald-400" />
+                  <span>Log Rekam Jejak Aktivitas Administrator (Audit Trail)</span>
+                </h3>
+                <p className="text-[11px] text-slate-400">
+                  Mencatat seluruh aksi admin (tambah konten, ubah banner, ekspor data, reset cookie) secara transparan demi keamanan sistem.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {/* Filter Category */}
+                <div className="flex items-center gap-1 bg-surface-900 border border-white/10 p-1 rounded-xl text-xs">
+                  {(['all', 'banner', 'media', 'system'] as const).map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => setAuditLogFilter(cat)}
+                      className={`px-2.5 py-1 rounded-lg capitalize text-[10px] font-bold transition-colors ${
+                        auditLogFilter === cat ? 'bg-brand-600 text-white' : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      {cat === 'all' ? 'Semua' : cat}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  onClick={clearAuditLogs}
+                  className="px-3 py-1 rounded-xl bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 border border-white/10 text-[10px] font-bold transition-colors"
+                >
+                  Bersihkan Log
+                </button>
+              </div>
+            </div>
+
+            {/* Audit Log Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-white/10 text-[11px] text-slate-400 uppercase tracking-wider font-semibold">
+                    <th className="py-2.5 px-3">Waktu</th>
+                    <th className="py-2.5 px-3">Aktor Administrator</th>
+                    <th className="py-2.5 px-3">Kategori</th>
+                    <th className="py-2.5 px-3">Tindakan / Aksi</th>
+                    <th className="py-2.5 px-3">Detail & Keterangan</th>
+                    <th className="py-2.5 px-3 text-right">Alamat IP</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {filteredAuditLogs.slice(0, 10).map(log => (
+                    <tr key={log.id} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="py-2.5 px-3 text-slate-400 font-mono text-[11px] whitespace-nowrap">
+                        {log.timestamp}
+                      </td>
+                      <td className="py-2.5 px-3">
+                        <div className="font-semibold text-white">{log.actor}</div>
+                        <div className="text-[10px] text-slate-400">{log.actorEmail}</div>
+                      </td>
+                      <td className="py-2.5 px-3">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                          log.category === 'banner'
+                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                            : log.category === 'media'
+                            ? 'bg-brand-500/20 text-brand-300 border border-brand-500/30'
+                            : log.category === 'tracking'
+                            ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                            : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                        }`}>
+                          {log.category}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-3 font-semibold text-slate-200">
+                        {log.action}
+                      </td>
+                      <td className="py-2.5 px-3 text-slate-300 text-[11px] max-w-xs truncate">
+                        {log.detail}
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono text-slate-400 text-[11px]">
+                        {log.ipAddress || '127.0.0.1'}
+                      </td>
+                    </tr>
+                  ))}
+                  {filteredAuditLogs.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="py-6 text-center text-slate-500 text-xs">
+                        Belum ada aktivitas admin yang tercatat.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </section>
+      )}
+
+      {/* ========================================================
           MODULE 2: EPISODE & MUSIM
           ======================================================== */}
       {activeModule === 'episodes' && (
@@ -1233,19 +1836,30 @@ export const AdminPage: React.FC = () => {
               </p>
             </div>
 
-            {/* Summary Quick Stats Pill */}
-            <div className="flex items-center gap-2 bg-surface-800/80 border border-white/5 p-2 rounded-2xl flex-wrap">
-              <div className="px-3 py-1.5 bg-surface-900 rounded-xl text-center">
-                <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Total Views</span>
-                <span className="text-sm font-black text-cyan-300">{(totalViewsAccumulated / 1000).toFixed(1)}K</span>
-              </div>
-              <div className="px-3 py-1.5 bg-surface-900 rounded-xl text-center">
-                <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Total Jam Tonton</span>
-                <span className="text-sm font-black text-brand-300">{(totalWatchHoursAccumulated / 1000).toFixed(1)}K jam</span>
-              </div>
-              <div className="px-3 py-1.5 bg-surface-900 rounded-xl text-center">
-                <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Rata-rata Rating</span>
-                <span className="text-sm font-black text-amber-400">★ {averageRatingAcrossCatalog}</span>
+            {/* Action & Summary Pills */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <button
+                onClick={exportAnalyticsCSV}
+                className="px-3.5 py-2.5 rounded-2xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 text-xs font-bold flex items-center gap-1.5 transition-all shadow hover:scale-105 active:scale-95"
+                title="Unduh laporan lengkap analitik penonton ke CSV"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Ekspor CSV</span>
+              </button>
+
+              <div className="flex items-center gap-2 bg-surface-800/80 border border-white/5 p-2 rounded-2xl flex-wrap">
+                <div className="px-3 py-1.5 bg-surface-900 rounded-xl text-center">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Total Views</span>
+                  <span className="text-sm font-black text-cyan-300">{(totalViewsAccumulated / 1000).toFixed(1)}K</span>
+                </div>
+                <div className="px-3 py-1.5 bg-surface-900 rounded-xl text-center">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Total Jam Tonton</span>
+                  <span className="text-sm font-black text-brand-300">{(totalWatchHoursAccumulated / 1000).toFixed(1)}K jam</span>
+                </div>
+                <div className="px-3 py-1.5 bg-surface-900 rounded-xl text-center">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Rata-rata Rating</span>
+                  <span className="text-sm font-black text-amber-400">★ {averageRatingAcrossCatalog}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -1881,6 +2495,15 @@ export const AdminPage: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={exportTrackingCSV}
+                className="px-4 py-2 rounded-xl bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/40 text-xs font-bold flex items-center gap-2 transition-all shadow hover:scale-105 active:scale-95"
+                title="Ekspor seluruh daftar sesi cookie dan alamat IP pengunjung ke file CSV"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Ekspor Log CSV</span>
+              </button>
+
               <button
                 onClick={() => {
                   refreshTracking();
