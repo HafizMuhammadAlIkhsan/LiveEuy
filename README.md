@@ -73,7 +73,6 @@
 - **Modal Autentikasi Pintar (AuthModal)**:
   - Form login dan registrasi akun.
   - Fitur **Demo Instan 1-Klik**: *Masuk Cepat sebagai Hafiz Muhammad (VIP Cinema Ultra)* atau *Budi Santoso (Member Standar)* untuk kemudahan demonstrasi pengujian.
-
 ---
 
 ## 🛠️ Arsitektur Teknologi
@@ -127,7 +126,7 @@ Hasil build optimal siap deploy akan tersimpan di direktori `dist/`.
 
 ---
 
-## 📁 Struktur Direktori Bersih & Modular (Clean Page Architecture)
+## 📁 Struktur Direktori Bersih & Modular (Full-Stack Microservices & Clean Architecture)
 ```
 LiveEuy/
 ├── index.html
@@ -136,7 +135,22 @@ LiveEuy/
 ├── tailwind.config.js
 ├── tsconfig.json
 ├── vite.config.ts
-├── src/
+├── API_CONTRACT.md                    # Spesifikasi OpenAPI & Kontrak REST
+├── auth-service/                      # Microservice Autentikasi (Golang + GORM + JWT + OAuth)
+│   ├── cmd/server/main.go
+│   ├── internal/                      # Config, Domain, HTTP Handlers, Migrations, Services
+│   └── Dockerfile
+├── catalog-service/                   # Microservice Katalog Media (Spring Boot 3 + PostgreSQL/Neon)
+│   ├── src/main/java/com/liveeuy/catalog_service/
+│   │   ├── controller/MediaController.java
+│   │   ├── entity/Media.java
+│   │   ├── repository/MediaRepository.java
+│   │   └── service/MediaService.java
+│   └── pom.xml
+├── backend/                           # Monolith / Starter API (Spring Boot 3 + Flyway)
+│   ├── src/main/
+│   └── pom.xml
+├── src/                               # Frontend (React 18 + TypeScript + Tailwind)
 │   ├── main.tsx
 │   ├── App.tsx
 │   ├── index.css
@@ -147,20 +161,20 @@ LiveEuy/
 │   │   └── mockData.ts
 │   ├── pages/
 │   │   ├── HomePage/
-│   │   │   └── index.tsx          # Cinematic Showcase, Hero Carousel, Top 10, Continue Watching
+│   │   │   └── index.tsx              # Cinematic Showcase, Hero Carousel, Top 10, Continue Watching
 │   │   ├── MoviesPage/
-│   │   │   └── index.tsx          # Theatrical Cinema Marquee, Universe Spotlight, Duration & Era Filter
+│   │   │   └── index.tsx              # Theatrical Cinema Marquee, Universe Spotlight, Duration & Era Filter
 │   │   ├── SeriesPage/
-│   │   │   └── index.tsx          # Binge Spotlight, Airing Calendar, In-Page Episode Explorer
+│   │   │   └── index.tsx              # Binge Spotlight, Airing Calendar, In-Page Episode Explorer
 │   │   ├── TrendingPage/
-│   │   │   └── index.tsx          # Top 3 Podium (Gold/Silver/Bronze), Velocity Meters, Leaderboard
+│   │   │   └── index.tsx              # Top 3 Podium (Gold/Silver/Bronze), Velocity Meters, Leaderboard
 │   │   ├── WatchlistPage/
-│   │   │   └── index.tsx          # User Analytics (Watch hours, KPI cards), Continue Manager, Custom Grid
+│   │   │   └── index.tsx              # User Analytics (Watch hours, KPI cards), Continue Manager, Custom Grid
 │   │   ├── SearchPage/
-│   │   │   └── index.tsx          # Large Discovery Hub, Visual Category Cards, Faceted Filter
-│   │   └── index.ts               # Clean Barrel Export
+│   │   │   └── index.tsx              # Large Discovery Hub, Visual Category Cards, Faceted Filter
+│   │   └── index.ts                   # Clean Barrel Export
 │   ├── components/
-│   │   ├── Navbar.tsx             # Responsive Top & Bottom Native Mobile Nav
+│   │   ├── Navbar.tsx                 # Responsive Top & Bottom Native Mobile Nav
 │   │   ├── HeroBanner.tsx
 │   │   ├── MediaCard.tsx
 │   │   ├── MediaRow.tsx

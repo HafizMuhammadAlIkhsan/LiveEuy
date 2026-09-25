@@ -1,3 +1,7 @@
+.env
+.env.local
+.env.*.local
+
 # Logs
 logs
 *.log
@@ -23,3 +27,21 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Backend build outputs
+target/
+*.class
+*.jar
+*.war
+auth-service/bin/
+auth-service/tmp/
+
+# Flutter / Mobile rules
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+coverage/
