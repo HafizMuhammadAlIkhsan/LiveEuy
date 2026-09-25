@@ -107,7 +107,7 @@ Hasil build optimal siap deploy akan tersimpan di direktori `dist/`.
 
 ---
 
-## 📁 Struktur Direktori
+## 📁 Struktur Direktori Bersih & Modular (Clean Page Architecture)
 ```
 LiveEuy/
 ├── index.html
@@ -125,15 +125,29 @@ LiveEuy/
 │   │   └── WatchContext.tsx
 │   ├── data/
 │   │   └── mockData.ts
-│   └── components/
-│       ├── Navbar.tsx
-│       ├── HeroBanner.tsx
-│       ├── MediaCard.tsx
-│       ├── MediaRow.tsx
-│       ├── TopTenRow.tsx
-│       ├── VideoPlayerModal.tsx
-│       ├── DetailModal.tsx
-│       ├── CatalogView.tsx
-│       ├── WatchlistView.tsx
-│       └── Footer.tsx
+│   ├── pages/
+│   │   ├── HomePage/
+│   │   │   └── index.tsx          # Cinematic Showcase, Hero Carousel, Top 10, Continue Watching
+│   │   ├── MoviesPage/
+│   │   │   └── index.tsx          # Theatrical Cinema Marquee, Universe Spotlight, Duration & Era Filter
+│   │   ├── SeriesPage/
+│   │   │   └── index.tsx          # Binge Spotlight, Airing Calendar, In-Page Episode Explorer
+│   │   ├── TrendingPage/
+│   │   │   └── index.tsx          # Top 3 Podium (Gold/Silver/Bronze), Velocity Meters, Leaderboard
+│   │   ├── WatchlistPage/
+│   │   │   └── index.tsx          # User Analytics (Watch hours, KPI cards), Continue Manager, Custom Grid
+│   │   ├── SearchPage/
+│   │   │   └── index.tsx          # Large Discovery Hub, Visual Category Cards, Faceted Filter
+│   │   └── index.ts               # Clean Barrel Export
+│   ├── components/
+│   │   ├── Navbar.tsx             # Responsive Top & Bottom Native Mobile Nav
+│   │   ├── HeroBanner.tsx
+│   │   ├── MediaCard.tsx
+│   │   ├── MediaRow.tsx
+│   │   ├── TopTenRow.tsx
+│   │   ├── VideoPlayerModal.tsx
+│   │   ├── DetailModal.tsx
+│   │   └── Footer.tsx
+│   └── services/
+│       └── api.ts
 ```
