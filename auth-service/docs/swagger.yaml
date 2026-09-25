@@ -1,0 +1,418 @@
+basePath: /
+definitions:
+  handler.AuthResponseData:
+    properties:
+      access_token:
+        example: eyJhbGciOi...
+        type: string
+      message:
+        example: operation successful
+        type: string
+      refresh_token:
+        example: d0a5f9...
+        type: string
+      success:
+        example: true
+        type: boolean
+      user:
+        $ref: '#/definitions/handler.UserResponse'
+    type: object
+  handler.BaseResponseData:
+    properties:
+      error:
+        example: error description
+        type: string
+      message:
+        example: operation successful
+        type: string
+      status:
+        example: healthy
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  handler.RefreshTokenResponseData:
+    properties:
+      access_token:
+        example: eyJhbGciOi...
+        type: string
+      refresh_token:
+        example: d0a5f9...
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  handler.UserProfileResponseData:
+    properties:
+      success:
+        example: true
+        type: boolean
+      user:
+        $ref: '#/definitions/handler.UserResponse'
+    type: object
+  handler.UserResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      name:
+        type: string
+      picture:
+        type: string
+    type: object
+  handler.loginReq:
+    properties:
+      email:
+        example: john@example.com
+        type: string
+      password:
+        example: secret123
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  handler.refreshTokenReq:
+    properties:
+      refresh_token:
+        example: d0a5f9...
+        type: string
+    required:
+    - refresh_token
+    type: object
+  handler.registerReq:
+    properties:
+      email:
+        example: john@example.com
+        type: string
+      name:
+        example: John Doe
+        type: string
+      password:
+        example: secret123
+        minLength: 6
+        type: string
+    required:
+    - email
+    - name
+    - password
+    type: object
+  handler.updateNameReq:
+    properties:
+      new_name:
+        example: John Smith
+        type: string
+    required:
+    - new_name
+    type: object
+  handler.updatePasswordReq:
+    properties:
+      new_password:
+        example: newsecret123
+        minLength: 6
+        type: string
+    required:
+    - new_password
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@liveeuy.com
+    name: API Support
+  description: Authentication & User Management Service for LiveEuy platform.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: Auth Service API
+  version: "1.0"
+paths:
+  /api/health:
+    get:
+      description: Service health status
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Healthy
+          schema:
+            $ref: '#/definitions/handler.BaseResponseData'
+      security:
+      - BearerAuth: []
+      summary: Health check
+      tags:
+      - System
+  /api/me:
+    get:
+      description: Retrieve current authenticated user profile
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User Profile
+          schema:
+            $ref: '#/definitions/handler.UserProfileResponseData'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handler.BaseResponseData'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/handler.BaseResponseData'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/handler.BaseResponseData'
+      security:
+      - BearerAuth: []
+      summary: Get user profile
+      tags:
+      - User
+  /api/me/name:
+    put:
+      consumes:
+      - application/json
+      description: Update the authenticated user's name
+      parameters:
+      - description: Update Name Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.updateNameReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Name updated successfully
+          schema:
+            $ref: '#/definitions/handler.BaseResponseData'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.BaseResponseData'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handler.BaseResponseData'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/handler.BaseResponseData'
+      security:
+      - BearerAuth: []
+      summary: Update user name
+      tags:
+      - User
+  /api/me/password:
+    put:
+      consumes:
+      - application/json
+      description: Update the authenticated user's password
+      parameters:
+      - description: Update Password Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.updatePasswordReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password updated successfully
+          schema:
+            $ref: '#/definitions/handler.BaseResponseData'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.BaseResponseData'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handler.BaseResponseData'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/handler.BaseResponseData'
+      security:
+      - BearerAuth: []
+      summary: Update user password
+      tags:
+      - User
+  /api/ping:
+    get:
+      description: Ping test endpoint
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Pong
+          schema:
+            $ref: '#/definitions/handler.BaseResponseData'
+      security:
+      - BearerAuth: []
+      summary: Ping check
+      tags:
+      - System
+  /api/v1/auth/google/callback:
+    get:
+      description: Handles OAuth callback from Google, authenticates the user and
+        returns access and refresh tokens
+      parameters:
+      - description: OAuth State parameter
+        in: query
+        name: state
+        required: true
+        type: string
+      - description: OAuth Authorization Code
+        in: query
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Google login successful
+          schema:
+            $ref: '#/definitions/handler.RefreshTokenResponseData'
+        "400":
+          description: Missing authorization code
+          schema:
+            $ref: '#/definitions/handler.BaseResponseData'
+        "401":
+          description: CSRF state mismatch or invalid session
+          schema:
+            $ref: '#/definitions/handler.BaseResponseData'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/handler.BaseResponseData'
+      summary: Google OAuth callback
+      tags:
+      - OAuth
+  /api/v1/auth/google/login:
+    get:
+      description: Redirects the user to Google OAuth consent page
+      responses:
+        "307":
+          description: Redirect to Google OAuth consent URL
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/handler.BaseResponseData'
+      summary: Initiate Google OAuth login
+      tags:
+      - OAuth
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user using email and password
+      parameters:
+      - description: Login Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.loginReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Logged in successfully
+          schema:
+            $ref: '#/definitions/handler.AuthResponseData'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.BaseResponseData'
+        "401":
+          description: Invalid credentials
+          schema:
+            $ref: '#/definitions/handler.BaseResponseData'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/handler.BaseResponseData'
+      summary: User login
+      tags:
+      - Authentication
+  /refresh-token:
+    post:
+      consumes:
+      - application/json
+      description: Rotate refresh token and generate new access token
+      parameters:
+      - description: Refresh Token Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.refreshTokenReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Token refreshed successfully
+          schema:
+            $ref: '#/definitions/handler.RefreshTokenResponseData'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.BaseResponseData'
+        "401":
+          description: Invalid or expired token
+          schema:
+            $ref: '#/definitions/handler.BaseResponseData'
+      summary: Refresh access token
+      tags:
+      - Authentication
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user with name, email, and password
+      parameters:
+      - description: Register Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.registerReq'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Registered successfully
+          schema:
+            $ref: '#/definitions/handler.AuthResponseData'
+        "400":
+          description: Bad Request / Validation Error
+          schema:
+            $ref: '#/definitions/handler.BaseResponseData'
+        "409":
+          description: User already exists
+          schema:
+            $ref: '#/definitions/handler.BaseResponseData'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/handler.BaseResponseData'
+      summary: Register a new user
+      tags:
+      - Authentication
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
