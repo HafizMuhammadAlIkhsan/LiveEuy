@@ -14,7 +14,8 @@ import {
   LogOut,
   User,
   LogIn,
-  Crown
+  Crown,
+  ShieldCheck
 } from 'lucide-react';
 import { useWatch } from '../context/WatchContext';
 import { ViewTab } from '../types';
@@ -111,7 +112,7 @@ export const Navbar: React.FC = () => {
                 }}
                 className="flex items-center gap-2 group cursor-pointer text-left flex-shrink-0"
               >
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-rose-400 flex items-center justify-center shadow-lg shadow-brand-500/25 group-hover:scale-105 transition-transform duration-200">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-secondary-500 flex items-center justify-center shadow-lg shadow-brand-500/25 group-hover:scale-105 transition-transform duration-200">
                   <Play className="w-4 h-4 sm:w-5 sm:h-5 text-white fill-white translate-x-0.5" />
                 </div>
                 <div>
@@ -299,6 +300,25 @@ export const Navbar: React.FC = () => {
                     <span>{user.tier}</span>
                   </span>
 
+                  {/* Admin Panel Quick Access Button */}
+                  {user.role === 'admin' && (
+                    <button
+                      onClick={() => {
+                        setCurrentTab(currentTab === 'admin' ? 'home' : 'admin');
+                        setSearchQuery('');
+                      }}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold transition-all ${
+                        currentTab === 'admin'
+                          ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 ring-1 ring-emerald-400'
+                          : 'bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 border border-emerald-500/30'
+                      }`}
+                      title="Buka Panel Manajemen Admin"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="hidden sm:inline">Admin</span>
+                    </button>
+                  )}
+
                   {/* Profile Menu Popover */}
                   <div className="relative" ref={profileRef}>
                     <button
@@ -306,7 +326,7 @@ export const Navbar: React.FC = () => {
                       className="flex items-center gap-1.5 p-0.5 sm:p-1 rounded-full hover:bg-white/10 transition-colors"
                       aria-label="Profil Pengguna"
                     >
-                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-amber-500 via-rose-500 to-indigo-500 p-0.5 shadow-md">
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-tr from-amber-500 via-brand-500 to-indigo-500 p-0.5 shadow-md">
                         <div className="w-full h-full rounded-full bg-surface-900 flex items-center justify-center overflow-hidden">
                           <img
                             src={user.avatar}
@@ -323,11 +343,35 @@ export const Navbar: React.FC = () => {
                         <div className="px-3 py-2.5 border-b border-white/10">
                           <p className="font-bold text-white truncate">{user.name}</p>
                           <p className="text-[11px] text-slate-400 truncate">{user.email}</p>
-                          <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-brand-500/20 text-brand-300 border border-brand-500/30">
-                            {user.tier}
-                          </span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-brand-500/20 text-brand-300 border border-brand-500/30">
+                              {user.tier}
+                            </span>
+                            {user.role === 'admin' && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                Administrator
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div className="py-1">
+                          {user.role === 'admin' && (
+                            <button
+                              onClick={() => {
+                                setCurrentTab('admin');
+                                setShowProfileMenu(false);
+                              }}
+                              className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 transition-colors font-medium"
+                            >
+                              <span className="flex items-center gap-2">
+                                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                                <span>Panel Admin</span>
+                              </span>
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 font-bold uppercase tracking-wider">
+                                CMS
+                              </span>
+                            </button>
+                          )}
                           <button
                             onClick={() => {
                               setCurrentTab('watchlist');
@@ -385,7 +429,7 @@ export const Navbar: React.FC = () => {
 
                   <button
                     onClick={() => openAuthModal('register')}
-                    className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-brand-600 to-rose-600 hover:from-brand-500 hover:to-rose-500 text-white shadow-lg shadow-brand-600/30 transition-all hover:scale-105 active:scale-95 whitespace-nowrap"
+                    className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-brand-600 to-secondary-500 hover:from-brand-500 hover:to-secondary-600 text-white shadow-lg shadow-brand-600/30 transition-all hover:scale-105 active:scale-95 whitespace-nowrap"
                   >
                     <span>Daftar VIP</span>
                   </button>

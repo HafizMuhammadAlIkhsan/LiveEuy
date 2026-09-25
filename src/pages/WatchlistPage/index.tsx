@@ -82,7 +82,7 @@ export const WatchlistPage: React.FC = () => {
             
             {/* User Profile Info */}
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-brand-600 to-rose-400 p-0.5 shadow-xl">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-brand-600 to-secondary-500 p-0.5 shadow-xl">
                 <div className="w-full h-full bg-surface-900 rounded-[14px] flex items-center justify-center overflow-hidden">
                   <img
                     src={user.avatar}
@@ -167,7 +167,7 @@ export const WatchlistPage: React.FC = () => {
               </button>
               <button
                 onClick={() => openAuthModal('register')}
-                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-rose-600 hover:from-brand-500 hover:to-rose-500 text-white text-xs font-bold shadow-lg shadow-brand-600/30 transition-all hover:scale-105 active:scale-95 whitespace-nowrap flex items-center gap-2"
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-secondary-500 hover:from-brand-500 hover:to-secondary-600 text-white text-xs font-bold shadow-lg shadow-brand-600/30 transition-all hover:scale-105 active:scale-95 whitespace-nowrap flex items-center gap-2"
               >
                 <Cloud className="w-4 h-4" />
                 <span>Aktifkan Cloud VIP</span>
@@ -190,7 +190,7 @@ export const WatchlistPage: React.FC = () => {
               <span>Notifikasi Rilis Episode</span>
             </div>
             <div className="flex items-center gap-2 bg-black/20 p-2.5 rounded-xl border border-white/5">
-              <Crown className="w-4 h-4 text-rose-400 flex-shrink-0" />
+              <Crown className="w-4 h-4 text-secondary-400 flex-shrink-0" />
               <span>Kualitas 4K Ultra HD</span>
             </div>
           </div>

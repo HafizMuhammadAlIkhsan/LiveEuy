@@ -92,7 +92,7 @@ export const AuthModal: React.FC = () => {
       >
         {/* Glow ambient background */}
         <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-brand-500/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-64 h-64 bg-rose-500/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-64 h-64 bg-secondary-500/15 rounded-full blur-3xl pointer-events-none" />
 
         {/* Close Button */}
         <button
@@ -105,7 +105,7 @@ export const AuthModal: React.FC = () => {
         {/* Header Logo */}
         <div className="text-center space-y-2 mb-6">
           <div className="inline-flex items-center gap-2 mb-1">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-600 to-rose-500 flex items-center justify-center shadow-lg shadow-brand-500/30">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-600 to-secondary-500 flex items-center justify-center shadow-lg shadow-brand-500/30">
               <Play className="w-4 h-4 fill-white text-white translate-x-0.5" />
             </div>
             <span className="text-xl font-extrabold tracking-tight text-white">
@@ -146,7 +146,7 @@ export const AuthModal: React.FC = () => {
 
           <button
             onClick={handleDemoVip}
-            className="w-full p-3 rounded-2xl bg-gradient-to-r from-amber-500/20 via-brand-600/20 to-rose-600/20 hover:from-amber-500/30 hover:via-brand-600/30 hover:to-rose-600/30 border border-amber-500/40 hover:border-amber-400 text-white text-xs font-bold flex items-center justify-between transition-all group shadow-md"
+            className="w-full p-3 rounded-2xl bg-gradient-to-r from-amber-500/20 via-brand-600/20 to-secondary-500/20 hover:from-amber-500/30 hover:via-brand-600/30 hover:to-secondary-500/30 border border-amber-500/40 hover:border-amber-400 text-white text-xs font-bold flex items-center justify-between transition-all group shadow-md"
           >
             <div className="flex items-center gap-2.5">
               <div className="w-7 h-7 rounded-lg bg-amber-500 text-surface-950 flex items-center justify-center font-black">

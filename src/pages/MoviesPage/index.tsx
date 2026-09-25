@@ -150,7 +150,7 @@ export const MoviesPage: React.FC = () => {
               
               {/* Badges */}
               <div className="flex flex-wrap items-center gap-2">
-                <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-rose-600 text-white shadow-lg shadow-rose-600/30 flex items-center gap-1.5">
+                <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-brand-600 text-white shadow-lg shadow-brand-600/30 flex items-center gap-1.5">
                   <Film className="w-3.5 h-3.5" />
                   Premiere Bioskop
                 </span>
@@ -240,7 +240,7 @@ export const MoviesPage: React.FC = () => {
               onClick={() => setActiveUniverse(uni.id)}
               className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${
                 activeUniverse === uni.id
-                  ? 'bg-gradient-to-r from-brand-600 to-rose-600 text-white shadow-lg shadow-brand-600/20 scale-105'
+                  ? 'bg-gradient-to-r from-brand-600 to-secondary-500 text-white shadow-lg shadow-brand-600/20 scale-105'
                   : 'bg-surface-800/80 text-slate-300 hover:text-white border border-white/5 hover:border-white/10'
               }`}
             >

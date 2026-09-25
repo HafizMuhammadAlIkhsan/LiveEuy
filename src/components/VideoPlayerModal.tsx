@@ -254,7 +254,7 @@ export const VideoPlayerModal: React.FC = () => {
         <div 
           className="absolute inset-0 opacity-40 blur-3xl pointer-events-none scale-125 transition-opacity duration-1000"
           style={{
-            backgroundImage: `radial-gradient(circle at center, rgba(225, 29, 72, 0.4) 0%, rgba(15, 23, 42, 0.8) 70%, transparent 100%)`
+            backgroundImage: `radial-gradient(circle at center, rgba(67, 63, 254, 0.4) 0%, rgba(15, 23, 42, 0.8) 70%, transparent 100%)`
           }}
         />
       )}
@@ -418,7 +418,7 @@ export const VideoPlayerModal: React.FC = () => {
             />
             {/* Played Progress Bar */}
             <div
-              className="absolute top-0 bottom-0 left-0 bg-gradient-to-r from-brand-600 to-rose-500 rounded-full"
+              className="absolute top-0 bottom-0 left-0 bg-gradient-to-r from-brand-600 to-secondary-500 rounded-full"
               style={{ width: `${(currentTime / (duration || 1)) * 100}%` }}
             />
           </div>

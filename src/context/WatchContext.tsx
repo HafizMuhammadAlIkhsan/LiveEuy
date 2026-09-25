@@ -30,6 +30,11 @@ interface WatchContextType {
   closePlayer: () => void;
   playNextEpisode: () => void;
   allMedia: MediaItem[];
+  // CMS & Admin Management Methods
+  addMedia: (item: MediaItem) => void;
+  updateMedia: (id: string, updated: Partial<MediaItem>) => void;
+  deleteMedia: (id: string) => void;
+  resetMediaToDefault: () => void;
   // Authentication & Guest State
   user: User | null;
   isLoggedIn: boolean;
@@ -57,6 +62,44 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [currentTab, setCurrentTab] = useState<ViewTab>('home');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGenre, setSelectedGenre] = useState('Semua Genre');
+
+  const [mediaList, setMediaList] = useState<MediaItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('liveeuy_custom_media');
+      return saved ? JSON.parse(saved) : MOCK_MEDIA;
+    } catch {
+      return MOCK_MEDIA;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('liveeuy_custom_media', JSON.stringify(mediaList));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [mediaList]);
+
+  const addMedia = (item: MediaItem) => {
+    setMediaList(prev => [item, ...prev]);
+  };
+
+  const updateMedia = (id: string, updated: Partial<MediaItem>) => {
+    setMediaList(prev => prev.map(m => m.id === id ? { ...m, ...updated } : m));
+  };
+
+  const deleteMedia = (id: string) => {
+    setMediaList(prev => prev.filter(m => m.id !== id));
+  };
+
+  const resetMediaToDefault = () => {
+    setMediaList(MOCK_MEDIA);
+    try {
+      localStorage.removeItem('liveeuy_custom_media');
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const [watchlist, setWatchlist] = useState<string[]>(() => {
     try {
@@ -107,6 +150,7 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     email: 'hafiz@liveeuy.id',
     avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
     tier: 'VIP Cinema Ultra',
+    role: 'admin',
     memberSince: 'September 2024',
     watchHours: 48.5,
     devices: 3
@@ -326,7 +370,11 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         openPlayer,
         closePlayer,
         playNextEpisode,
-        allMedia: MOCK_MEDIA,
+        allMedia: mediaList,
+        addMedia,
+        updateMedia,
+        deleteMedia,
+        resetMediaToDefault,
         user,
         isLoggedIn: Boolean(user),
         login,

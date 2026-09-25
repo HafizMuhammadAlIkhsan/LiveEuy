@@ -26,11 +26,11 @@
   background: rgba(15, 17, 26, 0.7);
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(244, 63, 94, 0.4);
+  background: rgba(67, 63, 254, 0.4);
   border-radius: 9999px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(244, 63, 94, 0.8);
+  background: rgba(67, 63, 254, 0.8);
 }
 
 /* Glassmorphism helpers */
@@ -57,7 +57,7 @@
 }
 
 .card-hover-shadow {
-  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.8), 0 0 20px -5px rgba(244, 63, 94, 0.3);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.8), 0 0 20px -5px rgba(67, 63, 254, 0.3);
 }
 
 /* ========================================================

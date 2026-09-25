@@ -65,7 +65,7 @@ export interface WatchProgress {
   episodeId?: string;
 }
 
-export type ViewTab = 'home' | 'movies' | 'tv' | 'trending' | 'watchlist' | 'search';
+export type ViewTab = 'home' | 'movies' | 'tv' | 'trending' | 'watchlist' | 'search' | 'admin';
 
 export interface User {
   id: string;
@@ -73,6 +73,7 @@ export interface User {
   email: string;
   avatar: string;
   tier: 'Free Guest' | 'VIP Standard' | 'VIP Cinema Ultra';
+  role?: 'admin' | 'user';
   memberSince?: string;
   watchHours?: number;
   devices?: number;

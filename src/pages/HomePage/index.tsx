@@ -105,9 +105,9 @@ export const HomePage: React.FC = () => {
       ) : (
         /* GUEST VISITOR PROMOTIONAL BILLBOARD */
         <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 sm:-mt-8 mb-4">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-brand-950 via-surface-900 to-rose-950/40 border border-brand-500/30 shadow-2xl backdrop-blur-md">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-brand-950 via-surface-900 to-secondary-950/40 border border-brand-500/30 shadow-2xl backdrop-blur-md">
             <div className="flex items-center gap-3.5 text-center md:text-left">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-rose-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-brand-500/30">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-secondary-500 flex items-center justify-center flex-shrink-0 shadow-lg shadow-brand-500/30">
                 <Sparkles className="w-6 h-6 text-white" />
               </div>
               <div>
@@ -135,7 +135,7 @@ export const HomePage: React.FC = () => {
               </button>
               <button
                 onClick={() => openAuthModal('register')}
-                className="flex-1 md:flex-initial px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-rose-600 hover:from-brand-500 hover:to-rose-500 text-white text-xs font-bold shadow-lg shadow-brand-600/30 transition-all hover:scale-105 active:scale-95 whitespace-nowrap"
+                className="flex-1 md:flex-initial px-5 py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-secondary-500 hover:from-brand-500 hover:to-secondary-600 text-white text-xs font-bold shadow-lg shadow-brand-600/30 transition-all hover:scale-105 active:scale-95 whitespace-nowrap"
               >
                 Daftar VIP
               </button>
@@ -357,7 +357,7 @@ export const HomePage: React.FC = () => {
 
                 {/* VIP Cinema Ultra */}
                 <div className="relative p-6 rounded-3xl bg-gradient-to-b from-brand-950 via-surface-900 to-surface-900 border-2 border-brand-500 shadow-2xl space-y-4 flex flex-col justify-between">
-                  <span className="absolute -top-3 right-6 px-3 py-0.5 rounded-full text-[10px] font-black bg-gradient-to-r from-brand-500 to-rose-500 text-white shadow">
+                  <span className="absolute -top-3 right-6 px-3 py-0.5 rounded-full text-[10px] font-black bg-gradient-to-r from-brand-500 to-secondary-500 text-white shadow">
                     PALING POPULER
                   </span>
                   <div className="space-y-2">
@@ -373,7 +373,7 @@ export const HomePage: React.FC = () => {
                   </div>
                   <button
                     onClick={() => openAuthModal('register')}
-                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-rose-600 hover:from-brand-500 hover:to-rose-500 text-white text-xs font-bold shadow-lg shadow-brand-600/30 transition-all hover:scale-105 active:scale-95"
+                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-brand-600 to-secondary-500 hover:from-brand-500 hover:to-secondary-600 text-white text-xs font-bold shadow-lg shadow-brand-600/30 transition-all hover:scale-105 active:scale-95"
                   >
                     Mulai Uji Coba VIP
                   </button>

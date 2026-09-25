@@ -11,7 +11,8 @@ import {
   SeriesPage,
   TrendingPage,
   WatchlistPage,
-  SearchPage
+  SearchPage,
+  AdminPage
 } from './pages';
 
 const MainContent: React.FC = () => {
@@ -25,6 +26,8 @@ const MainContent: React.FC = () => {
         {/* Clean Modular Page Routing with Distinct Architectural Structures */}
         {currentTab === 'search' || searchQuery.trim() ? (
           <SearchPage />
+        ) : currentTab === 'admin' ? (
+          <AdminPage />
         ) : currentTab === 'movies' ? (
           <MoviesPage />
         ) : currentTab === 'tv' ? (

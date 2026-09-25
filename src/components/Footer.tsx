@@ -9,7 +9,7 @@ export const Footer: React.FC = () => {
         {/* Top Branding & Info */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-rose-400 flex items-center justify-center shadow-lg shadow-brand-500/20">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-secondary-500 flex items-center justify-center shadow-lg shadow-brand-500/20">
               <Play className="w-4 h-4 text-white fill-white translate-x-0.5" />
             </div>
             <span className="text-lg font-extrabold text-white tracking-tight">
