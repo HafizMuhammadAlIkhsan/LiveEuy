@@ -98,6 +98,7 @@ export const DetailModal: React.FC = () => {
           <img
             src={detailItem.backdropUrl}
             alt={detailItem.title}
+            style={{ viewTransitionName: 'active-media-hero' }}
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-surface-900 via-surface-900/50 to-transparent" />
