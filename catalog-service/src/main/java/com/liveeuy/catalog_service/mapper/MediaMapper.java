@@ -1,82 +1,171 @@
 package com.liveeuy.catalog_service.mapper;
 
+import com.liveeuy.catalog_service.dto.request.EpisodeRequestDTO;
 import com.liveeuy.catalog_service.dto.request.MediaRequestDTO;
-import com.liveeuy.catalog_service.dto.response.MediaItemDTO;
-import com.liveeuy.catalog_service.entity.Media;
+import com.liveeuy.catalog_service.dto.request.MovieRequestDTO;
+import com.liveeuy.catalog_service.dto.request.SeasonRequestDTO;
+import com.liveeuy.catalog_service.dto.request.TvSeriesRequestDTO;
+import com.liveeuy.catalog_service.dto.response.*;
+import com.liveeuy.catalog_service.entity.*;
+import com.liveeuy.catalog_service.entity.enums.VideoQuality;
 import org.springframework.stereotype.Component;
 
-/**
- * Mapper untuk mengubah (convert) antara Entity Media, RequestDTO, dan ResponseDTO.
- * Pemisahan tanggung jawab ini menjaga Controller dan Service tetap bersih (Clean Code).
- */
+import java.util.stream.Collectors;
+
 @Component
 public class MediaMapper {
 
-    /**
-     * Mengubah Entity {@link Media} menjadi {@link MediaItemDTO} untuk dikirim ke Frontend.
-     */
-    public MediaItemDTO toDTO(Media media) {
-        if (media == null) return null;
-        return MediaItemDTO.builder()
-                .id(media.getId())
-                .title(media.getTitle())
-                .originalTitle(media.getOriginalTitle())
-                .type(media.getType())
-                .tagline(media.getTagline())
-                .overview(media.getOverview())
-                .posterUrl(media.getPosterUrl())
-                .backdropUrl(media.getBackdropUrl())
-                .logoUrl(media.getLogoUrl())
-                .releaseYear(media.getReleaseYear())
-                .rating(media.getRating())
-                .matchScore(media.getMatchScore())
-                .ageRating(media.getAgeRating())
-                .duration(media.getDuration())
-                .totalSeasons(media.getTotalSeasons())
-                .genres(media.getGenres())
-                .cast(media.getCastList())  // Perhatikan: castList (entity) -> cast (DTO/Frontend)
-                .director(media.getDirector())
-                .videoUrl(media.getVideoUrl())
-                .trailerUrl(media.getTrailerUrl())
-                .isTrending(media.getIsTrending())
-                .isFeatured(media.getIsFeatured())
-                .topRank(media.getTopRank())
-                .quality(media.getQuality())
-                .audio(media.getAudio())
-                .build();
-    }
-
-    /**
-     * Mengubah {@link MediaRequestDTO} (data dari Frontend) menjadi Entity {@link Media}
-     * untuk disimpan ke database. ID tidak di-set karena akan di-generate otomatis oleh DB.
-     */
     public Media toEntity(MediaRequestDTO dto) {
         if (dto == null) return null;
-        Media media = new Media();
+
+        if (dto instanceof MovieRequestDTO movieDto) {
+            Movie movie = new Movie();
+            mapBaseMediaFields(dto, movie);
+            movie.setDurationSeconds(movieDto.getDurationSeconds());
+            movie.setVideoUrl(movieDto.getVideoUrl());
+            if (movieDto.getQuality() != null) {
+                movie.setQuality(VideoQuality.valueOf(movieDto.getQuality().toUpperCase()));
+            }
+            movie.setAudio(movieDto.getAudio());
+            return movie;
+        } else if (dto instanceof TvSeriesRequestDTO tvDto) {
+            TvSeries tvSeries = new TvSeries();
+            mapBaseMediaFields(tvDto, tvSeries);
+            return tvSeries;
+        }
+        throw new IllegalArgumentException("Tipe DTO tidak dikenali");
+    }
+
+    private void mapBaseMediaFields(MediaRequestDTO dto, Media media) {
         media.setTitle(dto.getTitle());
         media.setOriginalTitle(dto.getOriginalTitle());
-        media.setType(dto.getType());
         media.setTagline(dto.getTagline());
         media.setOverview(dto.getOverview());
         media.setPosterUrl(dto.getPosterUrl());
         media.setBackdropUrl(dto.getBackdropUrl());
-        media.setLogoUrl(dto.getLogoUrl());
         media.setReleaseYear(dto.getReleaseYear());
-        media.setRating(dto.getRating());
-        media.setMatchScore(dto.getMatchScore());
         media.setAgeRating(dto.getAgeRating());
-        media.setDuration(dto.getDuration());
-        media.setTotalSeasons(dto.getTotalSeasons());
-        media.setGenres(dto.getGenres());
-        media.setCastList(dto.getCast()); // Perhatikan: cast (DTO) -> castList (entity)
-        media.setDirector(dto.getDirector());
-        media.setVideoUrl(dto.getVideoUrl());
-        media.setTrailerUrl(dto.getTrailerUrl());
-        media.setIsTrending(dto.getIsTrending());
-        media.setIsFeatured(dto.getIsFeatured());
-        media.setTopRank(dto.getTopRank());
-        media.setQuality(dto.getQuality());
-        media.setAudio(dto.getAudio());
-        return media;
+    }
+
+    public MediaResponseDTO toDTO(Media media) {
+        if (media == null) return null;
+
+        if (media instanceof Movie movie) {
+            MovieResponseDTO dto = new MovieResponseDTO();
+            mapBaseDtoFields(movie, dto);
+            dto.setDurationSeconds(movie.getDurationSeconds());
+            dto.setVideoUrl(movie.getVideoUrl());
+            dto.setQuality(movie.getQuality());
+            dto.setAudio(movie.getAudio());
+            return dto;
+        } else if (media instanceof TvSeries tv) {
+            TvSeriesResponseDTO dto = new TvSeriesResponseDTO();
+            mapBaseDtoFields(tv, dto);
+            if (tv.getSeasons() != null) {
+                dto.setSeasons(tv.getSeasons().stream().map(this::toSeasonDTO).collect(Collectors.toList()));
+            }
+            return dto;
+        }
+        return null;
+    }
+
+    private void mapBaseDtoFields(Media media, MediaResponseDTO dto) {
+        dto.setId(media.getId());
+        dto.setTitle(media.getTitle());
+        dto.setOriginalTitle(media.getOriginalTitle());
+        dto.setType(media.getType());
+        dto.setTagline(media.getTagline());
+        dto.setOverview(media.getOverview());
+        dto.setPosterUrl(media.getPosterUrl());
+        dto.setBackdropUrl(media.getBackdropUrl());
+        dto.setTrailerUrl(media.getTrailerUrl());
+        dto.setReleaseYear(media.getReleaseYear());
+        dto.setAgeRating(media.getAgeRating());
+        
+        if (media.getCastAndCrew() != null) {
+            dto.setCastAndCrew(media.getCastAndCrew().stream()
+                    .map(this::toPersonDTO)
+                    .collect(Collectors.toList()));
+        }
+    }
+
+    private PersonResponseDTO toPersonDTO(MediaCast cast) {
+        return PersonResponseDTO.builder()
+                .id(cast.getPerson().getId())
+                .name(cast.getPerson().getName())
+                .profileImageUrl(cast.getPerson().getProfileImageUrl())
+                .role(cast.getRole())
+                .characterName(cast.getCharacterName())
+                .castOrder(cast.getCastOrder())
+                .build();
+    }
+
+    public SeasonResponseDTO toSeasonDTO(Season season) {
+        return SeasonResponseDTO.builder()
+                .id(season.getId())
+                .seasonNumber(season.getSeasonNumber())
+                .title(season.getTitle())
+                .posterUrl(season.getPosterUrl())
+                .build();
+    }
+
+    public EpisodeResponseDTO toEpisodeDTO(Episode episode) {
+        if (episode == null) return null;
+        return EpisodeResponseDTO.builder()
+                .id(episode.getId())
+                .episodeNumber(episode.getEpisodeNumber())
+                .title(episode.getTitle())
+                .overview(episode.getOverview())
+                .durationSeconds(episode.getDurationSeconds())
+                .thumbnailUrl(episode.getThumbnailUrl())
+                .videoUrl(episode.getVideoUrl())
+                .quality(episode.getQuality())
+                .build();
+    }
+
+    public void updateEntityFromDto(MediaRequestDTO dto, Media existingMedia) {
+        if (dto == null || existingMedia == null) return;
+
+        existingMedia.setOriginalTitle(dto.getOriginalTitle());
+        existingMedia.setTagline(dto.getTagline());
+        existingMedia.setOverview(dto.getOverview());
+        existingMedia.setPosterUrl(dto.getPosterUrl());
+        existingMedia.setBackdropUrl(dto.getBackdropUrl());
+        existingMedia.setReleaseYear(dto.getReleaseYear());
+        existingMedia.setAgeRating(dto.getAgeRating());
+
+        if (dto instanceof MovieRequestDTO movieDto && existingMedia instanceof Movie movie) {
+            movie.setDurationSeconds(movieDto.getDurationSeconds());
+            movie.setVideoUrl(movieDto.getVideoUrl());
+            if (movieDto.getQuality() != null) {
+                movie.setQuality(VideoQuality.valueOf(movieDto.getQuality().toUpperCase()));
+            }
+            movie.setAudio(movieDto.getAudio());
+        }
+        
+    }
+
+    public Season toSeasonEntity(SeasonRequestDTO dto) {
+        if (dto == null) return null;
+        Season season = new Season();
+        season.setSeasonNumber(dto.getSeasonNumber());
+        season.setTitle(dto.getTitle());
+        season.setPosterUrl(dto.getPosterUrl());
+        return season;
+    }
+
+    public Episode toEpisodeEntity(EpisodeRequestDTO dto) {
+        if (dto == null) return null;
+        Episode episode = new Episode();
+        episode.setEpisodeNumber(dto.getEpisodeNumber());
+        episode.setTitle(dto.getTitle());
+        episode.setOverview(dto.getOverview());
+        episode.setDurationSeconds(dto.getDurationSeconds());
+        episode.setThumbnailUrl(dto.getThumbnailUrl());
+        episode.setVideoUrl(dto.getVideoUrl());
+        if (dto.getQuality() != null) {
+            episode.setQuality(VideoQuality.valueOf(dto.getQuality().toUpperCase()));
+        }
+        return episode;
     }
 }

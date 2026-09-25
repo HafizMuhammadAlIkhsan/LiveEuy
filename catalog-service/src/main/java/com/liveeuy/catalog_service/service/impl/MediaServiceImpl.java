@@ -1,105 +1,149 @@
 package com.liveeuy.catalog_service.service.impl;
 
 import com.liveeuy.catalog_service.dto.request.MediaRequestDTO;
-import com.liveeuy.catalog_service.dto.response.MediaItemDTO;
+import com.liveeuy.catalog_service.dto.request.MovieRequestDTO;
+import com.liveeuy.catalog_service.dto.request.TvSeriesRequestDTO;
+import com.liveeuy.catalog_service.dto.response.MediaResponseDTO;
 import com.liveeuy.catalog_service.entity.Media;
+import com.liveeuy.catalog_service.entity.MediaCast;
+import com.liveeuy.catalog_service.entity.Movie;
+import com.liveeuy.catalog_service.entity.Person;
+import com.liveeuy.catalog_service.entity.TvSeries;
 import com.liveeuy.catalog_service.exception.ResourceNotFoundException;
 import com.liveeuy.catalog_service.mapper.MediaMapper;
 import com.liveeuy.catalog_service.repository.MediaRepository;
+import com.liveeuy.catalog_service.repository.PersonRepository;
 import com.liveeuy.catalog_service.service.MediaService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.liveeuy.catalog_service.specification.MediaSpecification;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * Implementasi dari {@link MediaService}.
- * Semua logika bisnis berada di sini, bukan di Controller.
- */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class MediaServiceImpl implements MediaService {
 
     private final MediaRepository mediaRepository;
+    private final PersonRepository personRepository;
     private final MediaMapper mediaMapper;
 
+    private static final String SORT_BY_RATING = "rating";
+    private static final String SORT_BY_NEWEST = "newest";
+
     @Override
-    public List<MediaItemDTO> getAllMedia(String type, String genre, String search, String sortBy) {
-        List<Media> mediaList;
-
-        if (search != null && !search.isBlank()) {
-            mediaList = mediaRepository.findByTitleContainingIgnoreCase(search);
-        } else if (type != null && !type.isBlank() && !type.equalsIgnoreCase("all")) {
-            mediaList = mediaRepository.findByTypeIgnoreCase(type);
+    public Page<MediaResponseDTO> getAllMedia(String type, String genre, String search, String sortBy, int page, int size) {
+        Sort sort = Sort.unsorted();
+        if (SORT_BY_RATING.equalsIgnoreCase(sortBy)) {
+            sort = Sort.by(Sort.Direction.DESC, "rating");
+        } else if (SORT_BY_NEWEST.equalsIgnoreCase(sortBy)) {
+            sort = Sort.by(Sort.Direction.DESC, "releaseYear");
         } else {
-            mediaList = mediaRepository.findAll();
+            sort = Sort.by(Sort.Direction.ASC, "title");
         }
+        Pageable pageable = PageRequest.of(page, size, sort);
 
-        if (genre != null && !genre.isBlank() && !genre.equalsIgnoreCase("Semua Genre")) {
-            final String finalGenre = genre;
-            mediaList = mediaList.stream()
-                    .filter(m -> m.getGenres() != null && m.getGenres().contains(finalGenre))
-                    .collect(Collectors.toList());
-        }
+        Specification<Media> spec = MediaSpecification.buildFilter(type, genre, search);
 
-        if ("rating".equalsIgnoreCase(sortBy)) {
-            mediaList.sort(Comparator.comparingDouble((Media m) -> m.getRating() != null ? m.getRating() : 0.0).reversed());
-        } else if ("newest".equalsIgnoreCase(sortBy)) {
-            mediaList.sort(Comparator.comparingInt((Media m) -> m.getReleaseYear() != null ? m.getReleaseYear() : 0).reversed());
-        } else {
-            mediaList.sort(Comparator.comparingInt(m -> m.getTopRank() != null ? m.getTopRank() : Integer.MAX_VALUE));
-        }
+        Page<Media> mediaPage = mediaRepository.findAll(spec, pageable);
 
-        return mediaList.stream()
-                .map(mediaMapper::toDTO)
-                .collect(Collectors.toList());
+        return mediaPage.map(mediaMapper::toDTO);
     }
 
     @Override
-    public MediaItemDTO getMediaById(String id) {
+    public MediaResponseDTO getMediaById(String id) {
         Media media = mediaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Media dengan ID '" + id + "' tidak ditemukan."));
         return mediaMapper.toDTO(media);
     }
 
     @Override
-    public MediaItemDTO getFeaturedMedia() {
-        return mediaRepository.findByIsFeaturedTrue().stream()
-                .findFirst()
-                .map(mediaMapper::toDTO)
-                .orElse(null);
-    }
-
-    @Override
-    public List<MediaItemDTO> getTrendingMedia() {
-        return mediaRepository.findByIsTrendingTrue().stream()
+    public List<MediaResponseDTO> getMediaByIds(List<String> ids) {
+        if (ids == null || ids.isEmpty()) return List.of();
+        
+        return mediaRepository.findAllByIdIn(ids).stream()
                 .map(mediaMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
-    @Override
+@Override
     @Transactional
-    public MediaItemDTO createMedia(MediaRequestDTO requestDTO) {
+    public MediaResponseDTO createMedia(MediaRequestDTO requestDTO) {
         Media media = mediaMapper.toEntity(requestDTO);
+
+        if (requestDTO.getCastAndCrew() != null) {
+            requestDTO.getCastAndCrew().forEach(castDto -> {
+
+                Person person = personRepository.findByNameIgnoreCase(castDto.getPersonName())
+                        .orElseGet(() -> {
+                            Person newPerson = new Person();
+                            newPerson.setName(castDto.getPersonName());
+                            return personRepository.save(newPerson);
+                        });
+
+                MediaCast mediaCast = new MediaCast();
+                mediaCast.setMedia(media);
+                mediaCast.setPerson(person);
+                mediaCast.setCharacterName(castDto.getCharacterName());
+                mediaCast.setRole(castDto.getRole());
+                mediaCast.setCastOrder(castDto.getCastOrder());
+
+                media.getCastAndCrew().add(mediaCast);
+            });
+        }
+
         Media savedMedia = mediaRepository.save(media);
+        
         return mediaMapper.toDTO(savedMedia);
     }
 
     @Override
     @Transactional
-    public MediaItemDTO updateMedia(String id, MediaRequestDTO requestDTO) {
+    public MediaResponseDTO updateMedia(String id, MediaRequestDTO requestDTO) {
         Media existingMedia = mediaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Media dengan ID '" + id + "' tidak ditemukan."));
 
-        Media updatedData = mediaMapper.toEntity(requestDTO);
-        updatedData.setId(existingMedia.getId());
+        if ((existingMedia instanceof Movie && !(requestDTO instanceof MovieRequestDTO)) ||
+            (existingMedia instanceof TvSeries && !(requestDTO instanceof TvSeriesRequestDTO))) {
+            throw new IllegalArgumentException("Konflik Data: Tipe media pada database tidak sesuai dengan payload request.");
+        }
 
-        Media savedMedia = mediaRepository.save(updatedData);
-        return mediaMapper.toDTO(savedMedia);
+        mediaMapper.updateEntityFromDto(requestDTO, existingMedia);
+
+        if (requestDTO.getCastAndCrew() != null) {
+
+            existingMedia.getCastAndCrew().clear();
+
+            requestDTO.getCastAndCrew().forEach(castDto -> {
+                Person person = personRepository.findByNameIgnoreCase(castDto.getPersonName())
+                        .orElseGet(() -> {
+                            Person newPerson = new Person();
+                            newPerson.setName(castDto.getPersonName());
+                            return personRepository.save(newPerson);
+                        });
+
+                MediaCast mediaCast = new MediaCast();
+                mediaCast.setMedia(existingMedia);
+                mediaCast.setPerson(person);
+                mediaCast.setCharacterName(castDto.getCharacterName());
+                mediaCast.setRole(castDto.getRole());
+                mediaCast.setCastOrder(castDto.getCastOrder());
+
+                existingMedia.getCastAndCrew().add(mediaCast);
+            });
+        }
+
+        return mediaMapper.toDTO(existingMedia);
     }
 
     @Override

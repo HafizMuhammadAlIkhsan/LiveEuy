@@ -1,50 +1,22 @@
 package com.liveeuy.catalog_service.service;
 
 import com.liveeuy.catalog_service.dto.request.MediaRequestDTO;
-import com.liveeuy.catalog_service.dto.response.MediaItemDTO;
+import com.liveeuy.catalog_service.dto.response.MediaResponseDTO;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 
-/**
- * Interface Service untuk katalog media.
- * Mendefinisikan kontrak (contract) semua operasi bisnis yang tersedia.
- * Controller hanya berinteraksi dengan interface ini, bukan implementasinya (DIP principle).
- */
 public interface MediaService {
 
-    /**
-     * Mengambil semua media, dengan filter opsional berdasarkan tipe, genre, dan pencarian judul.
-     */
-    List<MediaItemDTO> getAllMedia(String type, String genre, String search, String sortBy);
+    Page<MediaResponseDTO> getAllMedia(String type, String genre, String search, String sortBy, int page, int size);
 
-    /**
-     * Mengambil satu media berdasarkan ID-nya.
-     */
-    MediaItemDTO getMediaById(String id);
+    MediaResponseDTO getMediaById(String id);
 
-    /**
-     * Mengambil satu media yang ditandai sebagai isFeatured=true.
-     * Digunakan sebagai health check endpoint oleh Frontend.
-     */
-    MediaItemDTO getFeaturedMedia();
+    List<MediaResponseDTO> getMediaByIds(List<String> ids);
 
-    /**
-     * Mengambil daftar media yang sedang trending.
-     */
-    List<MediaItemDTO> getTrendingMedia();
+    MediaResponseDTO createMedia(MediaRequestDTO requestDTO);
 
-    /**
-     * Menyimpan satu media baru ke database.
-     */
-    MediaItemDTO createMedia(MediaRequestDTO requestDTO);
+    MediaResponseDTO updateMedia(String id, MediaRequestDTO requestDTO);
 
-    /**
-     * Memperbarui data media yang sudah ada berdasarkan ID.
-     */
-    MediaItemDTO updateMedia(String id, MediaRequestDTO requestDTO);
-
-    /**
-     * Menghapus data media berdasarkan ID.
-     */
     void deleteMedia(String id);
 }
