@@ -7,7 +7,6 @@ import '../../core/theme/app_theme.dart';
 import '../../models/movie_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/media_provider.dart';
-import '../../shared/widgets/streamflix_logo.dart';
 import '../player/video_player_screen.dart';
 
 class ContentDetailScreen extends ConsumerStatefulWidget {
@@ -153,22 +152,14 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
               onPressed: () => Navigator.pop(context),
             ),
             titleSpacing: 0,
-            title: Row(
-              children: [
-                const StreamFlixLogo(fontSize: 18, showText: false, height: 26),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    'Detail Tayangan',
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.outfit(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.onSurface,
-                    ),
-                  ),
-                ),
-              ],
+            title: Text(
+              'Detail Tayangan',
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.outfit(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: AppColors.onSurface,
+              ),
             ),
             actions: [
               IconButton(
