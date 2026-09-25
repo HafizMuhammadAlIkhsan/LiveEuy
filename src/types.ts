@@ -122,7 +122,46 @@ export interface AdminAuditLog {
   actor: string;
   actorEmail: string;
   action: string;
-  category: 'media' | 'banner' | 'user' | 'tracking' | 'system';
+  category: 'media' | 'banner' | 'user' | 'tracking' | 'system' | 'ads';
   detail: string;
   ipAddress?: string;
+}
+
+export type AdPlacementLayer = 'billboard_feed' | 'video_preroll' | 'hero_spotlight' | 'top_marquee';
+
+export interface AdCampaign {
+  id: string;
+  title: string;
+  partnerName: string;
+  partnerLogo?: string;
+  layer: AdPlacementLayer;
+  bannerUrl: string;
+  videoUrl?: string;
+  targetUrl: string;
+  ctaText: string;
+  headline: string;
+  description: string;
+  badge: string;
+  category: 'Tech & Gadget' | 'Food & Beverage' | 'Fintech & Banking' | 'Entertainment & Gaming' | 'Lifestyle' | 'Telco';
+  budget: number;
+  impressions: number;
+  clicks: number;
+  startDate: string;
+  endDate: string;
+  isActive: boolean;
+  skipAfterSeconds?: number;
+}
+
+export interface AdInquiry {
+  id: string;
+  companyName: string;
+  contactName: string;
+  email: string;
+  phone: string;
+  budgetRange: string;
+  interestedLayers: AdPlacementLayer[];
+  campaignObjective: string;
+  submittedAt: string;
+  status: 'new' | 'contacted' | 'approved' | 'rejected';
+  notes?: string;
 }

@@ -5,6 +5,8 @@ import { DetailModal } from './components/DetailModal';
 import { VideoPlayerModal } from './components/VideoPlayerModal';
 import { AuthModal } from './components/AuthModal';
 import { MobileSyncModal } from './components/MobileSyncModal';
+import { DeviceSecurityModal } from './components/DeviceSecurityModal';
+import { PartnershipModal } from './components/PartnershipModal';
 import { Footer } from './components/Footer';
 import {
   HomePage,
@@ -18,11 +20,12 @@ import {
 
 const MainContent: React.FC = () => {
   const { currentTab, searchQuery } = useWatch();
+  const isAdminView = currentTab === 'admin' && !searchQuery.trim();
 
   return (
-    <div className="min-h-screen bg-[#08090d] flex flex-col justify-between pb-16 md:pb-0">
+    <div className={`min-h-screen bg-[#08090d] flex flex-col justify-between ${isAdminView ? 'pb-0' : 'pb-16 md:pb-0'}`}>
       <div>
-        <Navbar />
+        {!isAdminView && <Navbar />}
 
         {/* Clean Modular Page Routing with Distinct Architectural Structures */}
         {currentTab === 'search' || searchQuery.trim() ? (
@@ -42,13 +45,15 @@ const MainContent: React.FC = () => {
         )}
       </div>
 
-      <Footer />
+      {!isAdminView && <Footer />}
 
       {/* Global Modals */}
       <DetailModal />
       <VideoPlayerModal />
       <AuthModal />
       <MobileSyncModal />
+      <DeviceSecurityModal />
+      <PartnershipModal />
     </div>
   );
 };

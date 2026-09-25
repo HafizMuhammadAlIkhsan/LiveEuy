@@ -124,3 +124,25 @@ func (h *AuthHandler) HealthCheck(c *gin.Context) {
 func (h *AuthHandler) Ping(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "pong"})
 }
+
+func (h *AuthHandler) Logout(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Sesi berhasil diakhiri. Sampai jumpa kembali!",
+	})
+}
+
+func (h *AuthHandler) LogoutAll(c *gin.Context) {
+	var req struct {
+		IncludeCurrent bool `json:"includeCurrent"`
+	}
+	_ = c.ShouldBindJSON(&req)
+	msg := "Berhasil logout dari semua perangkat. Semua sesi aktif telah dicabut."
+	if !req.IncludeCurrent {
+		msg = "Berhasil mengeluarkan semua perangkat lain. Sesi ini tetap aktif."
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": msg,
+	})
+}

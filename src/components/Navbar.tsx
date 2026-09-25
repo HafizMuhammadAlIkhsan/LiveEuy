@@ -20,7 +20,9 @@ import {
   BarChart3,
   Globe,
   Radio,
-  Smartphone
+  Smartphone,
+  Laptop,
+  ShieldAlert
 } from 'lucide-react';
 import { useWatch } from '../context/WatchContext';
 import { ViewTab } from '../types';
@@ -39,6 +41,8 @@ export const Navbar: React.FC = () => {
     logout,
     openAuthModal,
     openMobileSync,
+    openDeviceSecurityModal,
+    visitorSessions,
     login,
     broadcastAnnouncement
   } = useWatch();
@@ -514,6 +518,23 @@ export const Navbar: React.FC = () => {
                             <span>Koleksi & Riwayat Saya</span>
                           </button>
 
+                          {/* Kelola Perangkat & Keamanan */}
+                          <button
+                            onClick={() => {
+                              openDeviceSecurityModal();
+                              setShowProfileMenu(false);
+                            }}
+                            className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 transition-colors min-h-[40px]"
+                          >
+                            <span className="flex items-center gap-2">
+                              <Laptop className="w-4 h-4 text-cyan-400" />
+                              <span>Perangkat & Keamanan</span>
+                            </span>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-mono font-bold">
+                              {user.devices || visitorSessions.length || 1} Device
+                            </span>
+                          </button>
+
                           {/* Quick Role Switcher for Pair-Testing */}
                           {isAdminUser ? (
                             <button
@@ -572,7 +593,25 @@ export const Navbar: React.FC = () => {
                             className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors min-h-[40px]"
                           >
                             <LogOut className="w-4 h-4" />
-                            <span>Keluar</span>
+                            <span>Keluar dari Sesi Ini</span>
+                          </button>
+
+                          {/* Logout Semua Device */}
+                          <button
+                            onClick={() => {
+                              openDeviceSecurityModal();
+                              setShowProfileMenu(false);
+                            }}
+                            className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-rose-400/80 hover:text-rose-300 hover:bg-rose-500/10 transition-colors text-xs font-semibold"
+                            title="Keluar dari semua perangkat"
+                          >
+                            <span className="flex items-center gap-2">
+                              <ShieldAlert className="w-4 h-4 text-rose-400" />
+                              <span>Logout Semua Device</span>
+                            </span>
+                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold uppercase">
+                              Semua
+                            </span>
                           </button>
                         </div>
                       </div>

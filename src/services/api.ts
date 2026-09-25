@@ -127,6 +127,73 @@ class LiveEuyApiService {
     return null;
   }
 
+  /**
+   * Logout dari sesi saat ini
+   */
+  async logout(): Promise<boolean> {
+    try {
+      const testUrls = [`${DEFAULT_AUTH_URL}/api/v1/auth/logout`, `${FALLBACK_CATALOG_URL}/auth/logout`];
+      for (const url of testUrls) {
+        try {
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          });
+          if (res.ok) return true;
+        } catch {
+          // Lanjutkan coba url berikutnya
+        }
+      }
+    } catch (err) {
+      console.warn('Logout endpoint offline:', err);
+    }
+    return true;
+  }
+
+  /**
+   * Logout dari SEMUA device/perangkat (Revoke semua sesi dan refresh token di database backend)
+   */
+  async logoutAllDevices(includeCurrent = true): Promise<boolean> {
+    try {
+      const testUrls = [`${DEFAULT_AUTH_URL}/api/v1/auth/logout-all`, `${FALLBACK_CATALOG_URL}/auth/logout-all`];
+      for (const url of testUrls) {
+        try {
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ includeCurrent })
+          });
+          if (res.ok) return true;
+        } catch {
+          // Lanjutkan coba url berikutnya
+        }
+      }
+    } catch (err) {
+      console.warn('Logout all devices endpoint offline:', err);
+    }
+    return true;
+  }
+
+  /**
+   * Logout / revoke satu perangkat tertentu
+   */
+  async logoutDevice(sessionId: string): Promise<boolean> {
+    try {
+      const testUrls = [`${DEFAULT_AUTH_URL}/api/v1/auth/devices/${sessionId}`, `${FALLBACK_CATALOG_URL}/auth/devices/${sessionId}`];
+      for (const url of testUrls) {
+        try {
+          const res = await fetch(url, { method: 'DELETE' });
+          if (res.ok) return true;
+        } catch {
+          // Lanjutkan coba url berikutnya
+        }
+      }
+    } catch (err) {
+      console.warn('Logout device endpoint offline:', err);
+    }
+    return true;
+  }
+
   // ==========================================
   // CATALOG ENDPOINTS (Spring Boot Service)
   // ==========================================

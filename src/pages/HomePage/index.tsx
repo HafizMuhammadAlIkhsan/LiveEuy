@@ -4,6 +4,7 @@ import { MediaItem } from '../../types';
 import { HeroBanner } from '../../components/HeroBanner';
 import { MediaRow } from '../../components/MediaRow';
 import { TopTenRow } from '../../components/TopTenRow';
+import { BillboardAd } from '../../components/BillboardAd';
 import { 
   Play, 
   Sparkles, 
@@ -284,6 +285,9 @@ export const HomePage: React.FC = () => {
           items={trendingItems}
           onViewAll={() => setCurrentTab('trending')}
         />
+
+        {/* Layer 1: In-Feed Native Cinema Billboard Ad */}
+        <BillboardAd placementIndex={0} />
 
         {/* Action & Sci-Fi Row */}
         <MediaRow

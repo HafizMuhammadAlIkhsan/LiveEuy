@@ -27,6 +27,8 @@ func NewRouter(cfg *config.Config, userRepo repository.UserRepository) *ginpkg.E
 	{
 		api.GET("/google/login", oauthHandler.GoogleLogin)
 		api.GET("/google/callback", oauthHandler.GoogleCallback)
+		api.POST("/logout", authHandler.Logout)
+		api.POST("/logout-all", authHandler.LogoutAll)
 	}
 
 	auth := r.Group("/api")

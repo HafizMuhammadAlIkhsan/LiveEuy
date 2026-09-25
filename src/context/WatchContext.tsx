@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { MediaItem, Episode, WatchProgress, ViewTab, User, VisitorSession, BroadcastAnnouncement, AdminAuditLog } from '../types';
-import { MOCK_MEDIA } from '../data/mockData';
+import { MediaItem, Episode, WatchProgress, ViewTab, User, VisitorSession, BroadcastAnnouncement, AdminAuditLog, AdCampaign, AdInquiry } from '../types';
+import { MOCK_MEDIA, MOCK_ADS, MOCK_AD_INQUIRIES } from '../data/mockData';
 import { apiService } from '../services/api';
-import { trackCurrentVisitor, getStoredSessions, resetVisitorTracking } from '../utils/cookieTracker';
+import { trackCurrentVisitor, getStoredSessions, resetVisitorTracking, saveStoredSessions, deleteCookie, TRACKER_COOKIE_NAME } from '../utils/cookieTracker';
 
 interface WatchContextType {
   currentTab: ViewTab;
@@ -49,6 +49,20 @@ interface WatchContextType {
   auditLogs: AdminAuditLog[];
   addAuditLog: (action: string, category: AdminAuditLog['category'], detail: string) => void;
   clearAuditLogs: () => void;
+  // Advertising & Sponsorship System (Multi-Layer Monetization)
+  ads: AdCampaign[];
+  addAdCampaign: (campaign: AdCampaign) => void;
+  updateAdCampaign: (id: string, updated: Partial<AdCampaign>) => void;
+  deleteAdCampaign: (id: string) => void;
+  toggleAdCampaign: (id: string) => void;
+  recordAdImpression: (id: string) => void;
+  recordAdClick: (id: string) => void;
+  adInquiries: AdInquiry[];
+  submitAdInquiry: (inquiry: Omit<AdInquiry, 'id' | 'submittedAt' | 'status'>) => void;
+  updateAdInquiryStatus: (id: string, status: AdInquiry['status'], notes?: string) => void;
+  isPartnershipModalOpen: boolean;
+  openPartnershipModal: () => void;
+  closePartnershipModal: () => void;
   // Authentication & Guest State
   user: User | null;
   isLoggedIn: boolean;
@@ -63,6 +77,12 @@ interface WatchContextType {
   mobileSyncItem: MediaItem | null;
   openMobileSync: (target?: MediaItem) => void;
   closeMobileSync: () => void;
+  // Device Security & Logout All Devices
+  isDeviceSecurityOpen: boolean;
+  openDeviceSecurityModal: () => void;
+  closeDeviceSecurityModal: () => void;
+  logoutDevice: (sessionId: string) => Promise<{ success: boolean; message: string }>;
+  logoutAllDevices: (includeCurrent?: boolean) => Promise<{ success: boolean; message: string; count?: number }>;
   // Visitor Cookie & Device Tracking
   visitorSessions: VisitorSession[];
   currentSession: VisitorSession | null;
@@ -357,6 +377,120 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     addAuditLog('Reset Katalog ke Standar', 'media', 'Mengembalikan seluruh katalog film ke data bawaan awal.');
   };
 
+  // ==========================================
+  // ADVERTISING & SPONSORSHIP SYSTEM (Multi-Layer Monetization)
+  // ==========================================
+  const [ads, setAds] = useState<AdCampaign[]>(() => {
+    try {
+      const saved = localStorage.getItem('liveeuy_ads');
+      return saved ? JSON.parse(saved) : MOCK_ADS;
+    } catch {
+      return MOCK_ADS;
+    }
+  });
+
+  const [adInquiries, setAdInquiries] = useState<AdInquiry[]>(() => {
+    try {
+      const saved = localStorage.getItem('liveeuy_ad_inquiries');
+      return saved ? JSON.parse(saved) : MOCK_AD_INQUIRIES;
+    } catch {
+      return MOCK_AD_INQUIRIES;
+    }
+  });
+
+  const [isPartnershipModalOpen, setIsPartnershipModalOpen] = useState(false);
+  const openPartnershipModal = () => setIsPartnershipModalOpen(true);
+  const closePartnershipModal = () => setIsPartnershipModalOpen(false);
+
+  const saveAdsToStorage = (newAds: AdCampaign[]) => {
+    setAds(newAds);
+    try {
+      localStorage.setItem('liveeuy_ads', JSON.stringify(newAds));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const addAdCampaign = (campaign: AdCampaign) => {
+    const next = [campaign, ...ads];
+    saveAdsToStorage(next);
+    addAuditLog('Tambah Kampanye Iklan Baru', 'ads', `Mitra: "${campaign.partnerName}" (${campaign.title}) pada layer ${campaign.layer}.`);
+  };
+
+  const updateAdCampaign = (id: string, updated: Partial<AdCampaign>) => {
+    const next = ads.map(a => a.id === id ? { ...a, ...updated } : a);
+    saveAdsToStorage(next);
+    addAuditLog('Ubah Kampanye Iklan', 'ads', `Memperbarui kampanye iklan ID: "${id}".`);
+  };
+
+  const deleteAdCampaign = (id: string) => {
+    const target = ads.find(a => a.id === id);
+    const next = ads.filter(a => a.id !== id);
+    saveAdsToStorage(next);
+    addAuditLog('Hapus Kampanye Iklan', 'ads', `Menghapus iklan mitra: "${target?.partnerName || id}".`);
+  };
+
+  const toggleAdCampaign = (id: string) => {
+    const next = ads.map(a => a.id === id ? { ...a, isActive: !a.isActive } : a);
+    saveAdsToStorage(next);
+    const target = next.find(a => a.id === id);
+    addAuditLog('Ubah Status Iklan', 'ads', `Iklan "${target?.partnerName}" diubah menjadi ${target?.isActive ? 'Aktif' : 'Nonaktif'}.`);
+  };
+
+  const recordAdImpression = (id: string) => {
+    setAds(prev => {
+      const next = prev.map(a => a.id === id ? { ...a, impressions: a.impressions + 1 } : a);
+      try {
+        localStorage.setItem('liveeuy_ads', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
+
+  const recordAdClick = (id: string) => {
+    setAds(prev => {
+      const next = prev.map(a => a.id === id ? { ...a, clicks: a.clicks + 1 } : a);
+      try {
+        localStorage.setItem('liveeuy_ads', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
+
+  const submitAdInquiry = (inquiry: Omit<AdInquiry, 'id' | 'submittedAt' | 'status'>) => {
+    const newInquiry: AdInquiry = {
+      ...inquiry,
+      id: `inq-${Date.now()}`,
+      submittedAt: new Date().toLocaleString('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }),
+      status: 'new'
+    };
+    const next = [newInquiry, ...adInquiries];
+    setAdInquiries(next);
+    try {
+      localStorage.setItem('liveeuy_ad_inquiries', JSON.stringify(next));
+    } catch (e) {
+      console.error(e);
+    }
+    addAuditLog('Pengajuan Iklan Baru Masuk', 'ads', `Pengajuan kemitraan dari "${inquiry.companyName}" (${inquiry.contactName}).`);
+  };
+
+  const updateAdInquiryStatus = (id: string, status: AdInquiry['status'], notes?: string) => {
+    const next = adInquiries.map(inq => inq.id === id ? { ...inq, status, ...(notes !== undefined ? { notes } : {}) } : inq);
+    setAdInquiries(next);
+    try {
+      localStorage.setItem('liveeuy_ad_inquiries', JSON.stringify(next));
+    } catch (e) {
+      console.error(e);
+    }
+    addAuditLog('Status Pengajuan Iklan Diperbarui', 'ads', `Status pengajuan ID "${id}" diubah menjadi: ${status}.`);
+  };
+
   const [watchlist, setWatchlist] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('liveeuy_watchlist');
@@ -620,6 +754,72 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [visitorSessions, setVisitorSessions] = useState<VisitorSession[]>(() => getStoredSessions());
   const [currentSession, setCurrentSession] = useState<VisitorSession | null>(null);
 
+  // Device Security & Logout All Devices
+  const [isDeviceSecurityOpen, setIsDeviceSecurityOpen] = useState(false);
+  const openDeviceSecurityModal = () => setIsDeviceSecurityOpen(true);
+  const closeDeviceSecurityModal = () => setIsDeviceSecurityOpen(false);
+
+  const logoutDevice = async (sessionId: string): Promise<{ success: boolean; message: string }> => {
+    if (currentSession?.sessionId === sessionId) {
+      logout();
+      return { success: true, message: 'Sesi perangkat ini telah berhasil diakhiri.' };
+    }
+    const currentList = getStoredSessions();
+    const updated = currentList.filter(s => s.sessionId !== sessionId);
+    saveStoredSessions(updated);
+    setVisitorSessions(updated);
+    if (user) {
+      const nextDevices = Math.max(1, (user.devices || 1) - 1);
+      const updatedUser = { ...user, devices: nextDevices };
+      setUser(updatedUser);
+      try {
+        localStorage.setItem('liveeuy_user', JSON.stringify(updatedUser));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    apiService.logoutDevice(sessionId).catch(() => {});
+    return { success: true, message: 'Perangkat berhasil dikeluarkan dari akun Anda.' };
+  };
+
+  const logoutAllDevices = async (includeCurrent = true): Promise<{ success: boolean; message: string; count?: number }> => {
+    const all = getStoredSessions();
+    const totalCount = all.length;
+    apiService.logoutAllDevices(includeCurrent).catch(() => {});
+
+    if (includeCurrent) {
+      deleteCookie(TRACKER_COOKIE_NAME);
+      saveStoredSessions([]);
+      setVisitorSessions([]);
+      setCurrentSession(null);
+      logout();
+      setIsDeviceSecurityOpen(false);
+      return { 
+        success: true, 
+        message: `Berhasil logout dari semua ${totalCount} perangkat. Seluruh sesi telah dicabut.`,
+        count: totalCount
+      };
+    } else {
+      const remaining = currentSession ? [{ ...currentSession, isCurrentDevice: true }] : [];
+      saveStoredSessions(remaining);
+      setVisitorSessions(remaining);
+      if (user) {
+        const updatedUser = { ...user, devices: 1 };
+        setUser(updatedUser);
+        try {
+          localStorage.setItem('liveeuy_user', JSON.stringify(updatedUser));
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      return { 
+        success: true, 
+        message: `Berhasil mengeluarkan ${Math.max(1, totalCount - 1)} perangkat lain. Sesi perangkat ini tetap aktif.`,
+        count: totalCount - 1
+      };
+    }
+  };
+
   useEffect(() => {
     trackCurrentVisitor(currentTab, user?.email).then(sess => {
       setCurrentSession(sess);
@@ -680,6 +880,20 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         auditLogs,
         addAuditLog,
         clearAuditLogs,
+        // Advertising & Sponsorship System
+        ads,
+        addAdCampaign,
+        updateAdCampaign,
+        deleteAdCampaign,
+        toggleAdCampaign,
+        recordAdImpression,
+        recordAdClick,
+        adInquiries,
+        submitAdInquiry,
+        updateAdInquiryStatus,
+        isPartnershipModalOpen,
+        openPartnershipModal,
+        closePartnershipModal,
         user,
         isLoggedIn: Boolean(user),
         login,
@@ -692,6 +906,11 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         mobileSyncItem,
         openMobileSync,
         closeMobileSync,
+        isDeviceSecurityOpen,
+        openDeviceSecurityModal,
+        closeDeviceSecurityModal,
+        logoutDevice,
+        logoutAllDevices,
         visitorSessions,
         currentSession,
         refreshTracking,
