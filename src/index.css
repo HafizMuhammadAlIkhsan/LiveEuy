@@ -103,11 +103,80 @@
   overflow: hidden;
 }
 
+/* ========================================================
+   HERO BANNER DIRECTIONAL & CINEMATIC TRANSITIONS
+   ======================================================== */
+@keyframes hero-kenburns {
+  0% {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes hero-content-next {
+  0% {
+    opacity: 0;
+    transform: translate3d(24px, 12px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes hero-content-prev {
+  0% {
+    opacity: 0;
+    transform: translate3d(-24px, 12px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes hero-progress-fill {
+  0% {
+    width: 0%;
+  }
+  100% {
+    width: 100%;
+  }
+}
+
+.animate-hero-bg {
+  animation: hero-kenburns 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-hero-next {
+  animation: hero-content-next 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-hero-prev {
+  animation: hero-content-prev 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-hero-progress {
+  animation: hero-progress-fill 14s linear forwards;
+}
+
 /* Accessibility: respect user preferences for reduced motion */
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*),
   ::view-transition-old(*),
-  ::view-transition-new(*) {
+  ::view-transition-new(*),
+  .animate-hero-bg,
+  .animate-hero-next,
+  .animate-hero-prev,
+  .animate-hero-progress {
     animation: none !important;
   }
 }
+

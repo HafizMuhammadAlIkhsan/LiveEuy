@@ -20,6 +20,8 @@ interface HeroBannerProps {
 export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
   const { openPlayer, openDetail, toggleWatchlist, isInWatchlist } = useWatch();
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [direction, setDirection] = useState<'next' | 'prev'>('next');
+  const [isPaused, setIsPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -27,14 +29,35 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
   const currentMedia = featuredItems[currentIndex] || featuredItems[0];
   const inWatchlist = currentMedia ? isInWatchlist(currentMedia.id) : false;
 
-  // Auto rotate banner every 14 seconds if user doesn't interact
+  const changeSlide = (newIndex: number, dir: 'next' | 'prev' = 'next') => {
+    setDirection(dir);
+    // Modern View Transitions API support with directional navigation types
+    if (typeof document !== 'undefined' && 'startViewTransition' in document) {
+      try {
+        // @ts-ignore
+        document.startViewTransition({
+          update: () => {
+            setCurrentIndex(newIndex);
+          },
+          types: [dir === 'next' ? 'forward' : 'backward']
+        });
+        return;
+      } catch {
+        // Fallback for browsers without types support in startViewTransition
+      }
+    }
+    setCurrentIndex(newIndex);
+  };
+
+  // Auto rotate banner every 14 seconds if user doesn't interact or hover
   useEffect(() => {
-    if (featuredItems.length <= 1) return;
+    if (featuredItems.length <= 1 || isPaused) return;
     const interval = setInterval(() => {
-      setCurrentIndex(prev => (prev + 1) % featuredItems.length);
+      const nextIdx = (currentIndex + 1) % featuredItems.length;
+      changeSlide(nextIdx, 'next');
     }, 14000);
     return () => clearInterval(interval);
-  }, [featuredItems.length]);
+  }, [featuredItems.length, currentIndex, isPaused]);
 
   // Restart video when banner item changes
   useEffect(() => {
@@ -53,20 +76,26 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
   };
 
   const handlePrev = () => {
-    setCurrentIndex(prev => (prev - 1 + featuredItems.length) % featuredItems.length);
+    const nextIdx = (currentIndex - 1 + featuredItems.length) % featuredItems.length;
+    changeSlide(nextIdx, 'prev');
   };
 
   const handleNext = () => {
-    setCurrentIndex(prev => (prev + 1) % featuredItems.length);
+    const nextIdx = (currentIndex + 1) % featuredItems.length;
+    changeSlide(nextIdx, 'next');
   };
 
   if (!currentMedia) return null;
 
   return (
-    <div className="relative w-full h-[82vh] min-h-[560px] sm:h-[85vh] lg:h-[90vh] overflow-hidden select-none">
+    <div 
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+      className="relative w-full h-[85vh] min-h-[600px] xs:min-h-[640px] sm:h-[88vh] sm:min-h-[680px] lg:h-[92vh] lg:min-h-[720px] overflow-hidden select-none"
+    >
       
-      {/* Background Media: Video preview or high-res backdrop image */}
-      <div className="absolute inset-0">
+      {/* Background Media with Ken Burns cinematic zoom and smooth crossfade */}
+      <div key={`bg-${currentMedia.id}`} className="absolute inset-0 animate-hero-bg">
         <video
           ref={videoRef}
           src={currentMedia.trailerUrl || currentMedia.videoUrl}
@@ -88,18 +117,31 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
           }`}
         />
 
-        {/* Ambient Vignette and Gradient overlays for cinematic depth */}
+        {/* Ambient Vignette and Gradient overlays for cinematic depth & navbar contrast */}
+        {/* 1. Top shadow overlay: Prevents visual clash with fixed navbar across all screen sizes */}
+        <div className="absolute inset-x-0 top-0 h-32 xs:h-40 sm:h-48 md:h-56 bg-gradient-to-b from-[#08090d]/95 via-[#08090d]/60 to-transparent pointer-events-none z-10" />
+
+        {/* 2. Bottom shadow vignette */}
         <div className="absolute inset-0 bg-gradient-to-t from-[#08090d] via-[#08090d]/50 to-transparent" />
+
+        {/* 3. Left shadow for readable typography */}
         <div className="absolute inset-0 bg-gradient-to-r from-[#08090d] via-[#08090d]/70 to-transparent w-full md:w-3/4" />
+
+        {/* 4. Radial atmospheric glow */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-brand-600/10 via-transparent to-transparent pointer-events-none" />
       </div>
 
-      {/* Featured Content Details */}
-      <div className="relative max-w-7xl mx-auto h-full flex flex-col justify-end pb-14 sm:pb-20 md:pb-24 px-4 sm:px-6 lg:px-8 z-10">
-        <div className="max-w-2xl space-y-3 sm:space-y-4 animate-slide-up">
+      {/* Featured Content Details with Responsive Top Clearance and Directional Slide Animation */}
+      <div className="relative max-w-7xl mx-auto h-full flex flex-col justify-end pt-24 xs:pt-28 sm:pt-32 md:pt-36 lg:pt-40 pb-14 sm:pb-20 md:pb-24 px-4 sm:px-6 lg:px-8 z-10">
+        <div 
+          key={`content-${currentMedia.id}`}
+          className={`max-w-2xl space-y-2.5 sm:space-y-4 ${
+            direction === 'next' ? 'animate-hero-next' : 'animate-hero-prev'
+          }`}
+        >
           
-          {/* Badges Bar (Fluid wrap for mobile) */}
-          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2.5 text-[11px] sm:text-xs font-semibold">
+          {/* Badges Bar (Fluid wrap for mobile & tablet) */}
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2.5 text-[10px] xs:text-[11px] sm:text-xs font-semibold">
             {currentMedia.topRank && (
               <span className="flex items-center gap-1 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-brand-600 text-white shadow-lg shadow-brand-600/30 text-[10px] sm:text-xs">
                 <Flame className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-white" />
@@ -125,7 +167,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
           </div>
 
           {/* Title */}
-          <h1 className="text-2xl xs:text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white drop-shadow-md leading-tight">
+          <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-white drop-shadow-md leading-tight">
             {currentMedia.title}
           </h1>
 
@@ -188,8 +230,8 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
           </div>
         </div>
 
-        {/* Floating Controls: Mute Toggle & Carousel Switchers */}
-        <div className="absolute top-20 sm:top-auto sm:bottom-20 md:bottom-24 right-4 sm:right-8 flex items-center gap-2 sm:gap-3">
+        {/* Floating Controls: Mute Toggle & Carousel Switchers positioned comfortably at the bottom */}
+        <div className="absolute bottom-14 sm:bottom-18 md:bottom-22 lg:bottom-26 right-4 sm:right-6 md:right-8 flex items-center gap-2 sm:gap-3 z-20">
           <button
             onClick={toggleMute}
             className="p-2 sm:p-3 rounded-full glass-panel hover:bg-white/20 text-white transition-transform hover:scale-110 active:scale-95 shadow-lg"
@@ -200,7 +242,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
           </button>
 
           {featuredItems.length > 1 && (
-            <div className="flex items-center gap-1 glass-panel p-1 rounded-full hidden xs:flex">
+            <div className="flex items-center gap-1.5 glass-panel p-1.5 rounded-full hidden xs:flex shadow-xl">
               <button
                 onClick={handlePrev}
                 className="p-1.5 rounded-full hover:bg-white/20 text-white transition-colors"
@@ -208,17 +250,27 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
-              <div className="flex items-center gap-1 px-1">
-                {featuredItems.map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setCurrentIndex(idx)}
-                    className={`h-1.5 rounded-full transition-all duration-300 ${
-                      idx === currentIndex ? 'w-5 bg-brand-500' : 'w-1.5 bg-white/30 hover:bg-white/60'
-                    }`}
-                    aria-label={`Slide ${idx + 1}`}
-                  />
-                ))}
+              <div className="flex items-center gap-1.5 px-1">
+                {featuredItems.map((item, idx) => {
+                  const isActive = idx === currentIndex;
+                  return (
+                    <button
+                      key={item.id || idx}
+                      onClick={() => changeSlide(idx, idx >= currentIndex ? 'next' : 'prev')}
+                      className={`relative h-2 rounded-full overflow-hidden transition-all duration-300 ${
+                        isActive ? 'w-8 sm:w-10 bg-white/20' : 'w-2 bg-white/30 hover:bg-white/60'
+                      }`}
+                      aria-label={`Slide ${idx + 1}`}
+                    >
+                      {isActive && (
+                        <div
+                          key={`progress-${currentMedia.id}`}
+                          className="h-full bg-gradient-to-r from-brand-500 to-secondary-400 rounded-full animate-hero-progress"
+                        />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
               <button
                 onClick={handleNext}
@@ -234,4 +286,5 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
       </div>
     </div>
   );
+
 };
