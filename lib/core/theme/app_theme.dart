@@ -26,6 +26,10 @@ class AppColors {
   static const Color brand600 = Color(0xFFE11D48); // rose-600
   static const Color brandSlate400 = Color(0xFF94A3B8); // slate-400 subtitle
 
+  // LiveEuy Typography Brand Colors (1:1 LIVEEUY font branding)
+  static const Color brandEuy = Color(0xFF5D5FE6); // Vibrant periwinkle / electric blue-purple for 'EUY'
+  static const Color brandLive = Colors.white; // Pure white for 'LIVE'
+
   // StreamFlix Primary & Accent Colors
   static const Color primary = Color(0xFFC1C1FF);
   static const Color primaryContainer = Color(0xFF433FFE);

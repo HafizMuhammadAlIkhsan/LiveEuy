@@ -38,11 +38,11 @@ enum StreamingQuality {
   ),
   uhd4k(
     id: 'UHD_4K',
-    label: 'Maksimal Ultra HD (4K & Dolby)',
-    description: 'Kualitas bioskop terbaik dengan Dolby Vision & Dolby Atmos',
-    badge: 'LIVEEUY VIP 4K',
-    resolutionLabel: '4K UHD HDR',
-    estimatedUsage: '~7.0 GB / jam',
+    label: 'Kualitas Maksimal (Original HD)',
+    description: 'Kualitas tayangan terbaik dengan bitrate dan kejernihan tertinggi',
+    badge: 'LIVEEUY VIP',
+    resolutionLabel: 'Full HD Original',
+    estimatedUsage: '~3.2 GB / jam',
     requiresVip: true,
   );
 
@@ -114,7 +114,7 @@ class UserSettings {
       case StreamingQuality.fhd1080:
         return 'Tinggi Full HD (1080p • ~1.5 GB/jam)';
       case StreamingQuality.uhd4k:
-        return 'Maksimal (4K UHD & Dolby Atmos)';
+        return 'Maksimal (Full HD Original)';
     }
   }
 

@@ -17,9 +17,9 @@
   - Tombol lompat mundur dan maju cepat **10 detik**.
   - Tombol pintar **"Lewati Intro" (Skip Intro)** otomatis pada detik-detik awal tayangan.
   - Pengatur Kecepatan Putar fleksibel: `0.75x`, `1.0x`, `1.25x`, `1.5x`, dan `2.0x`.
-  - Pemilih Audio dan Takarir: Trek audio multi-bahasa (*Indonesia [Asli]*, *English Dolby 5.1*) serta takarir teks tertutup (CC).
-  - Rotasi Layar Otomatis & Toggle Mode Layar Penuh (*Fullscreen Landscape / Portrait*).
-  - **Panel Diagnostik Pemutaran (Stats for Nerds)**: Menampilkan overlay teknis mencakup resolusi aktif, FPS render, perkiraan bitrate, dan kondisi buffer jaringan.
+   - Pemilih Audio dan Takarir: Trek audio multi-bahasa (*Indonesia [Asli]*, *English*) serta takarir teks tertutup (CC).
+   - Rotasi Layar Otomatis & Toggle Mode Layar Penuh (*Fullscreen Landscape / Portrait*).
+   - **Panel Diagnostik Pemutaran (Stats for Nerds)**: Menampilkan overlay teknis mencakup resolusi aktif, FPS render, perkiraan bitrate, dan kondisi buffer jaringan.
 
 ### 2. 📱 Gestur Layar Sentuh & Navigasi Mobile (Touch Gestures & Mobile Navigation)
 - **Ketuk Sekali (Single Tap)**: Membuka dan menutup panel instrumen kontrol pemutar (dengan fitur otomatis sembunyi dalam 4 detik).
@@ -29,7 +29,7 @@
 
 ### 3. 🍿 Hero Showcase & Billboard Unggulan
 - Banner sorotan utama bergaya sinematik dengan visual poster resolusi tinggi dan *backdrop* adaptif.
-- Informasi lengkap meliputi persentase kecocokan (*Match Score*), label batas usia penonton (SU, 13+, 16+, 18+), serta lencana teknologi (4K UHD, Dolby Vision, Dolby Atmos).
+- Informasi lengkap meliputi persentase kecocokan (*Match Score*), label batas usia penonton (SU, 13+, 16+, 18+), serta lencana kualitas tayangan (Full HD, HDR).
 - Tombol aksi cepat: Mulai Tonton (*Play*), Simpan ke Koleksi (*Watchlist*), dan Lihat Rincian (*Detail*).
 
 ### 4. 📈 Baris Kategori & Top 10 Indonesia
@@ -48,16 +48,18 @@
 - **Tab Mirip Ini**: Rekomendasi tayangan terkait yang dikurasi berdasarkan kemiripan tema dan genre.
 - **Tab Ulasan Penonton**: Ruang diskusi ulasan pengguna dengan rating bintang (1–10) serta formulir pengiriman testimoni langsung.
 
-### 7. 👤 Personalisasi Akun: VIP 4K vs Pengguna Tamu (Guest)
-- **Pengguna Terdaftar (LiveEuy VIP 4K)**:
-  - Lencana akun premium *VIP 4K Dolby Atmos*.
+### 7. 👤 Personalisasi Akun: Pengguna Terdaftar (VIP Premium) vs Pengguna Tamu (Guest)
+- **Pengguna Terdaftar (VIP Premium)**:
+  - Lencana akun premium *LiveEuy VIP*.
   - Sinkronisasi daftar koleksi tontonan (*Watchlist*) dan kelanjutan durasi tontonan.
   - Akses penuh untuk menulis dan mempublikasikan ulasan film.
+  - Streaming kualitas maksimal bebas gangguan iklan.
 - **Pengguna Tamu (Guest Mode)**:
-  - Mode penjelajahan katalog terbuka dengan notifikasi ajakan masuk non-intrusif saat mencoba menyimpan koleksi tontonan atau mengirim review.
+  - Mode penjelajahan katalog terbuka untuk menelusuri film dan serial.
+  - Akses fitur dibatasi: pengguna tamu tidak dapat melakukan peningkatan akun VIP, menyimpan koleksi tontonan, atau mengirim ulasan sebelum masuk ke akun.
 - **Pengaturan Preferensi Streaming Mobile**:
-  - Pilihan penghematan kuota (*Unduh Hanya via Wi-Fi*).
-  - Pengaktifan *Spatial Audio* dan *Auto Skip Intro*.
+  - Pilihan kualitas tayangan fleksibel dan hemat kuota (*Unduh Hanya via Wi-Fi*).
+  - Pengaktifan fitur *Auto Skip Intro* dan pembersihan cache aplikasi.
   - Manajemen sesi login aman dengan dukungan fitur *Ingat Saya*.
 
 ---
@@ -188,7 +190,7 @@ liveeuy_mob/
 │           ├── ambient_glow.dart      # Shader difusi pencahayaan belakang pemutar
 │           ├── glass_container.dart   # Wadah kartu glassmorphism semi-transparan
 │           ├── liveeuy_logo.dart      # Lencana logo brand LiveEuy
-│           ├── resolution_badge.dart  # Chip label resolusi (4K UHD, HDR10, Dolby)
+│           ├── resolution_badge.dart  # Chip label kualitas (Full HD, HD, HDR)
 │           └── streamflix_logo.dart   # Tipografi brand StreamFlix
 └── test/
     └── widget_test.dart               # Pengujian logika provider & unit testing

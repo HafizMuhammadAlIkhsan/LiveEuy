@@ -51,7 +51,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     },
     {
       'title': 'Midnight Protocol',
-      'badge': '4K ULTRA',
+      'badge': 'FULL HD',
       'poster':
           'https://lh3.googleusercontent.com/aida-public/AB6AXuDbGSDFGu3qch76hw_LKlHUowehX4gSLBJfiANzLFc4OtwRkrHtSDD7n2EiQLSDpQIZuDFoDo5f_IvDysajdJmcV4jdf4TMxe5kFRmch0JsgeHRQCsS2Vd_h-qFv-mwt26YGpGCb_ywnGlUTzs9_RP5nGXuBI6Ppg7BKpBjnGLhXbWz1dywWAtd37BHKJD-ca43B-_HIpgAEnYcZbMDZaAWhBFpVxJkDy2uv1QnknRfY8B3ZeBYRygS',
     },
@@ -288,7 +288,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                'CINEMA EXPERIENCE 4K HDR',
+                                'STREAMING FILM & SERIAL MODERN',
                                 style: GoogleFonts.outfit(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
@@ -325,7 +325,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Streaming ribuan blockbuster, anime, dan serial orisinal dengan audio Dolby Atmos.',
+                          'Streaming ribuan film, anime, dan serial pilihan dengan kualitas audio visual jernih.',
                           textAlign: TextAlign.center,
                           style: GoogleFonts.inter(
                             fontSize: 12,
@@ -494,7 +494,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       const Icon(Icons.verified_user_rounded, size: 16, color: AppColors.outline),
                       const SizedBox(width: 6),
                       Text(
-                        'Proteksi Streaming DRM & Dolby Atmos Certified',
+                        'Akses Streaming Cepat & Terenkripsi Aman',
                         style: GoogleFonts.inter(
                           fontSize: 11,
                           color: AppColors.outline,

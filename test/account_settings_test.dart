@@ -70,7 +70,7 @@ void main() {
       expect(find.text('Standar HD (720p)'), findsOneWidget);
       expect(find.text('Hemat Data (480p)'), findsOneWidget);
       expect(find.text('Tinggi Full HD (1080p)'), findsOneWidget);
-      expect(find.text('Maksimal Ultra HD (4K & Dolby)'), findsOneWidget);
+      expect(find.text('Kualitas Maksimal (Original HD)'), findsOneWidget);
 
       // Select Standar HD (720p)
       final option720 = find.text('Standar HD (720p)');
@@ -151,6 +151,41 @@ void main() {
       await tester.tap(find.text('Tutup'));
       await tester.pump(const Duration(milliseconds: 400));
       expect(find.text('LiveEuy Cinematic Streaming'), findsNothing);
+    });
+
+    testWidgets('Guest user cannot upgrade VIP account and Dolby Atmos is removed from profile', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: LiveEuyApp(),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 200));
+
+      // Navigate to AKUN tab
+      await tester.tap(find.text('AKUN'));
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // 1. Verify Guest Badge and Profile Info
+      expect(find.text('MODE TAMU'), findsOneWidget);
+      expect(find.text('Tamu LiveEuy'), findsOneWidget);
+
+      // 2. Verify Guest cannot see 'Beli VIP' or 'Tingkatkan ke VIP Premium'
+      expect(find.text('Beli VIP'), findsNothing);
+      expect(find.text('Tingkatkan ke VIP Premium'), findsNothing);
+
+      // 3. Verify Guest sees 'Masuk ke Akun Anda' prompt instead
+      expect(find.text('Masuk ke Akun Anda'), findsOneWidget);
+
+      // 4. Verify Dolby Atmos switch tile is completely removed
+      expect(find.text('Audio Spasial Dolby Atmos'), findsNothing);
+
+      // 5. Verify 4K HDR banter stat is replaced with Full HD
+      expect(find.text('4K HDR'), findsNothing);
+      expect(find.text('Full HD'), findsOneWidget);
     });
   });
 }

@@ -636,6 +636,30 @@ class _AkunTabState extends ConsumerState<_AkunTab> {
   }
 
   void _showBuyVipDialog(BuildContext context) {
+    final user = ref.read(authProvider);
+    if (!user.isLoggedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Mode Tamu tidak dapat membeli VIP. Silakan masuk terlebih dahulu.',
+            style: GoogleFonts.outfit(),
+          ),
+          backgroundColor: AppColors.surfaceContainerHighest,
+          action: SnackBarAction(
+            label: 'Masuk',
+            textColor: AppColors.brand400,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const LoginScreen()),
+              );
+            },
+          ),
+        ),
+      );
+      return;
+    }
+
     int selectedPlan = 0; // 0 for Monthly, 1 for Yearly
     showModalBottomSheet(
       context: context,
@@ -684,7 +708,7 @@ class _AkunTabState extends ConsumerState<_AkunTab> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Langganan LiveEuy VIP 4K',
+                            'Langganan LiveEuy VIP Premium',
                             style: GoogleFonts.outfit(
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
@@ -711,8 +735,8 @@ class _AkunTabState extends ConsumerState<_AkunTab> {
               const SizedBox(height: 16),
 
               // Benefits
-              _buildBenefitRow(Icons.hd_rounded, 'Kualitas Ultra HD 4K & Dolby Vision'),
-              _buildBenefitRow(Icons.spatial_audio_rounded, 'Audio Spasial Dolby Atmos'),
+              _buildBenefitRow(Icons.hd_rounded, 'Kualitas Streaming Full HD Jernih'),
+              _buildBenefitRow(Icons.speed_rounded, 'Streaming Cepat Tanpa Batas Buffer'),
               _buildBenefitRow(Icons.block_rounded, 'Bebas Iklan & Tanpa Batas Nonton'),
               _buildBenefitRow(Icons.download_for_offline_rounded, 'Download & Tonton Offline'),
 
@@ -853,7 +877,7 @@ class _AkunTabState extends ConsumerState<_AkunTab> {
                             const Icon(Icons.workspace_premium_rounded, color: Colors.amberAccent, size: 20),
                             const SizedBox(width: 10),
                             Text(
-                              'Selamat! Akun Anda kini berstatus LIVEEUY VIP 4K!',
+                              'Selamat! Akun Anda kini berstatus LIVEEUY VIP Premium!',
                               style: GoogleFonts.outfit(fontWeight: FontWeight.w600),
                             ),
                           ],
@@ -991,7 +1015,7 @@ class _AkunTabState extends ConsumerState<_AkunTab> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            'Kualitas 4K UHD & Dolby eksklusif untuk member LIVEEUY VIP 4K.',
+                            'Kualitas tertinggi eksklusif untuk member LIVEEUY VIP Premium.',
                             style: GoogleFonts.outfit(),
                           ),
                           backgroundColor: AppColors.surfaceContainerHighest,
@@ -1347,7 +1371,7 @@ class _AkunTabState extends ConsumerState<_AkunTab> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Platform streaming generasi baru dengan teknologi Adaptive 4K UHD, Ambient Glow, dan Dolby Atmos audio spasial.',
+              'Platform streaming film dan serial modern dengan teknologi Dynamic Ambient Glow dan pemutaran video berkecepatan tinggi.',
               style: GoogleFonts.inter(
                 fontSize: 12,
                 color: AppColors.textSecondary,
@@ -1509,12 +1533,39 @@ class _AkunTabState extends ConsumerState<_AkunTab> {
                                     const Icon(Icons.workspace_premium_rounded, color: Colors.white, size: 14),
                                     const SizedBox(width: 4),
                                     Text(
-                                      'LIVEEUY VIP 4K',
+                                      'LIVEEUY VIP',
                                       style: GoogleFonts.outfit(
                                         fontSize: 10,
                                         fontWeight: FontWeight.w800,
                                         letterSpacing: 0.6,
                                         color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            else if (user.isLoggedIn)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: AppColors.surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: AppColors.outlineVariant.withValues(alpha: 0.3),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.person_rounded, color: AppColors.outline, size: 14),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'MEMBER STANDAR',
+                                      style: GoogleFonts.outfit(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 0.6,
+                                        color: AppColors.onSurfaceVariant,
                                       ),
                                     ),
                                   ],
@@ -1533,10 +1584,10 @@ class _AkunTabState extends ConsumerState<_AkunTab> {
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Icon(Icons.person_rounded, color: AppColors.outline, size: 14),
+                                    const Icon(Icons.visibility_outlined, color: AppColors.outline, size: 14),
                                     const SizedBox(width: 4),
                                     Text(
-                                      'MEMBER STANDAR',
+                                      'MODE TAMU',
                                       style: GoogleFonts.outfit(
                                         fontSize: 10,
                                         fontWeight: FontWeight.w700,
@@ -1568,7 +1619,7 @@ class _AkunTabState extends ConsumerState<_AkunTab> {
                         Container(width: 1, height: 26, color: AppColors.surfaceVariant),
                         _buildStatItem('${widget.mediaState.watchlistIds.length}', 'Koleksi'),
                         Container(width: 1, height: 26, color: AppColors.surfaceVariant),
-                        _buildStatItem('4K HDR', 'Format'),
+                        _buildStatItem('Full HD', 'Kualitas'),
                       ],
                     ),
                   ),
@@ -1576,8 +1627,8 @@ class _AkunTabState extends ConsumerState<_AkunTab> {
               ),
             ),
 
-            // VIP Upgrade Banner (Shown if user is not VIP yet)
-            if (!user.isVip) ...[
+            // VIP Upgrade Banner (Hanya ditampilkan untuk pengguna terdaftar yang belum VIP)
+            if (user.isLoggedIn && !user.isVip) ...[
               const SizedBox(height: 16),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -1623,7 +1674,7 @@ class _AkunTabState extends ConsumerState<_AkunTab> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Tingkatkan ke VIP 4K',
+                              'Tingkatkan ke VIP Premium',
                               style: GoogleFonts.outfit(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,
@@ -1632,7 +1683,7 @@ class _AkunTabState extends ConsumerState<_AkunTab> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              'Buka akses streaming 4K UHD, Dolby Atmos, dan bebas iklan.',
+                              'Nikmati streaming kualitas tinggi tanpa batas dan bebas iklan.',
                               style: GoogleFonts.inter(
                                 fontSize: 11,
                                 color: AppColors.textSecondary,
@@ -1660,6 +1711,80 @@ class _AkunTabState extends ConsumerState<_AkunTab> {
                   ),
                 ),
               ),
+            ] else if (!user.isLoggedIn) ...[
+              // Banner Pengguna Tamu: Tamu tidak bisa beli VIP, diarahkan untuk Masuk Akun
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainerHigh.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: AppColors.outlineVariant.withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: const BoxDecoration(
+                          color: AppColors.surfaceContainerHighest,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.login_rounded, color: AppColors.primary, size: 22),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Masuk ke Akun Anda',
+                              style: GoogleFonts.outfit(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.onSurface,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Masuk untuk menyimpan koleksi tontonan dan riwayat pemutaran.',
+                              style: GoogleFonts.inter(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                                height: 1.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const LoginScreen()),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primaryContainer,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: Text(
+                          'Masuk',
+                          style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
 
             const SizedBox(height: 24),
@@ -1671,13 +1796,6 @@ class _AkunTabState extends ConsumerState<_AkunTab> {
               title: 'Kualitas Streaming',
               subtitle: userSettings.streamingQualitySubtitle,
               onTap: () => _showStreamingQualitySheet(context, userSettings),
-            ),
-            _buildSwitchTile(
-              icon: Icons.spatial_audio_rounded,
-              title: 'Audio Spasial Dolby Atmos',
-              subtitle: 'Nikmati audio surround multi-arah',
-              value: userSettings.spatialAudio,
-              onChanged: (v) => ref.read(userSettingsProvider.notifier).setSpatialAudio(v),
             ),
             _buildSwitchTile(
               icon: Icons.fast_forward_rounded,

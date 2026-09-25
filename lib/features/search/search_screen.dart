@@ -32,7 +32,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     'The Shadow Strays',
     'Horor Indonesia',
     'Dian Sastrowardoyo',
-    'Action 4K',
+    'Film Laga & Aksi',
   ];
 
   final List<String> _genres = [
