@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  # Isolated Local PostgreSQL Database for Backend Development
+  postgres:
+    image: postgres:16-alpine
+    container_name: liveeuy-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: liveeuy_db
+      POSTGRES_USER: liveeuy_user
+      POSTGRES_PASSWORD: liveeuy_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./src/main/resources/db/migration:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U liveeuy_user -d liveeuy_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Optional pgAdmin Web GUI for DB Inspection (http://localhost:5050)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: liveeuy-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@liveeuy.id
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+
+volumes:
+  pgdata:
+    driver: local

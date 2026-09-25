@@ -1,0 +1,141 @@
+# ==============================================================================
+# LiveEuy Project — Git Ignore Rules (Web React, Mobile Flutter, Backend Services)
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Environment Variables & Secret Files
+# ------------------------------------------------------------------------------
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# ------------------------------------------------------------------------------
+# 2. Node & Web Frontend (React + Vite)
+# ------------------------------------------------------------------------------
+node_modules/
+dist/
+dist-ssr/
+*.local
+*.tsbuildinfo
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ------------------------------------------------------------------------------
+# 3. Flutter & Dart (Mobile Client)
+# ------------------------------------------------------------------------------
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+coverage/
+
+# Flutter Symbolication & Obfuscation mappings
+app.*.symbols
+app.*.map.json
+
+# ------------------------------------------------------------------------------
+# 4. Android Native Artifacts & Secrets
+# ------------------------------------------------------------------------------
+**/android/.gradle/
+**/android/**/build/
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
+**/android/local.properties
+**/android/captures/
+**/android/.cxx/
+
+# Android Keystores & Signing Keys
+*.keystore
+*.jks
+**/android/key.properties
+
+# ------------------------------------------------------------------------------
+# 5. iOS & macOS Native Artifacts
+# ------------------------------------------------------------------------------
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/.last_build_id
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/app.framework
+**/ios/Flutter/ephemeral/
+**/ios/**/Pods/
+**/ios/**/.symlinks/
+
+**/macos/Pods/
+**/macos/.symlinks/
+**/macos/Flutter/ephemeral/
+
+# Xcode user-specific data
+*.mode1v3
+*.mode2v3
+*.normal
+*.pbxuser
+*.perspectivev3
+xcuserdata/
+
+# ------------------------------------------------------------------------------
+# 6. Backend Services (Spring Boot & Go)
+# ------------------------------------------------------------------------------
+target/
+*.class
+*.jar
+*.war
+backend/target/
+backend/**/target/
+backend/*.jar
+backend/*.war
+backend/*.log
+backend/.mvn/
+backend/.flattened-pom.xml
+catalog-service/target/
+catalog-service/**/target/
+auth-service/bin/
+auth-service/tmp/
+
+# Local Docker volume / database dumps
+*.sql.gz
+*.sql.bak
+postgres_data/
+
+# ------------------------------------------------------------------------------
+# 7. IDEs & Editors
+# ------------------------------------------------------------------------------
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+.classpath
+.project
+.settings/
+
+# ------------------------------------------------------------------------------
+# 8. Operating System Files
+# ------------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
