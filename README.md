@@ -105,6 +105,121 @@
 
 ---
 
+## 🔗 Deep Linking (Arsitektur Tautan Dalam & App Links)
+
+Aplikasi LiveEuy Mobile mendukung navigasi langsung melalui Deep Linking baik dengan **Custom URI Scheme** (`liveeuy://`) maupun **Universal App Links** (`https://liveeuy.id`).
+
+### 1. Format URL & Rute yang Didukung
+| Rute Deep Link | Format Tautan | Target Halaman & Aksi |
+| :--- | :--- | :--- |
+| **Detail Konten** | `liveeuy://media/{id}` atau `https://liveeuy.id/media/{id}` | Membuka `ContentDetailScreen` untuk film / serial TV terkait |
+| **Pemutar Video** | `liveeuy://watch/{id}` atau `liveeuy://player/{id}` | Langsung memulai pemutaran di `VideoPlayerScreen` |
+| **Pencarian Cepat** | `liveeuy://search?q={keyword}` | Beralih ke tab Pencarian dengan query otomatis terisi |
+| **Koleksi / Watchlist** | `liveeuy://collection` atau `liveeuy://watchlist` | Beralih ke tab Koleksi tontonan pengguna |
+| **Profil & Pengaturan** | `liveeuy://account` atau `liveeuy://profile` | Beralih ke tab Akun pengguna |
+| **Halaman Masuk** | `liveeuy://login` | Membuka layar login |
+
+### 2. Konfigurasi Native Platform
+- **Android (`android/app/src/main/AndroidManifest.xml`)**:
+  - Didaftarkan `<intent-filter>` untuk `android:scheme="liveeuy"` dan `android:host="liveeuy.id"` dengan `android:autoVerify="true"`.
+- **iOS (`ios/Runner/Info.plist`)**:
+  - Didaftarkan `CFBundleURLTypes` dengan `CFBundleURLSchemes` bernilai `liveeuy`.
+
+### 3. Pengujian Deep Link via Terminal (ADB Android)
+```bash
+# Buka detail konten film dengan ID 'm1'
+adb shell am start -a android.intent.action.VIEW -d "liveeuy://media/m1"
+
+# Buka pemutar video langsung untuk tayangan 'm_hero'
+adb shell am start -a android.intent.action.VIEW -d "liveeuy://watch/m_hero"
+
+# Buka tab pencarian dengan kata kunci 'cyberpunk'
+adb shell am start -a android.intent.action.VIEW -d "liveeuy://search?q=cyberpunk"
+
+# Buka via Universal Link
+adb shell am start -a android.intent.action.VIEW -d "https://liveeuy.id/media/m2"
+```
+
+---
+
+## 🔔 Sistem Notifikasi & In-App Dispatcher
+
+LiveEuy Mobile mengintegrasikan sistem notifikasi bertingkat yang terhubung langsung dengan siklus hidup tayangan streaming dan terintegrasi mulus dengan Deep Linking.
+
+### 1. Kasus Tontonan (Streaming Notification Triggers)
+- **Episode Baru Rilis (`createNewEpisodeNotification`)**:
+  - Dipicu saat ada serial yang merilis episode baru.
+  - Tautan otomatis: `liveeuy://media/{mediaId}`.
+- **Pengingat Lanjutkan Menonton (`createContinueWatchingReminder`)**:
+  - Mengingatkan pengguna jika ada film/serial yang belum tuntas ditonton.
+  - Tautan otomatis: `liveeuy://watch/{mediaId}` (langsung lompat ke pemutar).
+- **Rekomendasi Trending & Promo VIP (`createRecommendationNotification`)**:
+  - Mengabarkan film masuk daftar Top 10 Indonesia atau promo benefit akun VIP.
+
+### 2. Fitur & Komponen Notifikasi
+- **Floating In-App Banner**: Menampilkan toast melayang interaktif di dalam aplikasi dengan tombol aksi "Lihat" yang mengeksekusi deep link secara instan.
+- **Persistensi Riwayat & Status Baca**: Status `isRead` dan histori notifikasi disimpan persisten di penyimpanan lokal, tidak hilang saat aplikasi dimatikan/di-restart.
+- **Notification Sheet**: Dialog modal bottom-sheet dengan indikator badge titik merah jika terdapat notifikasi yang belum dibaca.
+
+---
+
+## 💾 Flutter Local Storage (Arsitektur Penyimpanan Ganda Offline-First)
+
+Aplikasi memisahkan penyimpanan data lokal ke dalam 2 tier keamanan (`LocalStorageService`):
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     LocalStorageService                         │
+├────────────────────────────────┬────────────────────────────────┤
+│ 🔒 Tier 1: Secure Storage       │ 📦 Tier 2: SharedPreferences   │
+│ (flutter_secure_storage)       │ (shared_preferences)           │
+├────────────────────────────────┼────────────────────────────────┤
+│ • Auth Access Token (JWT)      │ • User Streaming Settings      │
+│ • Auth Refresh Token           │ • Offline Watchlist IDs (Set)  │
+│ • Sesi Login Pengguna (JSON)   │ • Watch Progress List (JSON)   │
+│ • Kredensial Keystore/Keychain │ • Riwayat Notifikasi & Read    │
+└────────────────────────────────┴────────────────────────────────┘
+```
+
+### Karakteristik & Alur Offline-First:
+1. **Boot Cepat & Responsif**: Pengaturan dan koleksi dimuat instan dari cache lokal tanpa menunggu jaringan backend.
+2. **Auto-Restore Sesi**: Jika opsi *Ingat Saya* aktif, token dan profil dipulihkan otomatis saat aplikasi dibuka kembali.
+3. **Penyimpanan Fallback**: Memiliki mekanisme fallback in-memory yang aman sehingga pengujian unit test dan lingkungan headless tetap berjalan tanpa kendala.
+
+---
+
+## 🔄 Pemetaan & Sinkronisasi API Backend (`origin/dev-backend`)
+
+Berdasarkan pengecekan cabang `origin/dev-backend`, backend LiveEuy terbagi ke dalam arsitektur microservices:
+
+### 1. `auth-service` (Golang + Gin + JWT + Redis)
+- `POST /register`: Pendaftaran pengguna baru (`username`, `email`, `password`)
+- `POST /login`: Autentikasi pengguna (mengembalikan `access_token`, `refresh_token`, dan objek `user`)
+- `POST /refresh-token`: Rotasi token akses yang kadaluwarsa
+- `GET /api/me`: Mengambil profil pengguna aktif (memerlukan header `Authorization: Bearer <token>`)
+- `PUT /api/me/name` & `PUT /api/me/password`: Pembaruan profil pengguna
+
+### 2. `catalog-service` (Java Spring Boot 3.3.4 + PostgreSQL)
+- **Base Context Path**: `/api/v1` (Port default: `8081`)
+- `GET /api/v1/media`: Katalog tayangan (mendukung pagination `Page<MediaResponseDTO>` dengan field `content: [...]`, filter `type`, `genre`, `search`, `sortBy`)
+- `GET /api/v1/media/{id}`: Detail film / serial TV
+- `POST /api/v1/media/batch`: Mengambil data media secara kolektif
+- `POST /api/v1/media/{tvId}/seasons`: Menambahkan season baru
+- `POST /api/v1/seasons/{seasonId}/episodes`: Menambahkan episode baru
+
+### 3. Analisis Kesiapan API (Gap Analysis) & Penanganan Klien Mobile:
+| Fitur Mobile | Status di Backend (`dev-backend`) | Solusi & Penanganan di Mobile |
+| :--- | :--- | :--- |
+| **Katalog & Detail Media** | ✅ Tersedia (`catalog-service`) | Klien mobile memetakan schema Spring Page `data: {"content": [...]}` & `durationSeconds`. |
+| **Login & Register** | ✅ Tersedia (`auth-service`) | Klien mobile menyimpan token JWT di `FlutterSecureStorage` dan mendukung rotasi token. |
+| **User Watchlist** | ⏳ Belum diimplementasikan | Dikelola secara **Offline-First** melalui `LocalStorageService`, siap disinkronkan ke API saat backend siap. |
+| **Continue Watching** | ⏳ Belum diimplementasikan | Progres tontonan disimpan persisten di `SharedPreferences` dan disinkronkan saat online. |
+| **User Settings** | ⏳ Belum diimplementasikan | Preferensi kualitas streaming, auto skip intro, dan unduh Wi-Fi disimpan persisten di lokal. |
+| **Notification API** | ⏳ Belum ada notification-service | Dikelola mandiri oleh mobile `NotificationService` dengan persistensi lokal dan deep link triggers. |
+
+
+---
+
 ## 🚀 Panduan Memulai (Getting Started)
 
 ### 1. Menjalankan Aplikasi Mobile (Flutter)
@@ -177,6 +292,8 @@ liveeuy_mob/
 │   ├── core/                          # Fondasi global aplikasi
 │   │   ├── data/
 │   │   │   └── mock_data.dart         # Seeded media catalogue, episode, & offline fallback
+│   │   ├── deeplink/                  # Arsitektur Deep Linking (Custom URI & App Links)
+│   │   │   └── deep_link_service.dart # Parser tautan, rute target, & route dispatcher
 │   │   ├── network/                   # Arsitektur Jaringan Dio & DioException (Dio 5.x spec)
 │   │   │   ├── api_client.dart        # Klien HTTP terpadu dengan pipeline Interceptor
 │   │   │   ├── api_config.dart        # Konfigurasi Base URL, timeout, & headers
@@ -185,6 +302,10 @@ liveeuy_mob/
 │   │   │   ├── api_service.dart       # Sinkronisasi katalog, watchlist, progress, & settings
 │   │   │   ├── dio_exception.dart     # Model DioException, RequestOptions, Response, & DioExceptionType
 │   │   │   └── dio_interceptor.dart   # Interceptor Logging, Bearer Token, & Error Handling
+│   │   ├── notification/              # Sistem Notifikasi & In-App Banner
+│   │   │   └── notification_service.dart # Dispatcher notifikasi, trigger tayangan, & aksi deep link
+│   │   ├── storage/                   # Arsitektur Penyimpanan Ganda Offline-First
+│   │   │   └── local_storage_service.dart # FlutterSecureStorage (JWT) + SharedPreferences (Settings)
 │   │   └── theme/
 │   │       └── app_theme.dart         # Design System: Palet warna, Typography, Glassmorphism
 │   ├── features/                      # Modul fitur berbasis domain
@@ -202,21 +323,32 @@ liveeuy_mob/
 │   ├── models/                        # Entitas Data Model (Immutable DTOs)
 │   │   ├── episode_model.dart
 │   │   ├── movie_model.dart
-│   │   └── review_model.dart
+│   │   ├── notification_model.dart
+│   │   ├── review_model.dart
+│   │   ├── user_settings_model.dart
+│   │   └── watch_progress_model.dart
 │   ├── providers/                     # State Management (Riverpod Notifiers)
-│   │   ├── auth_provider.dart         # State sesi pengguna & status VIP
-│   │   ├── media_provider.dart        # State koleksi tontonan, rating, & continue watching
+│   │   ├── auth_provider.dart         # State sesi pengguna & persistensi token JWT
+│   │   ├── media_provider.dart        # State katalog, watchlist offline, & continue watching
+│   │   ├── notification_provider.dart # State riwayat notifikasi, unread badge, & deep link handler
 │   │   ├── player_provider.dart       # State player HUD, audio/subtitel, & diagnostik
-│   │   └── search_provider.dart       # State penelusuran & filter hasil
+│   │   ├── search_provider.dart       # State penelusuran & filter hasil
+│   │   └── user_settings_provider.dart# State preferensi streaming & persistensi lokal
 │   └── shared/                        # Komponen UI yang dapat digunakan kembali
 │       └── widgets/
 │           ├── ambient_glow.dart      # Shader difusi pencahayaan belakang pemutar
 │           ├── glass_container.dart   # Wadah kartu glassmorphism semi-transparan
 │           ├── liveeuy_logo.dart      # Lencana logo brand LiveEuy
+│           ├── notification_modal.dart# Modal bottom sheet notifikasi interaktif
 │           ├── resolution_badge.dart  # Chip label kualitas (Full HD, HD, HDR)
 │           └── streamflix_logo.dart   # Tipografi brand StreamFlix
 └── test/
-    └── widget_test.dart               # Pengujian logika provider & unit testing
+    ├── account_settings_test.dart     # Pengujian interaksi akun & pengaturan
+    ├── notification_test.dart         # Pengujian bottom sheet notifikasi
+    ├── widget_test.dart               # Pengujian logika provider & unit testing
+    ├── network/                       # Pengujian spesifikasi DioException & ApiClient
+    └── services/                      # Pengujian LocalStorage, DeepLink, & Notification
+        └── local_storage_and_deeplink_test.dart
 ```
 
 ---

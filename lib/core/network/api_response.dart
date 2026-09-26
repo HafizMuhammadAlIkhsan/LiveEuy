@@ -29,8 +29,14 @@ class ApiResponse<T> {
       parsedTimestamp = DateTime.tryParse(json['timestamp'].toString());
     }
 
+    final bool isSuccess = json['success'] as bool? ??
+        (json['status'] is int &&
+            (json['status'] as int) >= 200 &&
+            (json['status'] as int) < 300) ??
+        false;
+
     return ApiResponse<T>(
-      success: json['success'] as bool? ?? false,
+      success: isSuccess,
       message: json['message'] as String? ?? '',
       data: parsedData,
       timestamp: parsedTimestamp,

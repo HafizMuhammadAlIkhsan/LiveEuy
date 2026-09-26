@@ -114,6 +114,42 @@ class Movie {
       if (json['audio'] != null) badges.add(json['audio'].toString());
     }
 
+    String formattedDuration = json['durationOrSeasons'] as String? ??
+        json['duration'] as String? ??
+        '';
+    if (formattedDuration.isEmpty && json['durationSeconds'] is num) {
+      final sec = (json['durationSeconds'] as num).toInt();
+      final hours = sec ~/ 3600;
+      final minutes = (sec % 3600) ~/ 60;
+      if (hours > 0) {
+        formattedDuration = '$hours Jam ${minutes > 0 ? '$minutes Min' : ''}'.trim();
+      } else {
+        formattedDuration = '$minutes Menit';
+      }
+    }
+
+    List<String> castList = [];
+    if (json['cast'] is List) {
+      castList = (json['cast'] as List).map((e) => e.toString()).toList();
+    } else if (json['castAndCrew'] is List) {
+      for (final person in (json['castAndCrew'] as List)) {
+        if (person is Map && person['name'] != null) {
+          castList.add(person['name'].toString());
+        }
+      }
+    }
+
+    String director = json['director'] as String? ?? '';
+    if (director.isEmpty && json['castAndCrew'] is List) {
+      for (final person in (json['castAndCrew'] as List)) {
+        if (person is Map &&
+            (person['role']?.toString().toUpperCase() == 'DIRECTOR')) {
+          director = person['name']?.toString() ?? '';
+          break;
+        }
+      }
+    }
+
     return Movie(
       id: json['id'] as String? ?? '',
       title: json['title'] as String? ?? '',
@@ -125,15 +161,10 @@ class Movie {
       ageRating: json['ageRating'] as String? ?? '',
       resolutionBadges: badges,
       genre: genre,
-      durationOrSeasons: json['durationOrSeasons'] as String? ??
-          json['duration'] as String? ??
-          '',
+      durationOrSeasons: formattedDuration,
       releaseYear: (json['releaseYear'] as num?)?.toInt() ?? 2024,
-      director: json['director'] as String? ?? '',
-      cast: (json['cast'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          const [],
+      director: director,
+      cast: castList,
       isTop10: isTop10,
       top10Rank: top10Rank,
       userRating: userRating,

@@ -4,8 +4,10 @@ import '../core/data/mock_data.dart';
 import '../core/network/api_config.dart';
 import '../core/network/api_provider.dart';
 import '../core/network/api_service.dart';
+import '../core/storage/local_storage_service.dart';
 import '../models/movie_model.dart';
 import '../models/review_model.dart';
+import '../models/watch_progress_model.dart';
 
 class MediaState {
   final List<Movie> heroList;
@@ -53,8 +55,9 @@ class MediaState {
 
 class MediaNotifier extends StateNotifier<MediaState> {
   final ApiService? apiService;
+  final LocalStorageService? storageService;
 
-  MediaNotifier({this.apiService})
+  MediaNotifier({this.apiService, this.storageService})
       : super(MediaState(
           heroList: MockData.heroMovies,
           continueWatching: MockData.continueWatchingList,
@@ -69,8 +72,35 @@ class MediaNotifier extends StateNotifier<MediaState> {
             'm_hero': MockData.gundalaReviews,
           },
         )) {
+    _loadFromLocalStorage();
     if (apiService != null) {
       fetchMedia();
+    }
+  }
+
+  void _loadFromLocalStorage() {
+    if (storageService == null) return;
+    try {
+      final savedWatchlist = storageService!.getWatchlistIds();
+      if (savedWatchlist.isNotEmpty) {
+        state = state.copyWith(watchlistIds: savedWatchlist);
+      }
+
+      final savedProgress = storageService!.getWatchProgressList();
+      if (savedProgress.isNotEmpty) {
+        final progressMap = {for (var p in savedProgress) p.mediaId: p.progress};
+        final updatedContinue = state.continueWatching.map((movie) {
+          if (progressMap.containsKey(movie.id)) {
+            return movie.copyWith(continueWatchingProgress: progressMap[movie.id]);
+          }
+          return movie;
+        }).toList();
+        state = state.copyWith(continueWatching: updatedContinue);
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[MediaNotifier] Gagal memuat data lokal: $e');
+      }
     }
   }
 
@@ -103,6 +133,7 @@ class MediaNotifier extends StateNotifier<MediaState> {
       final watchlistIds = await service.getWatchlistIds();
       if (watchlistIds.isNotEmpty) {
         state = state.copyWith(watchlistIds: watchlistIds);
+        storageService?.saveWatchlistIds(watchlistIds);
       }
     } catch (e) {
       if (kDebugMode) {
@@ -123,6 +154,7 @@ class MediaNotifier extends StateNotifier<MediaState> {
       updated.add(movieId);
     }
     state = state.copyWith(watchlistIds: updated);
+    storageService?.saveWatchlistIds(updated);
 
     final service = apiService;
     if (service != null) {
@@ -136,6 +168,7 @@ class MediaNotifier extends StateNotifier<MediaState> {
           synced.remove(movieId);
         }
         state = state.copyWith(watchlistIds: synced);
+        storageService?.saveWatchlistIds(synced);
       } catch (e) {
         if (kDebugMode) {
           debugPrint('[MediaNotifier] toggleWatchlist sync error (offline): $e');
@@ -200,7 +233,7 @@ class MediaNotifier extends StateNotifier<MediaState> {
     }
   }
 
-  /// Update durasi tontonan (continue watching) dengan sinkronisasi ke backend
+  /// Update durasi tontonan (continue watching) dengan sinkronisasi ke backend & local storage
   Future<void> updateContinueWatching(
     String movieId,
     double progress, {
@@ -213,6 +246,23 @@ class MediaNotifier extends StateNotifier<MediaState> {
       list[index] = list[index].copyWith(continueWatchingProgress: progress);
     }
     state = state.copyWith(continueWatching: list);
+
+    // Simpan ke local storage
+    if (storageService != null) {
+      final currentList = storageService!.getWatchProgressList();
+      currentList.removeWhere((p) => p.mediaId == movieId);
+      currentList.insert(
+        0,
+        WatchProgress(
+          userId: userId,
+          mediaId: movieId,
+          progress: progress,
+          lastEpisodeId: lastEpisodeId,
+          updatedAt: DateTime.now(),
+        ),
+      );
+      storageService!.saveWatchProgressList(currentList);
+    }
 
     final service = apiService;
     if (service != null) {
@@ -244,9 +294,31 @@ class MediaNotifier extends StateNotifier<MediaState> {
     list.insert(clampedIndex, movie);
     state = state.copyWith(continueWatching: list);
   }
+
+  Movie? findMovieById(String id) {
+    final all = [
+      ...state.heroList,
+      ...state.top10List,
+      ...state.popularList,
+      ...state.actionSciFiList,
+      ...state.continueWatching,
+      ...MockData.heroMovies,
+      ...MockData.top10Movies,
+      ...MockData.popularMovies,
+      ...MockData.actionSciFiMovies,
+    ];
+    for (final m in all) {
+      if (m.id == id) return m;
+    }
+    return null;
+  }
 }
 
 final mediaProvider = StateNotifierProvider<MediaNotifier, MediaState>((ref) {
   final apiService = ref.watch(apiServiceProvider);
-  return MediaNotifier(apiService: apiService);
+  LocalStorageService? storage;
+  try {
+    storage = ref.watch(localStorageServiceProvider);
+  } catch (_) {}
+  return MediaNotifier(apiService: apiService, storageService: storage);
 });

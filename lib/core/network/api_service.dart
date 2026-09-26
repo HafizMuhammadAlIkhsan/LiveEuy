@@ -19,9 +19,14 @@ class ApiService {
   Future<List<Movie>> getAllMedia() async {
     final response = await _client.get<List<Movie>>(
       ApiConfig.mediaPath,
-      fromJson: (data) => (data as List<dynamic>)
-          .map((item) => Movie.fromJson(item as Map<String, dynamic>))
-          .toList(),
+      fromJson: (data) {
+        final list = data is List
+            ? data
+            : (data is Map && data['content'] is List ? data['content'] as List : []);
+        return list
+            .map((item) => Movie.fromJson(item as Map<String, dynamic>))
+            .toList();
+      },
     );
     return response.data ?? [];
   }

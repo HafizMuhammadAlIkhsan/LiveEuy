@@ -169,9 +169,13 @@ void showNotificationSheet(
                             ref
                                 .read(notificationProvider.notifier)
                                 .markAsRead(item.id);
-                            if (item.targetMediaId != null) {
-                              Navigator.pop(ctx);
-                              onOpenMediaId?.call(item.targetMediaId!);
+                            Navigator.pop(ctx);
+                            if (onOpenMediaId != null && item.targetMediaId != null) {
+                              onOpenMediaId(item.targetMediaId!);
+                            } else {
+                              ref
+                                  .read(notificationProvider.notifier)
+                                  .openNotification(item);
                             }
                           },
                           child: Container(

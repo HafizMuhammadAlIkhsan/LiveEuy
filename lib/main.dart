@@ -12,19 +12,40 @@ import 'models/user_settings_model.dart';
 import 'providers/auth_provider.dart';
 import 'providers/media_provider.dart';
 import 'providers/user_settings_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'core/deeplink/deep_link_service.dart';
+import 'core/storage/local_storage_service.dart';
 import 'shared/widgets/streamflix_logo.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const ProviderScope(child: LiveEuyApp()));
+  SharedPreferences? prefs;
+  try {
+    prefs = await SharedPreferences.getInstance();
+  } catch (_) {}
+
+  final localStorage = prefs != null ? LocalStorageService(prefs: prefs) : null;
+
+  runApp(
+    ProviderScope(
+      overrides: [
+        if (localStorage != null)
+          localStorageServiceProvider.overrideWithValue(localStorage),
+      ],
+      child: const LiveEuyApp(),
+    ),
+  );
 }
 
-class LiveEuyApp extends StatelessWidget {
+class LiveEuyApp extends ConsumerWidget {
   const LiveEuyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final deepLinkService = ref.watch(deepLinkServiceProvider);
+
     return MaterialApp(
+      navigatorKey: deepLinkService.navigatorKey,
       title: 'LiveEuy',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
@@ -45,6 +66,18 @@ class MainNavigationScreen extends ConsumerStatefulWidget {
 
 class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
   int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final deepLinkService = ref.read(deepLinkServiceProvider);
+      deepLinkService.onNavigateTab = _onNavigateTab;
+      deepLinkService.mediaLookup = (id) {
+        return ref.read(mediaProvider.notifier).findMovieById(id);
+      };
+    });
+  }
 
   void _onNavigateTab(int index) {
     setState(() {
