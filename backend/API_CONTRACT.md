@@ -85,6 +85,34 @@ Semua endpoint mengembalikan struktur pembungkus JSON standar:
   }
   ```
 
+#### d. Hapus Banyak Media dari Watchlist Sekaligus (Batch / Bulk Delete)
+- **Method**: `POST` (dan didukung `DELETE` dengan request body)
+- **Path**: `/api/v1/user/watchlist/batch-delete` (atau `DELETE /api/v1/user/watchlist`)
+- **Query Params**: `userId` (string, opsional, default: ID pengguna aktif dari token)
+- **Headers**:
+  - `Content-Type`: `application/json`
+  - `Authorization`: `Bearer <access_token>`
+  - `X-Device-Type`: `Mobile` / `Desktop`
+- **Payload Request**:
+  ```json
+  {
+    "mediaIds": ["m1", "m3", "top_2"]
+  }
+  ```
+- **Respon Data**:
+  ```json
+  {
+    "success": true,
+    "deletedCount": 3,
+    "deletedMediaIds": ["m1", "m3", "top_2"],
+    "message": "3 media berhasil dihapus dari koleksi"
+  }
+  ```
+- **Karakteristik & Integritas**:
+  - **Atomik & Idempotent**: Operasi dijalankan dalam satu transaksi database. Jika salah satu ID sudah terhapus di perangkat lain, proses tidak melempar error dan tetap mengembalikan ID yang berhasil diproses.
+  - **Efisiensi Indeks**: Memanfaatkan indeks `(user_id, media_id)` melalui klausa `WHERE user_id = :userId AND media_id = ANY(:mediaIds)` agar eksekusi instan tanpa table locks.
+  - **Status Code**: `200 OK` (sukses), `400 Bad Request` (`mediaIds` kosong atau bukan array), `401 Unauthorized` (sesi habis).
+
 ---
 
 ### 3. Riwayat Tontonan & Lanjutkan Menonton (`/api/v1/user/progress`)

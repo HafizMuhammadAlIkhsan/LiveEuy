@@ -92,6 +92,7 @@ class ApiConfig {
   static const String watchlistPath = '/user/watchlist';
   static const String watchlistIdsPath = '/user/watchlist/ids';
   static String watchlistTogglePath(String mediaId) => '/user/watchlist/$mediaId';
+  static const String watchlistBatchDeletePath = '/user/watchlist/batch-delete';
 
   static const String progressPath = '/user/progress';
   static String reviewsPath(String mediaId) => '/media/$mediaId/reviews';

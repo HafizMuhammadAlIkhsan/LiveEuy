@@ -177,6 +177,45 @@ class MediaNotifier extends StateNotifier<MediaState> {
     }
   }
 
+  /// Hapus banyak media dari watchlist sekaligus (batch delete)
+  Future<void> removeMultipleFromWatchlist(
+    Iterable<String> movieIds, {
+    String userId = ApiConfig.defaultUserId,
+  }) async {
+    final idsList = movieIds.toList();
+    if (idsList.isEmpty) return;
+
+    final updated = Set<String>.from(state.watchlistIds);
+    updated.removeAll(idsList);
+    state = state.copyWith(watchlistIds: updated);
+    storageService?.saveWatchlistIds(updated);
+
+    final service = apiService;
+    if (service != null) {
+      try {
+        await service.removeWatchlistBatch(idsList, userId: userId);
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('[MediaNotifier] removeMultipleFromWatchlist sync error (offline): $e');
+        }
+      }
+    }
+  }
+
+  /// Menambahkan kembali sekumpulan media ke watchlist (misal untuk Undo)
+  Future<void> addMultipleToWatchlist(
+    Iterable<String> movieIds, {
+    String userId = ApiConfig.defaultUserId,
+  }) async {
+    final idsList = movieIds.toList();
+    if (idsList.isEmpty) return;
+
+    final updated = Set<String>.from(state.watchlistIds);
+    updated.addAll(idsList);
+    state = state.copyWith(watchlistIds: updated);
+    storageService?.saveWatchlistIds(updated);
+  }
+
   /// Tambah ulasan baru dengan pembaruan UI seketika & pengiriman ke backend
   Future<void> addReview(
     String movieId,

@@ -217,6 +217,24 @@ DO UPDATE SET
     updated_at = NOW();
 ```
 
+### 5. Pola Batch Deletion Watchlist (Aman, Efisien, & Idempotent)
+Untuk mendukung multi-selection delete dari aplikasi mobile tanpa menimbulkan N+1 delete queries atau table lock:
+
+```sql
+-- Batch delete sejumlah media dari watchlist pengguna secara atomik
+DELETE FROM watchlist
+WHERE user_id = :userId
+  AND media_id = ANY(:mediaIds);
+
+-- Alternatif kueri IN clause:
+-- DELETE FROM watchlist WHERE user_id = :userId AND media_id IN ('m1', 'm3', 'top_2');
+```
+
+**Karakteristik & Integritas:**
+- **Indeks Efisien:** Menggunakan indeks komposit `(user_id, media_id)` atau indeks tunggal `idx_watchlist_user_id` sehingga kueri langsung melakukan index-scan tanpa scan penuh (*table-scan*).
+- **Idempotensi Antar Perangkat:** Jika pengguna membuka Web dan Mobile bersamaan lalu salah satu item telah dihapus dari Web, eksekusi batch delete di Mobile tetap sukses tanpa error constraint (`affected rows` mengindikasikan item yang benar-benar dihapus).
+- **Batas Batching:** Rekomendasi maksimal 100 ID per batch request untuk menjaga latensi kueri di bawah 15ms.
+
 ---
 
 ## Menjalankan Database PostgreSQL Lokal Terisolasi

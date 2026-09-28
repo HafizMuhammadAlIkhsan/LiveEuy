@@ -102,6 +102,26 @@ class ApiService {
     return response.data ?? false;
   }
 
+  /// Menghapus banyak media dari watchlist sekaligus (`POST /api/v1/user/watchlist/batch-delete`)
+  Future<bool> removeWatchlistBatch(
+    List<String> mediaIds, {
+    String userId = ApiConfig.defaultUserId,
+  }) async {
+    if (mediaIds.isEmpty) return true;
+    final response = await _client.post<bool>(
+      ApiConfig.watchlistBatchDeletePath,
+      queryParams: {'userId': userId},
+      body: {'mediaIds': mediaIds},
+      fromJson: (data) {
+        if (data is Map<String, dynamic>) {
+          return data['success'] as bool? ?? true;
+        }
+        return true;
+      },
+    );
+    return response.data ?? false;
+  }
+
   // ==========================================
   // 3. Riwayat Tontonan & Progres
   // ==========================================

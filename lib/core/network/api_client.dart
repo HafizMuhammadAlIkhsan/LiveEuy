@@ -210,11 +210,13 @@ class ApiClient {
   Future<ApiResponse<T>> delete<T>(
     String path, {
     Map<String, dynamic>? queryParams,
+    Object? body,
     Map<String, String>? headers,
     T Function(dynamic data)? fromJson,
     Duration? timeout,
   }) async {
     final uri = _buildUri(path, queryParams);
+    final encodedBody = _encodeBody(body);
     final requestOptions = RequestOptions(
       path: path,
       method: 'DELETE',
@@ -224,6 +226,7 @@ class ApiClient {
         ...?headers,
       },
       queryParameters: queryParams,
+      data: body,
       connectTimeout: timeout ?? ApiConfig.timeout,
     );
 
@@ -231,6 +234,7 @@ class ApiClient {
       () => _httpClient.delete(
         requestOptions.uri,
         headers: requestOptions.headers.map((k, v) => MapEntry(k, v.toString())),
+        body: encodedBody,
       ),
       method: 'DELETE',
       uri: uri,
