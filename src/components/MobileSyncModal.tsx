@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useWatch } from '../context/WatchContext';
 import { apiService } from '../services/api';
+import { useModalA11y } from '../hooks/useModalA11y';
 import { 
   X, 
   Smartphone, 
@@ -31,6 +32,15 @@ export const MobileSyncModal: React.FC = () => {
     updateWatchProgress,
     user 
   } = useWatch();
+
+  const modalRef = React.useRef<HTMLDivElement>(null);
+
+  // Focus trap, Escape key listener, and body scroll lock
+  useModalA11y({
+    isOpen: isMobileSyncOpen,
+    onClose: closeMobileSync,
+    modalRef
+  });
 
   const [activeTab, setActiveTab] = useState<'mobile' | 'backend' | 'guide'>('mobile');
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
@@ -180,6 +190,10 @@ export const MobileSyncModal: React.FC = () => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in">
       <div 
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Hub Ekosistem Web, Backend, dan Mobile"
         className="relative w-full max-w-2xl rounded-2xl bg-[#0c0e14] border border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
         onClick={e => e.stopPropagation()}
       >

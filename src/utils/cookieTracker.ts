@@ -68,10 +68,16 @@ export function detectDeviceType(ua: string): 'Desktop' | 'Mobile' | 'Tablet' {
   if (typeof window !== 'undefined') {
     const width = window.innerWidth;
     const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+    // Mobile phones take precedence
+    if (/(iphone|ipod)/i.test(ua) || /(android.*mobile)/i.test(ua) || width < 640) {
+      return 'Mobile';
+    }
+    // Tablets & iPads
     if (/(ipad|tablet|(android(?!.*mobile)))/i.test(ua) || (hasTouch && width >= 640 && width <= 1024)) {
       return 'Tablet';
     }
-    if (/(android|iphone|ipod|mobile)/i.test(ua) || width < 640) {
+    if (/(android|mobile)/i.test(ua)) {
       return 'Mobile';
     }
   }

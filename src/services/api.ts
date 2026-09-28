@@ -1,4 +1,4 @@
-import { MediaItem, WatchProgress, Review } from '../types';
+import { MediaItem, WatchProgress, Review, User } from '../types';
 import { MOCK_MEDIA } from '../data/mockData';
 
 const DEFAULT_CATALOG_URL = import.meta.env.VITE_CATALOG_API_URL || 'http://localhost:8081/api/v1';
@@ -8,18 +8,75 @@ const DEFAULT_AUTH_URL = import.meta.env.VITE_AUTH_API_URL || 'http://localhost:
 export interface AuthResponse {
   success: boolean;
   token?: string;
+  refreshToken?: string;
   message?: string;
-  user?: {
-    name: string;
-    email: string;
-    createdAt?: string;
-  };
+  user?: Partial<User>;
 }
 
 class LiveEuyApiService {
   private activeCatalogUrl: string | null = null;
   private isCatalogOnline: boolean | null = null;
   private isAuthOnline: boolean | null = null;
+  private accessToken: string | null = null;
+  private isRefreshing: boolean = false;
+  private refreshSubscribers: Array<(token: string | null) => void> = [];
+
+  constructor() {
+    if (typeof window !== 'undefined') {
+      this.accessToken = sessionStorage.getItem('liveeuy_access_token');
+    }
+  }
+
+  public setAccessToken(token: string | null): void {
+    this.accessToken = token;
+    if (typeof window !== 'undefined') {
+      if (token) {
+        sessionStorage.setItem('liveeuy_access_token', token);
+      } else {
+        sessionStorage.removeItem('liveeuy_access_token');
+      }
+    }
+  }
+
+  public getAccessToken(): string | null {
+    if (!this.accessToken && typeof window !== 'undefined') {
+      this.accessToken = sessionStorage.getItem('liveeuy_access_token');
+    }
+    return this.accessToken;
+  }
+
+  /**
+   * Universal HTTP fetch wrapper with Automatic 401 Silent Token Refresh & HttpOnly Cookies
+   */
+  public async authorizedFetch(url: string, options: RequestInit = {}): Promise<Response> {
+    const headers = new Headers(options.headers || {});
+    if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
+      headers.set('Content-Type', 'application/json');
+    }
+    const token = this.getAccessToken();
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+
+    const fetchOptions: RequestInit = {
+      ...options,
+      headers,
+      credentials: 'include' // Always transmit and accept HttpOnly cookies (refreshToken)
+    };
+
+    let res = await fetch(url, fetchOptions);
+
+    // If 401 Unauthorized, perform silent token refresh and replay request
+    if (res.status === 401 && !url.includes('/refresh') && !url.includes('/login')) {
+      const newToken = await this.refreshToken();
+      if (newToken) {
+        headers.set('Authorization', `Bearer ${newToken}`);
+        res = await fetch(url, { ...fetchOptions, headers });
+      }
+    }
+
+    return res;
+  }
 
   /**
    * Cek ketersediaan layanan Catalog (Spring Boot) pada port 8081 (catalog-service) atau 8080 (backend starter)
@@ -51,14 +108,15 @@ class LiveEuyApiService {
   }
 
   /**
-   * Cek kesehatan Auth Service (Golang)
+   * Cek kesehatan Auth Service
    */
   private async checkAuthHealth(): Promise<boolean> {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 1200);
-      const res = await fetch(`${DEFAULT_AUTH_URL}/api/health`, {
-        signal: controller.signal
+      const res = await fetch(`${DEFAULT_AUTH_URL}/api/v1/auth/me`, {
+        signal: controller.signal,
+        credentials: 'include'
       });
       clearTimeout(timeout);
       this.isAuthOnline = res.ok;
@@ -82,115 +140,267 @@ class LiveEuyApiService {
   }
 
   // ==========================================
-  // AUTHENTICATION ENDPOINTS (Go Auth Service)
+  // AUTHENTICATION ENDPOINTS (Dual-Token Contract)
   // ==========================================
 
   async login(email: string, password: string): Promise<AuthResponse | null> {
-    try {
-      const res = await fetch(`${DEFAULT_AUTH_URL}/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        return {
-          success: true,
-          token: data.token,
-          user: data.user
-        };
-      }
-    } catch (err) {
-      console.warn('Auth Service offline atau gagal terhubung:', err);
-    }
-    return null;
-  }
+    const authEndpoints = [
+      `${DEFAULT_AUTH_URL}/api/v1/auth/login`,
+      `${FALLBACK_CATALOG_URL}/auth/login`,
+      `${DEFAULT_AUTH_URL}/login`
+    ];
 
-  async register(name: string, email: string, password: string): Promise<AuthResponse | null> {
-    try {
-      const res = await fetch(`${DEFAULT_AUTH_URL}/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        return {
-          success: true,
-          token: data.token,
-          user: data.user
-        };
-      }
-    } catch (err) {
-      console.warn('Auth Service offline atau gagal registrasi:', err);
-    }
-    return null;
-  }
+    for (const url of authEndpoints) {
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+          credentials: 'include' // Accepts Set-Cookie: refreshToken (HttpOnly)
+        });
 
-  /**
-   * Logout dari sesi saat ini
-   */
-  async logout(): Promise<boolean> {
-    try {
-      const testUrls = [`${DEFAULT_AUTH_URL}/api/v1/auth/logout`, `${FALLBACK_CATALOG_URL}/auth/logout`];
-      for (const url of testUrls) {
-        try {
-          const res = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-          });
-          if (res.ok) return true;
-        } catch {
-          // Lanjutkan coba url berikutnya
+        if (res.ok) {
+          const json = await res.json();
+          const data = json.data || json;
+          const token = data.accessToken || data.token;
+          const user = data.user;
+
+          if (token) {
+            this.setAccessToken(token);
+          }
+
+          return {
+            success: true,
+            token,
+            user,
+            message: json.message || 'Login berhasil. Selamat datang kembali!'
+          };
+        } else {
+          const errData = await res.json().catch(() => null);
+          return {
+            success: false,
+            message: errData?.message || 'Email atau kata sandi tidak valid'
+          };
         }
+      } catch {
+        // Try fallback endpoint
       }
-    } catch (err) {
-      console.warn('Logout endpoint offline:', err);
     }
-    return true;
+
+    return null;
+  }
+
+  async register(name: string, email: string, password: string, tier: string = 'VIP Standard'): Promise<AuthResponse | null> {
+    const authEndpoints = [
+      `${DEFAULT_AUTH_URL}/api/v1/auth/register`,
+      `${FALLBACK_CATALOG_URL}/auth/register`,
+      `${DEFAULT_AUTH_URL}/register`
+    ];
+
+    for (const url of authEndpoints) {
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password, tier }),
+          credentials: 'include'
+        });
+
+        if (res.ok) {
+          const json = await res.json();
+          const data = json.data || json;
+          const token = data.accessToken || data.token;
+          const user = data.user;
+
+          if (token) {
+            this.setAccessToken(token);
+          }
+
+          return {
+            success: true,
+            token,
+            user,
+            message: json.message || 'Pendaftaran akun berhasil!'
+          };
+        } else {
+          const errData = await res.json().catch(() => null);
+          return {
+            success: false,
+            message: errData?.message || 'Gagal mendaftarkan akun. Email mungkin sudah terdaftar.'
+          };
+        }
+      } catch {
+        // Try fallback endpoint
+      }
+    }
+
+    return null;
   }
 
   /**
-   * Logout dari SEMUA device/perangkat (Revoke semua sesi dan refresh token di database backend)
+   * Silent Token Refresh via HttpOnly Cookie (POST /api/v1/auth/refresh)
    */
-  async logoutAllDevices(includeCurrent = true): Promise<boolean> {
+  async refreshToken(): Promise<string | null> {
+    if (this.isRefreshing) {
+      return new Promise<string | null>(resolve => {
+        this.refreshSubscribers.push(token => resolve(token));
+      });
+    }
+
+    this.isRefreshing = true;
+
     try {
-      const testUrls = [`${DEFAULT_AUTH_URL}/api/v1/auth/logout-all`, `${FALLBACK_CATALOG_URL}/auth/logout-all`];
-      for (const url of testUrls) {
+      const refreshEndpoints = [
+        `${DEFAULT_AUTH_URL}/api/v1/auth/refresh`,
+        `${FALLBACK_CATALOG_URL}/auth/refresh`,
+        `${DEFAULT_AUTH_URL}/refresh`
+      ];
+
+      for (const url of refreshEndpoints) {
         try {
           const res = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ includeCurrent })
+            credentials: 'include'
           });
-          if (res.ok) return true;
+
+          if (res.ok) {
+            const json = await res.json();
+            const data = json.data || json;
+            const newToken = data.accessToken || data.token;
+
+            if (newToken) {
+              this.setAccessToken(newToken);
+              this.refreshSubscribers.forEach(cb => cb(newToken));
+              this.refreshSubscribers = [];
+              this.isRefreshing = false;
+              return newToken;
+            }
+          }
         } catch {
-          // Lanjutkan coba url berikutnya
+          // Try next
         }
       }
-    } catch (err) {
-      console.warn('Logout all devices endpoint offline:', err);
+    } catch (e) {
+      console.warn('Silent token refresh failed:', e);
     }
+
+    this.setAccessToken(null);
+    this.refreshSubscribers.forEach(cb => cb(null));
+    this.refreshSubscribers = [];
+    this.isRefreshing = false;
+    return null;
+  }
+
+  /**
+   * Mengambil profil pengguna aktif (GET /api/v1/auth/me)
+   */
+  async getCurrentUser(): Promise<User | null> {
+    const meEndpoints = [
+      `${DEFAULT_AUTH_URL}/api/v1/auth/me`,
+      `${FALLBACK_CATALOG_URL}/auth/me`,
+      `${DEFAULT_AUTH_URL}/me`
+    ];
+
+    for (const url of meEndpoints) {
+      try {
+        const res = await this.authorizedFetch(url, { method: 'GET' });
+        if (res.ok) {
+          const json = await res.json();
+          const user = json.data || json.user || json;
+          if (user && user.email) {
+            return user as User;
+          }
+        }
+      } catch {
+        // Try next
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Restore user session seamlessly on page load (Auto Silent Refresh)
+   */
+  async restoreSession(): Promise<User | null> {
+    const user = await this.getCurrentUser();
+    if (user) return user;
+
+    // If no access token or 401, attempt silent refresh using HttpOnly cookie
+    const token = await this.refreshToken();
+    if (token) {
+      return await this.getCurrentUser();
+    }
+
+    return null;
+  }
+
+  /**
+   * Logout dari sesi saat ini (POST /api/v1/auth/logout)
+   */
+  async logout(): Promise<boolean> {
+    const logoutEndpoints = [
+      `${DEFAULT_AUTH_URL}/api/v1/auth/logout`,
+      `${FALLBACK_CATALOG_URL}/auth/logout`,
+      `${DEFAULT_AUTH_URL}/logout`
+    ];
+
+    for (const url of logoutEndpoints) {
+      try {
+        await this.authorizedFetch(url, { method: 'POST' });
+        break;
+      } catch {
+        // Try next
+      }
+    }
+
+    this.setAccessToken(null);
     return true;
   }
 
   /**
-   * Logout / revoke satu perangkat tertentu
+   * Logout dari SEMUA device/perangkat (POST /api/v1/auth/logout-all)
+   */
+  async logoutAllDevices(includeCurrent = true): Promise<boolean> {
+    const testUrls = [
+      `${DEFAULT_AUTH_URL}/api/v1/auth/logout-all`,
+      `${FALLBACK_CATALOG_URL}/auth/logout-all`
+    ];
+
+    for (const url of testUrls) {
+      try {
+        const res = await this.authorizedFetch(url, {
+          method: 'POST',
+          body: JSON.stringify({ includeCurrent })
+        });
+        if (res.ok) return true;
+      } catch {
+        // Try next
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Logout / revoke satu perangkat tertentu (DELETE /api/v1/auth/devices/:sessionId)
    */
   async logoutDevice(sessionId: string): Promise<boolean> {
-    try {
-      const testUrls = [`${DEFAULT_AUTH_URL}/api/v1/auth/devices/${sessionId}`, `${FALLBACK_CATALOG_URL}/auth/devices/${sessionId}`];
-      for (const url of testUrls) {
-        try {
-          const res = await fetch(url, { method: 'DELETE' });
-          if (res.ok) return true;
-        } catch {
-          // Lanjutkan coba url berikutnya
-        }
+    const testUrls = [
+      `${DEFAULT_AUTH_URL}/api/v1/auth/devices/${sessionId}`,
+      `${FALLBACK_CATALOG_URL}/auth/devices/${sessionId}`
+    ];
+
+    for (const url of testUrls) {
+      try {
+        const res = await this.authorizedFetch(url, { method: 'DELETE' });
+        if (res.ok) return true;
+      } catch {
+        // Try next
       }
-    } catch (err) {
-      console.warn('Logout device endpoint offline:', err);
     }
+
     return true;
   }
 

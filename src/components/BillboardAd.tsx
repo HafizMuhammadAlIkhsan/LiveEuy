@@ -7,57 +7,22 @@ interface BillboardAdProps {
   className?: string;
 }
 
-const DEFAULT_LEFT_BANNER: AdCampaign = {
-  id: 'ad-qq828',
-  title: 'MEMBER BARU QQ828',
-  partnerName: 'QQ828',
-  partnerLogo: '/ads/banner-qq828.png',
-  layer: 'billboard_feed',
-  bannerUrl: '/ads/banner-qq828.png',
-  targetUrl: 'https://qq828.com',
-  ctaText: 'Daftar Sekarang',
-  headline: 'MEMBER BARU QQ828',
-  description: 'Bonus Member Baru QQ828',
-  badge: 'SPONSOR UTAMA',
-  category: 'Entertainment & Gaming',
-  budget: 50000000,
-  impressions: 345000,
-  clicks: 42100,
-  startDate: '2026-09-01',
-  endDate: '2026-12-31',
-  isActive: true,
-};
-
-const DEFAULT_RIGHT_BANNER: AdCampaign = {
-  id: 'ad-qq888bet',
-  title: 'QQ888BET Berani Coba?',
-  partnerName: 'QQ888BET',
-  partnerLogo: '/ads/banner-qq888bet.png',
-  layer: 'billboard_feed',
-  bannerUrl: '/ads/banner-qq888bet.png',
-  targetUrl: 'https://qq888bet.com',
-  ctaText: 'Berani Coba?',
-  headline: 'QQ888BET Berani Coba?',
-  description: 'Sensasi hiburan dan tantangan harian berhadiah.',
-  badge: 'HOT SPONSOR',
-  category: 'Entertainment & Gaming',
-  budget: 45000000,
-  impressions: 310000,
-  clicks: 38900,
-  startDate: '2026-09-01',
-  endDate: '2026-12-31',
-  isActive: true,
-};
-
 export const BillboardAd: React.FC<BillboardAdProps> = ({ placementIndex = 0, className = '' }) => {
   const { ads, recordAdImpression, recordAdClick } = useWatch();
 
-  // Find active billboard feed ads
+  // Find active billboard feed ads synchronized with Admin Page
   const billboardAds = ads.filter(a => a.isActive && a.layer === 'billboard_feed');
 
-  // Pair selection with fallback to the authentic dual banners
-  const leftAd: AdCampaign = billboardAds[(placementIndex * 2) % Math.max(1, billboardAds.length)] || DEFAULT_LEFT_BANNER;
-  const rightAd: AdCampaign = billboardAds[(placementIndex * 2 + 1) % Math.max(1, billboardAds.length)] || DEFAULT_RIGHT_BANNER;
+  // If all billboard ads are deactivated in Admin Page, do not render anything
+  if (billboardAds.length === 0) {
+    return null;
+  }
+
+  // Pair selection from active billboard ads
+  const leftAd: AdCampaign = billboardAds[(placementIndex * 2) % billboardAds.length];
+  const rightAd: AdCampaign = billboardAds.length > 1
+    ? billboardAds[(placementIndex * 2 + 1) % billboardAds.length]
+    : billboardAds[0];
 
   const [hasRecordedImpressions, setHasRecordedImpressions] = useState(false);
 
@@ -79,13 +44,14 @@ export const BillboardAd: React.FC<BillboardAdProps> = ({ placementIndex = 0, cl
   };
 
   return (
-    <div className={`cinema-layout-container my-4 sm:my-6 ${className}`}>
-      {/* Dual Horizontal Banners Side-by-Side matching IDLIX streaming layout */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 items-center">
-        {/* Left Banner: MEMBER BARU QQ828 */}
+    <div className={`cinema-layout-container my-2 sm:my-3 lg:my-3.5 ${className}`}>
+      {/* Dual Horizontal Banners Side-by-Side: Slim rectangular height matching IDLIX */}
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:gap-4 items-center w-full">
+        {/* Left Banner */}
         <div
           onClick={() => handleAdClick(leftAd)}
-          className="group relative rounded-lg sm:rounded-xl overflow-hidden cursor-pointer shadow-md transition-all duration-200 hover:scale-[1.01] hover:brightness-110 active:scale-[0.99] border border-white/5 hover:border-cyan-500/30 bg-black/40"
+          className="group relative w-full aspect-[866/78] rounded-lg sm:rounded-xl overflow-hidden cursor-pointer shadow-md transition-all duration-200 hover:scale-[1.008] hover:brightness-105 active:scale-[0.99] border border-white/5 hover:border-cyan-500/30 bg-black/40 flex items-center justify-center"
+          style={{ aspectRatio: '866 / 78' }}
           role="button"
           tabIndex={0}
           aria-label={leftAd.title}
@@ -94,17 +60,18 @@ export const BillboardAd: React.FC<BillboardAdProps> = ({ placementIndex = 0, cl
           <img
             src={leftAd.bannerUrl}
             alt={leftAd.title}
-            className="w-full h-auto object-cover block select-none"
+            className="w-full h-full object-contain object-center block select-none"
             onError={(e) => {
-              (e.target as HTMLImageElement).src = '/ads/banner-qq828.png';
+              (e.target as HTMLImageElement).src = '/ads/banner-liveeuy-vip.svg';
             }}
           />
         </div>
 
-        {/* Right Banner: QQ888BET Berani Coba? */}
+        {/* Right Banner */}
         <div
           onClick={() => handleAdClick(rightAd)}
-          className="group relative rounded-lg sm:rounded-xl overflow-hidden cursor-pointer shadow-md transition-all duration-200 hover:scale-[1.01] hover:brightness-110 active:scale-[0.99] border border-white/5 hover:border-blue-500/30 bg-black/40"
+          className="group relative w-full aspect-[866/78] rounded-lg sm:rounded-xl overflow-hidden cursor-pointer shadow-md transition-all duration-200 hover:scale-[1.008] hover:brightness-105 active:scale-[0.99] border border-white/5 hover:border-blue-500/30 bg-black/40 flex items-center justify-center"
+          style={{ aspectRatio: '866 / 78' }}
           role="button"
           tabIndex={0}
           aria-label={rightAd.title}
@@ -113,9 +80,9 @@ export const BillboardAd: React.FC<BillboardAdProps> = ({ placementIndex = 0, cl
           <img
             src={rightAd.bannerUrl}
             alt={rightAd.title}
-            className="w-full h-auto object-cover block select-none"
+            className="w-full h-full object-contain object-center block select-none"
             onError={(e) => {
-              (e.target as HTMLImageElement).src = '/ads/banner-qq888bet.png';
+              (e.target as HTMLImageElement).src = '/ads/banner-liveeuy-mobile.svg';
             }}
           />
         </div>

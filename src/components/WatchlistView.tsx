@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { 
   Bookmark, 
   Play,
@@ -135,13 +136,13 @@ export const WatchlistView: React.FC = () => {
             <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
               Jelajahi berbagai judul film dan serial menarik di LiveEuy, lalu klik ikon tanda tambah (+) untuk menyimpannya di sini.
             </p>
-            <button
-              onClick={() => setCurrentTab('home')}
+            <Link
+              to="/"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all hover:scale-105 active:scale-95 shadow-lg shadow-brand-600/25"
             >
               <Sparkles className="w-4 h-4" />
               <span>Jelajahi Film Sekarang</span>
-            </button>
+            </Link>
           </div>
         )}
       </div>

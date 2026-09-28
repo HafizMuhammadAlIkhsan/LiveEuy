@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   X, 
   Sparkles, 
@@ -19,10 +19,12 @@ import {
 } from 'lucide-react';
 import { useWatch } from '../context/WatchContext';
 import { AdPlacementLayer } from '../types';
+import { useModalA11y } from '../hooks/useModalA11y';
 
 export const PartnershipModal: React.FC = () => {
   const { isPartnershipModalOpen, closePartnershipModal, submitAdInquiry } = useWatch();
 
+  const modalRef = useRef<HTMLDivElement>(null);
   const [companyName, setCompanyName] = useState('');
   const [contactName, setContactName] = useState('');
   const [email, setEmail] = useState('');
@@ -31,6 +33,13 @@ export const PartnershipModal: React.FC = () => {
   const [selectedLayers, setSelectedLayers] = useState<AdPlacementLayer[]>(['billboard_feed']);
   const [campaignObjective, setCampaignObjective] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
+
+  // Focus trap, Escape key listener, and body scroll lock
+  useModalA11y({
+    isOpen: isPartnershipModalOpen,
+    onClose: closePartnershipModal,
+    modalRef
+  });
 
   if (!isPartnershipModalOpen) return null;
 
@@ -102,7 +111,13 @@ export const PartnershipModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in overflow-y-auto">
-      <div className="relative w-full max-w-4xl rounded-3xl bg-surface-900 border border-white/10 p-6 sm:p-8 shadow-2xl my-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
+      <div 
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Kerja Sama Promosi & Penayangan Iklan"
+        className="relative w-full max-w-4xl rounded-3xl bg-surface-900 border border-white/10 p-6 sm:p-8 shadow-2xl my-8 max-h-[90vh] overflow-y-auto custom-scrollbar"
+      >
         
         {/* Close Button */}
         <button

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Play, 
   Search, 
@@ -47,6 +48,9 @@ export const Navbar: React.FC = () => {
     broadcastAnnouncement
   } = useWatch();
 
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const [isScrolled, setIsScrolled] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -58,7 +62,7 @@ export const Navbar: React.FC = () => {
   const profileRef = useRef<HTMLDivElement>(null);
 
   const isAdminUser = Boolean(user && user.role === 'admin');
-  const isInAdminPage = currentTab === 'admin';
+  const isInAdminPage = location.pathname.startsWith('/admin') || currentTab === 'admin';
 
   useEffect(() => {
     const handleScroll = () => {
@@ -111,12 +115,12 @@ export const Navbar: React.FC = () => {
       ).slice(0, 5)
     : [];
 
-  const navItems: { tab: ViewTab; label: string; tabletLabel?: string; icon: React.ReactNode }[] = [
-    { tab: 'home', label: 'Beranda', icon: <Play className="w-4 h-4" /> },
-    { tab: 'movies', label: 'Film', icon: <Film className="w-4 h-4" /> },
-    { tab: 'tv', label: 'Serial TV', tabletLabel: 'Serial', icon: <Tv className="w-4 h-4" /> },
-    { tab: 'trending', label: 'Trending', icon: <Flame className="w-4 h-4" /> },
-    { tab: 'watchlist', label: 'Koleksi Saya', tabletLabel: 'Koleksi', icon: <Bookmark className="w-4 h-4" /> },
+  const navItems: { tab: ViewTab; path: string; label: string; tabletLabel?: string; icon: React.ReactNode }[] = [
+    { tab: 'home', path: '/', label: 'Beranda', icon: <Play className="w-4 h-4" /> },
+    { tab: 'movies', path: '/movies', label: 'Film', icon: <Film className="w-4 h-4" /> },
+    { tab: 'tv', path: '/tv', label: 'Serial TV', tabletLabel: 'Serial', icon: <Tv className="w-4 h-4" /> },
+    { tab: 'trending', path: '/trending', label: 'Trending', icon: <Flame className="w-4 h-4" /> },
+    { tab: 'watchlist', path: '/watchlist', label: 'Koleksi Saya', tabletLabel: 'Koleksi', icon: <Bookmark className="w-4 h-4" /> },
   ];
 
   const handleAdminModuleJump = (moduleId: string) => {
@@ -199,11 +203,9 @@ export const Navbar: React.FC = () => {
             <div className="flex items-center gap-3 sm:gap-4 md:gap-3.5 lg:gap-8 xl:gap-10 min-w-0">
               
               {/* Brand Logo - Bold Minimalist Cinema Typographic Wordmark */}
-              <button
-                onClick={() => {
-                  setCurrentTab('home');
-                  setSearchQuery('');
-                }}
+              <Link
+                to="/"
+                onClick={() => setSearchQuery('')}
                 className="flex items-center gap-1.5 sm:gap-2 group cursor-pointer text-left flex-shrink-0"
                 title={isInAdminPage ? "Kembali ke Beranda LiveEuy" : "LiveEuy Beranda"}
               >
@@ -215,36 +217,32 @@ export const Navbar: React.FC = () => {
                     CMS
                   </span>
                 )}
-              </button>
+              </Link>
 
               {/* DESKTOP & TABLET CENTER NAVIGATION */}
               {isInAdminPage ? (
                 /* Admin Topbar: Return to Website */
                 <div className="hidden md:flex items-center gap-2 lg:gap-3">
-                  <button
-                    onClick={() => {
-                      setCurrentTab('home');
-                      setSearchQuery('');
-                    }}
+                  <Link
+                    to="/"
+                    onClick={() => setSearchQuery('')}
                     className="flex items-center gap-1.5 px-2.5 lg:px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 transition-colors text-xs font-medium min-h-[36px]"
                   >
                     <ArrowLeft className="w-3.5 h-3.5 text-emerald-400" />
                     <span>Kembali ke Website</span>
-                  </button>
+                  </Link>
                   <span className="hidden lg:inline text-xs text-slate-400 font-medium">Panel Kontrol CMS</span>
                 </div>
               ) : (
                 /* Regular User Consumer Tabs (Beranda, Film, Serial, Trending, Koleksi) */
                 <nav className="hidden md:flex items-center gap-1 md:gap-1.5 lg:gap-5 xl:gap-7">
                   {navItems.map(item => {
-                    const isActive = currentTab === item.tab && !searchQuery;
+                    const isActive = (location.pathname === item.path || (item.path === '/' && location.pathname === '')) && !searchQuery;
                     return (
-                      <button
+                      <Link
                         key={item.tab}
-                        onClick={() => {
-                          setCurrentTab(item.tab);
-                          setSearchQuery('');
-                        }}
+                        to={item.path}
+                        onClick={() => setSearchQuery('')}
                         className={`text-xs lg:text-sm tracking-normal transition-all relative py-1.5 px-2 lg:px-2.5 rounded-lg flex items-center min-h-[38px] ${
                           isActive
                             ? 'text-white font-semibold after:absolute after:-bottom-2 lg:after:-bottom-2.5 after:left-1.5 after:right-1.5 after:h-0.5 after:bg-brand-500 after:rounded-full'
@@ -258,7 +256,7 @@ export const Navbar: React.FC = () => {
                             {watchlist.length}
                           </span>
                         )}
-                      </button>
+                      </Link>
                     );
                   })}
                 </nav>
@@ -279,14 +277,31 @@ export const Navbar: React.FC = () => {
                       value={searchQuery}
                       onChange={e => {
                         setSearchQuery(e.target.value);
-                        if (e.target.value) setCurrentTab('search');
+                        if (e.target.value && location.pathname !== '/search') {
+                          navigate(`/search?q=${encodeURIComponent(e.target.value)}`);
+                        }
+                      }}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          if (searchQuery.trim()) {
+                            navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+                          } else {
+                            navigate('/search');
+                          }
+                          setIsSearchOpen(false);
+                        }
                       }}
                       placeholder="Cari judul film, serial..."
                       className="w-full bg-transparent text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none"
                     />
                     {searchQuery && (
                       <button
-                        onClick={() => setSearchQuery('')}
+                        onClick={() => {
+                          setSearchQuery('');
+                          if (location.pathname === '/search') {
+                            navigate('/search');
+                          }
+                        }}
                         className="p-1 hover:text-white text-slate-400 min-w-[22px] min-h-[22px] flex items-center justify-center rounded-full hover:bg-white/10"
                         title="Hapus teks"
                       >
@@ -704,12 +719,12 @@ export const Navbar: React.FC = () => {
           style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
         >
           {navItems.map(item => {
-            const isActive = currentTab === item.tab && !searchQuery;
+            const isActive = (location.pathname === item.path || (item.path === '/' && location.pathname === '')) && !searchQuery;
             return (
-              <button
+              <Link
                 key={item.tab}
+                to={item.path}
                 onClick={() => {
-                  setCurrentTab(item.tab);
                   setSearchQuery('');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
@@ -731,7 +746,7 @@ export const Navbar: React.FC = () => {
                 {isActive && (
                   <span className="w-1 h-1 rounded-full bg-brand-500 mt-0.5" />
                 )}
-              </button>
+              </Link>
             );
           })}
         </nav>

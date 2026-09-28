@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import Hls from 'hls.js';
 import { 
   Play, 
   Pause, 
@@ -23,9 +24,17 @@ import {
   FastForward,
   Smartphone,
   ExternalLink,
-  ShieldCheck
+  ShieldCheck,
+  AlertCircle
 } from 'lucide-react';
 import { useWatch } from '../context/WatchContext';
+
+export interface HlsQualityLevel {
+  index: number;
+  label: string;
+  height: number;
+  bitrate?: number;
+}
 
 export const VideoPlayerModal: React.FC = () => {
   const { 
@@ -46,6 +55,16 @@ export const VideoPlayerModal: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hlsRef = useRef<Hls | null>(null);
+
+  // HLS Adaptive Bitrate & Quality States
+  const [hlsLevels, setHlsLevels] = useState<HlsQualityLevel[]>([]);
+  const [currentLevelIndex, setCurrentLevelIndex] = useState<number>(-1);
+  const [currentStreamResolution, setCurrentStreamResolution] = useState<string>('1080p');
+  const [isHls, setIsHls] = useState<boolean>(false);
+  const [isBuffering, setIsBuffering] = useState<boolean>(false);
+  const [hlsBitrate, setHlsBitrate] = useState<number>(0);
+  const [streamError, setStreamError] = useState<string | null>(null);
 
   const [isPlaying, setIsPlaying] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
@@ -145,6 +164,124 @@ export const VideoPlayerModal: React.FC = () => {
   const activeVideoUrl = episode?.videoUrl || item?.videoUrl || '';
   const currentTitle = item ? (episode ? `${item.title} - S${episode.seasonNumber}:E${episode.episodeNumber}` : item.title) : '';
   const episodeSubtitle = episode ? episode.title : item?.tagline || '';
+
+  // HLS.js streaming integration with ABR, level detection, and error recovery
+  useEffect(() => {
+    if (!isOpen || !activeVideoUrl) return;
+
+    const video = videoRef.current;
+    if (!video) return;
+
+    setStreamError(null);
+    setIsBuffering(false);
+
+    const isHlsUrl = activeVideoUrl.toLowerCase().includes('.m3u8');
+
+    if (isHlsUrl && Hls.isSupported()) {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+      }
+
+      const hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: true,
+        backBufferLength: 90,
+      });
+
+      hls.attachMedia(video);
+
+      hls.on(Hls.Events.MEDIA_ATTACHED, () => {
+        hls.loadSource(activeVideoUrl);
+      });
+
+      hls.on(Hls.Events.MANIFEST_PARSED, (_event, data) => {
+        setIsHls(true);
+        const levels: HlsQualityLevel[] = [
+          { index: -1, label: 'Otomatis (Adaptif)', height: 0 },
+          ...data.levels.map((lvl, idx) => ({
+            index: idx,
+            label: `${lvl.height}p${lvl.bitrate ? ` (${(lvl.bitrate / 1000000).toFixed(1)} Mbps)` : ''}`,
+            height: lvl.height,
+            bitrate: lvl.bitrate
+          })).sort((a, b) => b.height - a.height)
+        ];
+        setHlsLevels(levels);
+        setCurrentLevelIndex(-1);
+        if (!prerollActive) {
+          video.play().catch(() => {});
+        }
+      });
+
+      hls.on(Hls.Events.LEVEL_SWITCHED, (_event, data) => {
+        const level = hls.levels[data.level];
+        if (level) {
+          setCurrentStreamResolution(`${level.height}p`);
+          setHlsBitrate(level.bitrate || 0);
+        }
+      });
+
+      hls.on(Hls.Events.ERROR, (_event, data) => {
+        if (data.fatal) {
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              console.warn('HLS Network Error, attempting recovery...');
+              hls.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              console.warn('HLS Media Error, attempting recovery...');
+              hls.recoverMediaError();
+              break;
+            default:
+              console.error('Fatal HLS Error:', data);
+              setStreamError('Gagal memutar stream HLS. Silakan coba muat ulang.');
+              hls.destroy();
+              break;
+          }
+        }
+      });
+
+      hlsRef.current = hls;
+
+      return () => {
+        hls.destroy();
+        hlsRef.current = null;
+      };
+    } else if (isHlsUrl && video.canPlayType('application/vnd.apple.mpegurl')) {
+      // Native Apple HLS (Safari iOS/macOS)
+      setIsHls(true);
+      video.src = activeVideoUrl;
+      if (!prerollActive) {
+        video.play().catch(() => {});
+      }
+    } else {
+      // Standard Progressive MP4/WebM
+      setIsHls(false);
+      setHlsLevels([]);
+      setCurrentStreamResolution('1080p');
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+      video.src = activeVideoUrl;
+      if (!prerollActive) {
+        video.play().catch(() => {});
+      }
+    }
+  }, [isOpen, activeVideoUrl, prerollActive]);
+
+  const handleSelectQuality = (lvl: HlsQualityLevel) => {
+    if (hlsRef.current) {
+      hlsRef.current.currentLevel = lvl.index;
+      setCurrentLevelIndex(lvl.index);
+      if (lvl.index === -1) {
+        setSelectedQuality('Otomatis');
+      } else {
+        setSelectedQuality(`${lvl.height}p`);
+        setCurrentStreamResolution(`${lvl.height}p`);
+      }
+    }
+    setShowSettingsMenu(false);
+  };
 
   // Determine next episode info if TV series
   const nextEpisodeInfo = useMemo(() => {
@@ -430,14 +567,48 @@ export const VideoPlayerModal: React.FC = () => {
         />
       )}
 
+      {/* Buffering Loading Indicator */}
+      {isBuffering && !prerollActive && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-20">
+          <div className="w-14 h-14 rounded-full border-4 border-brand-500/20 border-t-brand-500 animate-spin shadow-2xl" />
+          <span className="text-xs font-semibold text-white/90 mt-3 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md animate-pulse">
+            Memuat Stream...
+          </span>
+        </div>
+      )}
+
+      {/* Stream Error Recovery Overlay */}
+      {streamError && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-30 space-y-3 p-6 text-center">
+          <AlertCircle className="w-12 h-12 text-rose-500 animate-bounce" />
+          <h3 className="text-base sm:text-lg font-bold text-white">Gangguan Stream Video</h3>
+          <p className="text-xs text-slate-300 max-w-sm">{streamError}</p>
+          <button
+            onClick={() => {
+              setStreamError(null);
+              if (hlsRef.current) {
+                hlsRef.current.startLoad();
+              } else if (videoRef.current) {
+                videoRef.current.load();
+              }
+            }}
+            className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all cursor-pointer shadow-lg"
+          >
+            Muat Ulang Stream
+          </button>
+        </div>
+      )}
+
       {/* Main Video Element */}
       <video
         ref={videoRef}
-        src={activeVideoUrl}
         autoPlay={!prerollActive}
         playsInline
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleTimeUpdate}
+        onWaiting={() => setIsBuffering(true)}
+        onPlaying={() => setIsBuffering(false)}
+        onCanPlay={() => setIsBuffering(false)}
         onEnded={() => {
           setIsPlaying(false);
           if (nextEpisodeInfo && !isCancelledCountdown) {
@@ -706,8 +877,9 @@ export const VideoPlayerModal: React.FC = () => {
               <div className="min-w-0">
                 <h2 className="text-sm sm:text-xl font-bold text-white tracking-tight flex items-center gap-2 truncate">
                   <span className="truncate">{currentTitle}</span>
-                  <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded bg-brand-600 text-white font-mono flex-shrink-0">
-                    {selectedQuality}
+                  <span className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded bg-brand-600 text-white font-mono flex-shrink-0 flex items-center gap-1">
+                    {isHls && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
+                    <span>{isHls && currentLevelIndex === -1 ? `Auto (${currentStreamResolution})` : (selectedQuality || currentStreamResolution)}</span>
                   </span>
                 </h2>
                 <p className="text-[11px] sm:text-xs text-slate-300 mt-0.5 truncate">{episodeSubtitle}</p>
@@ -811,12 +983,12 @@ export const VideoPlayerModal: React.FC = () => {
                 <span>LIVE STREAM DIAGNOSTICS</span>
                 <button onClick={() => setShowStats(false)} className="hover:text-white cursor-pointer">✕</button>
               </div>
-              <div>Resolusi: <span className="text-white font-semibold">3840 x 2160 (4K UHD)</span></div>
-              <div>Frame Rate: <span className="text-white font-semibold">60.00 fps</span></div>
-              <div>Bitrate Streaming: <span className="text-white font-semibold">18.4 Mbps (HEVC/H.265)</span></div>
-              <div>Audio Codec: <span className="text-white font-semibold">Dolby Atmos (E-AC-3 JOC)</span></div>
+              <div>Protokol: <span className="text-brand-400 font-semibold">{isHls ? 'HLS Adaptive Bitrate (RFC 8216)' : 'Progressive MP4 Media'}</span></div>
+              <div>Resolusi: <span className="text-white font-semibold">{videoRef.current?.videoWidth ? `${videoRef.current.videoWidth} x ${videoRef.current.videoHeight} (${currentStreamResolution})` : currentStreamResolution}</span></div>
+              <div>Bitrate: <span className="text-white font-semibold">{hlsBitrate > 0 ? `${(hlsBitrate / 1000000).toFixed(2)} Mbps` : '8.50 Mbps'}</span></div>
+              <div>Audio Codec: <span className="text-white font-semibold">Dolby Atmos / Stereo (AAC)</span></div>
               <div>Buffer Health: <span className="text-emerald-400 font-semibold">{Math.max(0, bufferedTime - currentTime).toFixed(1)}s ahead</span></div>
-              <div>Latency / Dropped Frames: <span className="text-white">0 / 0%</span></div>
+              <div>Status Stream: <span className={isBuffering ? "text-amber-400 font-semibold" : "text-emerald-400 font-semibold"}>{isBuffering ? 'Buffering...' : 'Optimal (Lancar)'}</span></div>
               <div>Playback Rate: <span className="text-white">{playbackSpeed}x</span></div>
             </div>
           )}
@@ -1057,25 +1229,50 @@ export const VideoPlayerModal: React.FC = () => {
                         
                         {/* Quality Selector */}
                         <div>
-                          <span className="font-bold text-slate-400 uppercase tracking-wider block mb-1.5 text-[10px] sm:text-xs">
-                            Kualitas Video
-                          </span>
-                          <div className="grid grid-cols-2 gap-1">
-                            {['4K UHD', '1080p', '720p', 'Otomatis'].map((q) => (
-                              <button
-                                key={q}
-                                onClick={() => {
-                                  setSelectedQuality(q);
-                                  setShowSettingsMenu(false);
-                                }}
-                                className={`px-2 py-1 rounded-lg flex items-center justify-between transition-colors cursor-pointer ${
-                                  selectedQuality === q ? 'bg-brand-600 text-white font-bold' : 'hover:bg-white/10 text-slate-300'
-                                }`}
-                              >
-                                <span>{q}</span>
-                                {selectedQuality === q && <Check className="w-3 h-3" />}
-                              </button>
-                            ))}
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="font-bold text-slate-400 uppercase tracking-wider text-[10px] sm:text-xs">
+                              Kualitas Video
+                            </span>
+                            {isHls && (
+                              <span className="text-[9px] px-1.5 py-0.2 rounded font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                HLS ABR
+                              </span>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-2 gap-1 max-h-36 overflow-y-auto custom-scrollbar">
+                            {isHls && hlsLevels.length > 0 ? (
+                              hlsLevels.map((lvl) => {
+                                const isCurrent = currentLevelIndex === lvl.index;
+                                return (
+                                  <button
+                                    key={lvl.index}
+                                    onClick={() => handleSelectQuality(lvl)}
+                                    className={`px-2 py-1.5 rounded-lg flex items-center justify-between transition-colors cursor-pointer text-[11px] ${
+                                      isCurrent ? 'bg-brand-600 text-white font-bold' : 'hover:bg-white/10 text-slate-300'
+                                    }`}
+                                  >
+                                    <span className="truncate">{lvl.label}</span>
+                                    {isCurrent && <Check className="w-3 h-3 flex-shrink-0 ml-1" />}
+                                  </button>
+                                );
+                              })
+                            ) : (
+                              ['4K UHD', '1080p', '720p', 'Otomatis'].map((q) => (
+                                <button
+                                  key={q}
+                                  onClick={() => {
+                                    setSelectedQuality(q);
+                                    setShowSettingsMenu(false);
+                                  }}
+                                  className={`px-2 py-1 rounded-lg flex items-center justify-between transition-colors cursor-pointer ${
+                                    selectedQuality === q ? 'bg-brand-600 text-white font-bold' : 'hover:bg-white/10 text-slate-300'
+                                  }`}
+                                >
+                                  <span>{q}</span>
+                                  {selectedQuality === q && <Check className="w-3 h-3" />}
+                                </button>
+                              ))
+                            )}
                           </div>
                         </div>
 

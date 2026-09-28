@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useWatch } from '../../context/WatchContext';
-import { MediaItem, Episode, Season, User } from '../../types';
+import { MediaItem, Episode, Season, User, AdCampaign } from '../../types';
 import { GENRES, COUNTRIES, YEARS } from '../../data/mockData';
 import { 
   Sliders, 
@@ -67,7 +67,7 @@ import {
   ChevronsRight
 } from 'lucide-react';
 
-export type AdminModuleId = 'media' | 'banner' | 'episodes' | 'users' | 'tracking' | 'analytics' | 'reviews' | 'system';
+export type AdminModuleId = 'media' | 'banner' | 'ads' | 'episodes' | 'users' | 'tracking' | 'analytics' | 'reviews' | 'system';
 
 export interface SidebarNavItem {
   id: AdminModuleId;
@@ -119,7 +119,13 @@ export const AdminPage: React.FC = () => {
     clearAuditLogs,
     user,
     logout,
-    openDeviceSecurityModal
+    openDeviceSecurityModal,
+    ads,
+    addAdCampaign,
+    updateAdCampaign,
+    deleteAdCampaign,
+    toggleAdCampaign,
+    resetAdsToDefault
   } = useWatch();
 
   // Active Admin Sub-Module Tab
@@ -575,6 +581,119 @@ export const AdminPage: React.FC = () => {
     setTimeout(() => setSuccessToast(null), 3500);
   };
 
+  // ==========================================
+  // AD MANAGEMENT (IDLIX DUAL BILLBOARD SYNC)
+  // ==========================================
+  const [adFilterLayer, setAdFilterLayer] = useState<'all' | 'billboard_feed' | 'video_preroll' | 'hero_spotlight'>('billboard_feed');
+  const [isAdModalOpen, setIsAdModalOpen] = useState(false);
+  const [editingAdId, setEditingAdId] = useState<string | null>(null);
+  const [adFormData, setAdFormData] = useState<Partial<AdCampaign>>({
+    title: '',
+    partnerName: '',
+    layer: 'billboard_feed',
+    bannerUrl: '/ads/banner-liveeuy-vip.svg',
+    targetUrl: 'https://',
+    headline: '',
+    description: '',
+    badge: 'SPONSOR UTAMA',
+    category: 'Entertainment & Gaming',
+    budget: 10000000,
+    isActive: true,
+  });
+
+  const activeBillboardFeedAds = useMemo(() => {
+    return ads.filter(a => a.layer === 'billboard_feed');
+  }, [ads]);
+
+  const filteredAds = useMemo(() => {
+    if (adFilterLayer === 'all') return ads;
+    return ads.filter(a => a.layer === adFilterLayer);
+  }, [ads, adFilterLayer]);
+
+  const handleOpenAddAd = () => {
+    setEditingAdId(null);
+    setAdFormData({
+      title: '',
+      partnerName: '',
+      layer: 'billboard_feed',
+      bannerUrl: '/ads/banner-liveeuy-vip.svg',
+      targetUrl: 'https://',
+      headline: '',
+      description: '',
+      badge: 'SPONSOR UTAMA',
+      category: 'Entertainment & Gaming',
+      budget: 10000000,
+      isActive: true,
+    });
+    setIsAdModalOpen(true);
+  };
+
+  const handleOpenEditAd = (ad: AdCampaign) => {
+    setEditingAdId(ad.id);
+    setAdFormData({
+      title: ad.title,
+      partnerName: ad.partnerName,
+      layer: ad.layer,
+      bannerUrl: ad.bannerUrl,
+      targetUrl: ad.targetUrl,
+      headline: ad.headline || '',
+      description: ad.description || '',
+      badge: ad.badge || 'SPONSOR UTAMA',
+      category: ad.category || 'Entertainment & Gaming',
+      budget: ad.budget || 10000000,
+      isActive: ad.isActive,
+    });
+    setIsAdModalOpen(true);
+  };
+
+  const handleSaveAd = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adFormData.title?.trim() || !adFormData.bannerUrl?.trim()) {
+      alert('Mohon isi Judul Iklan dan URL Gambar Banner.');
+      return;
+    }
+
+    if (editingAdId) {
+      updateAdCampaign(editingAdId, {
+        title: adFormData.title.trim(),
+        partnerName: adFormData.partnerName?.trim() || 'Mitra Sponsor',
+        layer: (adFormData.layer as any) || 'billboard_feed',
+        bannerUrl: adFormData.bannerUrl.trim(),
+        targetUrl: adFormData.targetUrl?.trim() || '#',
+        headline: adFormData.headline?.trim() || adFormData.title.trim(),
+        description: adFormData.description?.trim() || '',
+        badge: adFormData.badge?.trim() || 'SPONSOR',
+        category: (adFormData.category as any) || 'Entertainment & Gaming',
+        budget: Number(adFormData.budget) || 10000000,
+        isActive: adFormData.isActive ?? true,
+      });
+      showToast('Iklan sponsor berhasil diperbarui!');
+    } else {
+      const newId = `ad-custom-${Date.now()}`;
+      addAdCampaign({
+        id: newId,
+        title: adFormData.title.trim(),
+        partnerName: adFormData.partnerName?.trim() || 'Mitra Sponsor',
+        layer: (adFormData.layer as any) || 'billboard_feed',
+        bannerUrl: adFormData.bannerUrl.trim(),
+        targetUrl: adFormData.targetUrl?.trim() || '#',
+        headline: adFormData.headline?.trim() || adFormData.title.trim(),
+        description: adFormData.description?.trim() || '',
+        badge: adFormData.badge?.trim() || 'SPONSOR',
+        category: (adFormData.category as any) || 'Entertainment & Gaming',
+        budget: Number(adFormData.budget) || 10000000,
+        impressions: 0,
+        clicks: 0,
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        isActive: adFormData.isActive ?? true,
+        ctaText: 'Kunjungi Sponsor'
+      });
+      showToast('Iklan sponsor baru berhasil ditambahkan!');
+    }
+    setIsAdModalOpen(false);
+  };
+
   // Open Create Modal
   const openCreateModal = () => {
     setEditingItem(null);
@@ -851,6 +970,14 @@ export const AdminPage: React.FC = () => {
           pulse: broadcastAnnouncement.isActive
         },
         {
+          id: 'ads',
+          label: 'Iklan & Billboard',
+          desc: 'Sponsor IDLIX & feed banner',
+          icon: Layers,
+          badge: `${ads.filter(a => a.isActive && a.layer === 'billboard_feed').length} Aktif`,
+          badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+        },
+        {
           id: 'episodes',
           label: 'Episode & Musim',
           desc: 'Manajemen serial TV',
@@ -911,7 +1038,7 @@ export const AdminPage: React.FC = () => {
         },
       ]
     }
-  ], [allMedia.length, seriesList.length, visitorSessions.length, usersList.length]);
+  ], [allMedia.length, seriesList.length, visitorSessions.length, usersList.length, ads, broadcastAnnouncement.isActive]);
 
   const allNavItems: SidebarNavItem[] = useMemo(() => {
     return sidebarNavGroups.reduce<SidebarNavItem[]>((acc, g) => acc.concat(g.items), []);
@@ -974,6 +1101,7 @@ export const AdminPage: React.FC = () => {
             <span className="font-bold text-brand-400 truncate">
               {activeModule === 'media' && 'Katalog & CMS Media'}
               {activeModule === 'banner' && 'Banner & Pengumuman'}
+              {activeModule === 'ads' && 'Iklan & Billboard Sponsor'}
               {activeModule === 'episodes' && 'Episode & Musim Serial'}
               {activeModule === 'analytics' && 'Statistik & Rating Tayangan'}
               {activeModule === 'users' && 'Pengguna & Langganan VIP'}
@@ -1436,6 +1564,7 @@ export const AdminPage: React.FC = () => {
                   <span className="text-brand-400 font-bold capitalize">
                     {activeModule === 'media' && 'Katalog & CMS Media'}
                     {activeModule === 'banner' && 'Banner & Pengumuman'}
+                    {activeModule === 'ads' && 'Iklan & Billboard Sponsor'}
                     {activeModule === 'episodes' && 'Episode & Musim Serial'}
                     {activeModule === 'analytics' && 'Statistik & Rating Tayangan'}
                     {activeModule === 'users' && 'Pengguna & Langganan VIP'}
@@ -1447,6 +1576,7 @@ export const AdminPage: React.FC = () => {
                 <h1 className="text-xl sm:text-3xl font-black text-white tracking-tight">
                   {activeModule === 'media' && 'Manajemen Katalog Film & Serial'}
                   {activeModule === 'banner' && 'Banner Pengumuman & Hero Carousel'}
+                  {activeModule === 'ads' && 'Manajemen Iklan & Billboard Sponsor'}
                   {activeModule === 'episodes' && 'Episode & Musim Serial TV'}
                   {activeModule === 'analytics' && 'Statistik & Analisis Rating Tayangan'}
                   {activeModule === 'users' && 'Manajemen Akun & Langganan VIP'}
@@ -2202,6 +2332,465 @@ export const AdminPage: React.FC = () => {
               </table>
             </div>
           </div>
+
+        </section>
+      )}
+
+      {/* ========================================================
+          MODULE: IKLAN & BILLBOARD SPONSOR (IDLIX DUAL SYNC)
+          ======================================================== */}
+      {activeModule === 'ads' && (
+        <section className="space-y-6 animate-fade-in">
+          
+          {/* Header & Subtitle */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold mb-1">
+                <Megaphone className="w-3.5 h-3.5 text-amber-400" />
+                <span>Pusat Kendali Sponsor & Dual Billboard IDLIX</span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black text-white">Manajemen Iklan & Billboard Sponsor</h2>
+              <p className="text-xs text-slate-400">
+                Atur pasangan iklan banner horizontal di bawah setiap layer film beranda, tautan tujuan, dan status aktif tayangan secara real-time.
+              </p>
+            </div>
+
+            {/* Quick Action Buttons */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={() => {
+                  resetAdsToDefault();
+                  showToast('Konfigurasi iklan dikembalikan ke standar IDLIX!');
+                }}
+                className="px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                title="Kembalikan banner ke default LiveEuy VIP dan LiveEuy Mobile"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
+                <span>Reset ke Default IDLIX</span>
+              </button>
+
+              <button
+                onClick={handleOpenAddAd}
+                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold transition-all flex items-center gap-1.5 shadow-lg shadow-amber-500/20 active:scale-95 cursor-pointer"
+              >
+                <Plus className="w-4 h-4 text-slate-950" />
+                <span>Tambah Iklan Baru</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Quick Metrics Bar */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+            <div className="p-4 rounded-2xl bg-surface-800/60 border border-white/5 space-y-1">
+              <div className="flex items-center justify-between text-slate-400 text-xs font-semibold">
+                <span>Billboard Feed Aktif</span>
+                <Layers className="w-4 h-4 text-amber-400" />
+              </div>
+              <p className="text-2xl font-black text-white">
+                {activeBillboardFeedAds.filter(a => a.isActive).length} <span className="text-xs font-normal text-slate-400">/ {activeBillboardFeedAds.length}</span>
+              </p>
+              <p className="text-[10px] text-slate-500">Muncul di setiap baris film beranda</p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-surface-800/60 border border-white/5 space-y-1">
+              <div className="flex items-center justify-between text-slate-400 text-xs font-semibold">
+                <span>Total Impresi (Tayang)</span>
+                <Eye className="w-4 h-4 text-cyan-400" />
+              </div>
+              <p className="text-2xl font-black text-white">
+                {ads.reduce((acc, a) => acc + (a.impressions || 0), 0).toLocaleString('id-ID')}
+              </p>
+              <p className="text-[10px] text-emerald-400 font-medium">Tercatat di peramban pengguna</p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-surface-800/60 border border-white/5 space-y-1">
+              <div className="flex items-center justify-between text-slate-400 text-xs font-semibold">
+                <span>Total Klik Pengunjung</span>
+                <ExternalLink className="w-4 h-4 text-emerald-400" />
+              </div>
+              <p className="text-2xl font-black text-white">
+                {ads.reduce((acc, a) => acc + (a.clicks || 0), 0).toLocaleString('id-ID')}
+              </p>
+              <p className="text-[10px] text-slate-500">Pengalihan ke tautan sponsor</p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-surface-800/60 border border-white/5 space-y-1">
+              <div className="flex items-center justify-between text-slate-400 text-xs font-semibold">
+                <span>Rata-rata CTR</span>
+                <TrendingUp className="w-4 h-4 text-purple-400" />
+              </div>
+              <p className="text-2xl font-black text-white">
+                {(() => {
+                  const totalImp = ads.reduce((acc, a) => acc + (a.impressions || 0), 0);
+                  const totalClk = ads.reduce((acc, a) => acc + (a.clicks || 0), 0);
+                  return totalImp > 0 ? `${((totalClk / totalImp) * 100).toFixed(2)}%` : '0.00%';
+                })()}
+              </p>
+              <p className="text-[10px] text-slate-500">Rasio interaksi penonton</p>
+            </div>
+          </div>
+
+          {/* LIVE PREVIEW BOX: Pratinjau Nyata di Beranda (IDLIX Dual Banner) */}
+          <div className="bg-surface-800/60 p-5 rounded-3xl border border-white/5 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Eye className="w-4 h-4 text-amber-400" />
+                <h3 className="font-bold text-white text-sm">Pratinjau Nyata di Beranda (IDLIX Dual Banner)</h3>
+              </div>
+              <span className="text-[11px] font-mono text-slate-400">
+                Lebar presisi flush layout container
+              </span>
+            </div>
+
+            {/* Simulated Cinema Layout Container */}
+            <div className="p-3 sm:p-4 rounded-2xl bg-black/60 border border-white/10 space-y-2">
+              <div className="text-[10px] text-slate-400 flex items-center justify-between px-1">
+                <span>[ Layer Film Atas ]</span>
+                <span className="text-amber-400 font-mono">Status: {activeBillboardFeedAds.filter(a => a.isActive).length > 0 ? 'Tayang Aktif' : 'Iklan Dinonaktifkan'}</span>
+              </div>
+
+              {/* The Live Billboard Render */}
+              {activeBillboardFeedAds.filter(a => a.isActive).length > 0 ? (
+                <div className="grid grid-cols-2 gap-2 sm:gap-3 items-center w-full">
+                  {/* Left */}
+                  <div
+                    className="w-full aspect-[866/78] rounded-xl overflow-hidden border border-white/10 shadow-md bg-black/40 flex items-center justify-center"
+                    style={{ aspectRatio: '866 / 78' }}
+                  >
+                    <img
+                      src={activeBillboardFeedAds.filter(a => a.isActive)[0]?.bannerUrl || '/ads/banner-liveeuy-vip.svg'}
+                      alt="Banner Kiri"
+                      className="w-full h-full object-contain block"
+                    />
+                  </div>
+                  {/* Right */}
+                  <div
+                    className="w-full aspect-[866/78] rounded-xl overflow-hidden border border-white/10 shadow-md bg-black/40 flex items-center justify-center"
+                    style={{ aspectRatio: '866 / 78' }}
+                  >
+                    <img
+                      src={activeBillboardFeedAds.filter(a => a.isActive)[1]?.bannerUrl || activeBillboardFeedAds.filter(a => a.isActive)[0]?.bannerUrl || '/ads/banner-liveeuy-mobile.svg'}
+                      alt="Banner Kanan"
+                      className="w-full h-full object-contain block"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="p-6 text-center text-slate-500 text-xs bg-surface-900/50 rounded-xl border border-dashed border-white/10">
+                  Semua iklan billboard feed sedang nonaktif. Tidak ada iklan yang ditampilkan di beranda.
+                </div>
+              )}
+
+              <div className="text-[10px] text-slate-400 px-1 pt-1">
+                <span>[ Layer Film Bawah (Trending / Aksi / Drama) ]</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Ad Campaigns List */}
+          <div className="bg-surface-800/60 p-5 rounded-3xl border border-white/5 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
+              <div>
+                <h3 className="font-bold text-white text-sm sm:text-base flex items-center gap-2">
+                  <Megaphone className="w-4 h-4 text-brand-400" />
+                  <span>Daftar Kampanye Iklan & Sponsor</span>
+                </h3>
+                <p className="text-[11px] text-slate-400">
+                  Klik tombol switch untuk mengaktifkan atau menonaktifkan iklan secara langsung di beranda.
+                </p>
+              </div>
+
+              {/* Layer Filter Tabs */}
+              <div className="flex items-center gap-1 bg-surface-900 p-1 rounded-xl border border-white/10 text-xs">
+                {[
+                  { id: 'billboard_feed', label: 'Billboard Feed' },
+                  { id: 'video_preroll', label: 'Video Pre-roll' },
+                  { id: 'hero_spotlight', label: 'Hero Spotlight' },
+                  { id: 'all', label: 'Semua Layer' },
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setAdFilterLayer(tab.id as any)}
+                    className={`px-3 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
+                      adFilterLayer === tab.id
+                        ? 'bg-brand-600 text-white font-bold'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Ads Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {filteredAds.map(ad => (
+                <div
+                  key={ad.id}
+                  className={`p-4 rounded-2xl bg-surface-900 border transition-all space-y-3 ${
+                    ad.isActive ? 'border-white/10 hover:border-amber-500/40' : 'border-white/5 opacity-60'
+                  }`}
+                >
+                  {/* Banner Preview */}
+                  <div className="relative rounded-xl overflow-hidden bg-black/60 border border-white/10 aspect-[11/1] flex items-center justify-center">
+                    <img
+                      src={ad.bannerUrl}
+                      alt={ad.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/ads/banner-liveeuy-vip.svg';
+                      }}
+                    />
+                    <div className="absolute top-1.5 left-2 px-2 py-0.5 rounded text-[9px] font-black uppercase bg-black/70 text-white border border-white/20">
+                      {ad.layer}
+                    </div>
+                  </div>
+
+                  {/* Header & Status Switch */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                          {ad.badge || 'SPONSOR'}
+                        </span>
+                        <h4 className="font-bold text-white text-xs sm:text-sm truncate">
+                          {ad.title}
+                        </h4>
+                      </div>
+                      <p className="text-[11px] text-slate-400 mt-0.5 truncate">
+                        Mitra: <span className="text-slate-300 font-semibold">{ad.partnerName}</span> • {ad.category}
+                      </p>
+                      <a
+                        href={ad.targetUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[10px] text-brand-400 hover:underline flex items-center gap-1 mt-1 truncate"
+                      >
+                        <ExternalLink className="w-3 h-3 flex-none" />
+                        <span className="truncate">{ad.targetUrl}</span>
+                      </a>
+                    </div>
+
+                    {/* Toggle Switch */}
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                      <button
+                        onClick={() => {
+                          toggleAdCampaign(ad.id);
+                          showToast(`Status iklan "${ad.title}" diubah.`);
+                        }}
+                        className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
+                          ad.isActive ? 'bg-amber-500' : 'bg-slate-700'
+                        }`}
+                        title={ad.isActive ? 'Klik untuk nonaktifkan' : 'Klik untuk aktifkan'}
+                      >
+                        <span
+                          className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                            ad.isActive ? 'right-1' : 'left-1'
+                          }`}
+                        />
+                      </button>
+                      <span className={`text-[10px] font-bold ${ad.isActive ? 'text-amber-400' : 'text-slate-500'}`}>
+                        {ad.isActive ? 'Aktif' : 'Nonaktif'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Footer Stats & Actions */}
+                  <div className="flex items-center justify-between pt-2 border-t border-white/5 text-[11px]">
+                    <div className="flex items-center gap-3 text-slate-400 font-mono">
+                      <span>👁️ {ad.impressions || 0} tayang</span>
+                      <span>🖱️ {ad.clicks || 0} klik</span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => handleOpenEditAd(ad)}
+                        className="p-1.5 rounded-lg bg-surface-800 hover:bg-surface-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                        title="Edit Iklan"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm(`Yakin ingin menghapus kampanye iklan "${ad.title}"?`)) {
+                            deleteAdCampaign(ad.id);
+                            showToast(`Iklan "${ad.title}" telah dihapus.`);
+                          }
+                        }}
+                        className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-colors cursor-pointer"
+                        title="Hapus Iklan"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Modal Tambah / Edit Iklan */}
+          {isAdModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+              <div className="relative w-full max-w-lg bg-surface-900 border border-white/10 rounded-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <div>
+                    <h3 className="font-bold text-white text-base">
+                      {editingAdId ? 'Edit Iklan Sponsor' : 'Tambah Iklan Sponsor Baru'}
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Konfigurasikan gambar banner dan tautan pengalihan saat diklik penonton.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setIsAdModalOpen(false)}
+                    className="p-1.5 rounded-xl bg-surface-800 hover:bg-surface-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleSaveAd} className="space-y-3 text-xs">
+                  <div>
+                    <label className="font-semibold text-slate-300 block mb-1">Judul Iklan *</label>
+                    <input
+                      type="text"
+                      required
+                      value={adFormData.title || ''}
+                      onChange={e => setAdFormData({ ...adFormData, title: e.target.value })}
+                      placeholder="Contoh: MEMBER BARU LIVEEUY VIP"
+                      className="w-full bg-surface-800 border border-white/10 focus:border-amber-400 rounded-xl px-3 py-2 text-white focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="font-semibold text-slate-300 block mb-1">Nama Sponsor / Brand</label>
+                      <input
+                        type="text"
+                        value={adFormData.partnerName || ''}
+                        onChange={e => setAdFormData({ ...adFormData, partnerName: e.target.value })}
+                        placeholder="Contoh: LiveEuy Cinema Premiere"
+                        className="w-full bg-surface-800 border border-white/10 focus:border-amber-400 rounded-xl px-3 py-2 text-white focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-semibold text-slate-300 block mb-1">Teks Badge</label>
+                      <input
+                        type="text"
+                        value={adFormData.badge || ''}
+                        onChange={e => setAdFormData({ ...adFormData, badge: e.target.value })}
+                        placeholder="Contoh: SPONSOR UTAMA"
+                        className="w-full bg-surface-800 border border-white/10 focus:border-amber-400 rounded-xl px-3 py-2 text-white focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="font-semibold text-slate-300 block mb-1">Layer Penempatan</label>
+                    <select
+                      value={adFormData.layer || 'billboard_feed'}
+                      onChange={e => setAdFormData({ ...adFormData, layer: e.target.value as any })}
+                      className="w-full bg-surface-800 border border-white/10 focus:border-amber-400 rounded-xl px-3 py-2 text-white focus:outline-none cursor-pointer"
+                    >
+                      <option value="billboard_feed">Billboard Feed (Bawah Baris Film Beranda)</option>
+                      <option value="video_preroll">Video Pre-roll (Sebelum Film Diputar)</option>
+                      <option value="hero_spotlight">Hero Spotlight</option>
+                      <option value="top_marquee">Top Marquee</option>
+                    </select>
+                  </div>
+
+                  {/* Preset Banner Quick Selection */}
+                  <div>
+                    <label className="font-semibold text-slate-300 block mb-1">Pilihan Cepat Banner Bawaan</label>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setAdFormData({ ...adFormData, bannerUrl: '/ads/banner-liveeuy-vip.svg', title: adFormData.title || 'MEMBER BARU LIVEEUY VIP', partnerName: adFormData.partnerName || 'LiveEuy Cinema Premiere' })}
+                        className="px-2.5 py-1.5 rounded-lg bg-surface-800 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-[11px] font-bold cursor-pointer"
+                      >
+                        LiveEuy VIP (Hijau/Cyan)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAdFormData({ ...adFormData, bannerUrl: '/ads/banner-liveeuy-mobile.svg', title: adFormData.title || 'LIVEEUY MOBILE - Berani Nonton?', partnerName: adFormData.partnerName || 'LiveEuy Mobile App' })}
+                        className="px-2.5 py-1.5 rounded-lg bg-surface-800 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 text-[11px] font-bold cursor-pointer"
+                      >
+                        LiveEuy Mobile (Biru/Emas)
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="font-semibold text-slate-300 block mb-1">URL Gambar Banner *</label>
+                    <input
+                      type="text"
+                      required
+                      value={adFormData.bannerUrl || ''}
+                      onChange={e => setAdFormData({ ...adFormData, bannerUrl: e.target.value })}
+                      placeholder="/ads/banner-liveeuy-vip.svg atau URL eksternal https://..."
+                      className="w-full bg-surface-800 border border-white/10 focus:border-amber-400 rounded-xl px-3 py-2 text-white focus:outline-none"
+                    />
+                  </div>
+
+                  {/* Banner Image Live Preview */}
+                  {adFormData.bannerUrl && (
+                    <div className="p-2 rounded-xl bg-black/60 border border-white/10">
+                      <span className="text-[10px] text-slate-400 block mb-1">Pratinjau Banner:</span>
+                      <img
+                        src={adFormData.bannerUrl}
+                        alt="Preview"
+                        className="w-full h-12 object-contain rounded-lg"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/ads/banner-liveeuy-vip.svg';
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="font-semibold text-slate-300 block mb-1">URL Target (Link saat diklik)</label>
+                    <input
+                      type="text"
+                      value={adFormData.targetUrl || ''}
+                      onChange={e => setAdFormData({ ...adFormData, targetUrl: e.target.value })}
+                      placeholder="https://..."
+                      className="w-full bg-surface-800 border border-white/10 focus:border-amber-400 rounded-xl px-3 py-2 text-white focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2">
+                    <label className="flex items-center gap-2 cursor-pointer text-slate-300 font-semibold">
+                      <input
+                        type="checkbox"
+                        checked={adFormData.isActive ?? true}
+                        onChange={e => setAdFormData({ ...adFormData, isActive: e.target.checked })}
+                        className="w-4 h-4 rounded text-amber-500 focus:ring-0 cursor-pointer"
+                      />
+                      <span>Aktifkan Langsung di Tayangan</span>
+                    </label>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsAdModalOpen(false)}
+                        className="px-4 py-2 rounded-xl bg-surface-800 hover:bg-surface-700 text-slate-300 text-xs font-bold cursor-pointer"
+                      >
+                        Batal
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold shadow-lg shadow-amber-500/20 active:scale-95 cursor-pointer"
+                      >
+                        {editingAdId ? 'Simpan Perubahan' : 'Terbitkan Iklan'}
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
 
         </section>
       )}
@@ -4045,3 +4634,5 @@ export const AdminPage: React.FC = () => {
     </div>
   );
 };
+
+export default AdminPage;

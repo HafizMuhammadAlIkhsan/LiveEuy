@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { MediaItem, Episode, WatchProgress, ViewTab, User, VisitorSession, BroadcastAnnouncement, AdminAuditLog, AdCampaign, AdInquiry } from '../types';
 import { MOCK_MEDIA, MOCK_ADS, MOCK_AD_INQUIRIES } from '../data/mockData';
 import { apiService } from '../services/api';
@@ -55,6 +56,7 @@ interface WatchContextType {
   updateAdCampaign: (id: string, updated: Partial<AdCampaign>) => void;
   deleteAdCampaign: (id: string) => void;
   toggleAdCampaign: (id: string) => void;
+  resetAdsToDefault: () => void;
   recordAdImpression: (id: string) => void;
   recordAdClick: (id: string) => void;
   adInquiries: AdInquiry[];
@@ -100,21 +102,26 @@ export const withViewTransition = (fn: () => void) => {
   }
 };
 
-const VALID_TABS: ViewTab[] = ['home', 'movies', 'tv', 'trending', 'watchlist', 'search', 'admin'];
+const TAB_TO_PATH: Record<ViewTab, string> = {
+  home: '/',
+  movies: '/movies',
+  tv: '/tv',
+  trending: '/trending',
+  watchlist: '/watchlist',
+  search: '/search',
+  admin: '/admin'
+};
 
-const getInitialTab = (): ViewTab => {
-  if (typeof window !== 'undefined') {
-    const rawHash = window.location.hash.replace('#', '').trim().toLowerCase();
-    if (VALID_TABS.includes(rawHash as ViewTab)) {
-      return rawHash as ViewTab;
-    }
-    const params = new URLSearchParams(window.location.search);
-    const tabParam = (params.get('tab') || params.get('page') || '').trim().toLowerCase();
-    if (VALID_TABS.includes(tabParam as ViewTab)) {
-      return tabParam as ViewTab;
-    }
-  }
-  return 'home';
+const PATH_TO_TAB: Record<string, ViewTab> = {
+  '/': 'home',
+  '/home': 'home',
+  '/movies': 'movies',
+  '/tv': 'tv',
+  '/series': 'tv',
+  '/trending': 'trending',
+  '/watchlist': 'watchlist',
+  '/search': 'search',
+  '/admin': 'admin'
 };
 
 const DEFAULT_ANNOUNCEMENT: BroadcastAnnouncement = {
@@ -154,37 +161,51 @@ const DEFAULT_AUDIT_LOGS: AdminAuditLog[] = [
 const WatchContext = createContext<WatchContextType | undefined>(undefined);
 
 export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentTab, setCurrentTab] = useState<ViewTab>(getInitialTab);
-  const [searchQuery, setSearchQuery] = useState('');
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Dynamically derive currentTab from router URL pathname
+  const currentTab = useMemo<ViewTab>(() => {
+    const cleanPath = location.pathname.toLowerCase().replace(/\/$/, '') || '/';
+    if (PATH_TO_TAB[cleanPath]) {
+      return PATH_TO_TAB[cleanPath];
+    }
+    if (cleanPath.startsWith('/admin')) {
+      return 'admin';
+    }
+    return 'home';
+  }, [location.pathname]);
+
+  const [searchQuery, setSearchQuery] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('q') || '';
+    }
+    return '';
+  });
   const [selectedGenre, setSelectedGenre] = useState('Semua Genre');
 
-  // Synchronize currentTab with browser URL hash
+  // Synchronize searchQuery with URL query parameter ?q= when on /search
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const currentHash = window.location.hash.replace('#', '').trim().toLowerCase();
-    if (currentTab === 'home') {
-      if (currentHash && VALID_TABS.includes(currentHash as ViewTab)) {
-        history.replaceState(null, '', window.location.pathname + window.location.search);
+    if (location.pathname === '/search') {
+      const q = searchParams.get('q') || '';
+      if (q !== searchQuery) {
+        setSearchQuery(q);
       }
-    } else if (currentHash !== currentTab) {
-      window.location.hash = currentTab;
     }
-  }, [currentTab]);
+  }, [location.pathname, searchParams]);
 
-  // Listen to browser navigation (back/forward buttons and hashchange)
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const handleHashChange = () => {
-      const hash = window.location.hash.replace('#', '').trim().toLowerCase();
-      if (VALID_TABS.includes(hash as ViewTab)) {
-        setCurrentTab(hash as ViewTab);
-      } else if (!hash) {
-        setCurrentTab('home');
+  const handleSetSearchQuery = (q: string) => {
+    setSearchQuery(q);
+    if (location.pathname === '/search') {
+      if (q.trim()) {
+        setSearchParams({ q: q.trim() }, { replace: true });
+      } else {
+        setSearchParams({}, { replace: true });
       }
-    };
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
+    }
+  };
 
   const [mediaList, setMediaList] = useState<MediaItem[]>(() => {
     try {
@@ -383,7 +404,19 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [ads, setAds] = useState<AdCampaign[]>(() => {
     try {
       const saved = localStorage.getItem('liveeuy_ads');
-      return saved ? JSON.parse(saved) : MOCK_ADS;
+      if (saved) {
+        const parsed: AdCampaign[] = JSON.parse(saved);
+        const cleaned = parsed.filter(a => !a.id.toLowerCase().includes('qq') && !a.bannerUrl.toLowerCase().includes('qq'));
+        const existingIds = new Set(cleaned.map(a => a.id));
+        const merged = [...cleaned];
+        for (const defaultAd of MOCK_ADS) {
+          if (!existingIds.has(defaultAd.id)) {
+            merged.push(defaultAd);
+          }
+        }
+        return merged;
+      }
+      return MOCK_ADS;
     } catch {
       return MOCK_ADS;
     }
@@ -435,6 +468,16 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     saveAdsToStorage(next);
     const target = next.find(a => a.id === id);
     addAuditLog('Ubah Status Iklan', 'ads', `Iklan "${target?.partnerName}" diubah menjadi ${target?.isActive ? 'Aktif' : 'Nonaktif'}.`);
+  };
+
+  const resetAdsToDefault = () => {
+    setAds(MOCK_ADS);
+    try {
+      localStorage.setItem('liveeuy_ads', JSON.stringify(MOCK_ADS));
+    } catch (e) {
+      console.error(e);
+    }
+    addAuditLog('Reset Iklan Sponsor', 'ads', 'Mengembalikan seluruh konfigurasi iklan ke bawaan IDLIX.');
   };
 
   const recordAdImpression = (id: string) => {
@@ -604,12 +647,38 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const logout = () => {
     setUser(null);
+    apiService.logout().catch(() => {});
     try {
       localStorage.setItem('liveeuy_user', 'guest');
     } catch (e) {
       console.error(e);
     }
   };
+
+  // Restore user session silently from backend via HttpOnly refresh token / access token
+  useEffect(() => {
+    apiService.restoreSession().then(restoredUser => {
+      if (restoredUser) {
+        setUser(prev => {
+          const merged: User = {
+            id: restoredUser.id || prev?.id || `user-${Date.now()}`,
+            name: restoredUser.name || prev?.name || 'Pengguna LiveEuy',
+            email: restoredUser.email || prev?.email || 'user@liveeuy.id',
+            avatar: restoredUser.avatar || prev?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
+            tier: restoredUser.tier || prev?.tier || 'VIP Standard',
+            role: restoredUser.role || (restoredUser.email?.toLowerCase().includes('admin') || restoredUser.email === 'hafiz@liveeuy.id' ? 'admin' : (prev?.role || 'user')),
+            memberSince: restoredUser.memberSince || prev?.memberSince || 'Hari ini',
+            watchHours: restoredUser.watchHours ?? prev?.watchHours ?? 0,
+            devices: restoredUser.devices ?? prev?.devices ?? 1
+          };
+          try {
+            localStorage.setItem('liveeuy_user', JSON.stringify(merged));
+          } catch {}
+          return merged;
+        });
+      }
+    }).catch(() => {});
+  }, []);
 
   const [detailItem, setDetailItem] = useState<MediaItem | null>(null);
   const [playerState, setPlayerState] = useState<{
@@ -685,8 +754,14 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const setTab = (tab: ViewTab) => {
+    const targetPath = TAB_TO_PATH[tab] || '/';
     withViewTransition(() => {
-      setCurrentTab(tab);
+      if (tab === 'search') {
+        const query = searchQuery.trim();
+        navigate(query ? `/search?q=${encodeURIComponent(query)}` : '/search');
+      } else {
+        navigate(targetPath);
+      }
     });
   };
 
@@ -847,7 +922,7 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         currentTab,
         setCurrentTab: setTab,
         searchQuery,
-        setSearchQuery,
+        setSearchQuery: handleSetSearchQuery,
         selectedGenre,
         setSelectedGenre,
         watchlist,
@@ -886,6 +961,7 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         updateAdCampaign,
         deleteAdCampaign,
         toggleAdCampaign,
+        resetAdsToDefault,
         recordAdImpression,
         recordAdClick,
         adInquiries,

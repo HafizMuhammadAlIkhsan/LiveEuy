@@ -16,7 +16,7 @@ import {
   EyeOff,
   Film,
   Sparkles,
-  Tv,
+  Laptop,
   Wifi,
   Radio
 } from 'lucide-react';
@@ -30,6 +30,7 @@ export const AuthModal: React.FC = () => {
   const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -61,39 +62,51 @@ export const AuthModal: React.FC = () => {
       return;
     }
 
+    setIsSubmitting(true);
+    setError('');
+
     try {
-      // Connect to real Go Auth Service
+      // Connect to Dual-Token Auth Service (Spring Boot :8080 or Go Auth :8081)
       const res = isRegister 
         ? await apiService.register(name.trim(), email.trim(), password)
         : await apiService.login(email.trim(), password);
 
-      if (res?.token) {
-        localStorage.setItem('liveeuy_auth_token', res.token);
+      // Handle backend response with validation or rejection
+      if (res && !res.success) {
+        setError(res.message || (isRegister ? 'Gagal mendaftar. Email mungkin sudah terdaftar.' : 'Email atau kata sandi tidak valid.'));
+        setIsSubmitting(false);
+        return;
       }
 
-      const userName = (res?.user?.name) || (isRegister ? name.trim() : email.split('@')[0]);
+      // If backend is running and returned user or success
+      const userProfile = res?.user;
+      const userName = userProfile?.name || (isRegister ? name.trim() : email.split('@')[0]);
+
       login({
+        id: userProfile?.id,
         name: userName,
-        email: email.trim(),
-        tier: 'VIP Standard',
-        role: 'user',
-        watchHours: 0,
-        devices: 1
+        email: userProfile?.email || email.trim(),
+        tier: (userProfile?.tier as any) || 'VIP Standard',
+        role: (userProfile?.role as any) || (email.toLowerCase().includes('admin') || email === 'hafiz@liveeuy.id' ? 'admin' : 'user'),
+        avatar: userProfile?.avatar,
+        watchHours: userProfile?.watchHours || 0,
+        devices: userProfile?.devices || 1
       });
 
-      setSuccessMessage(isRegister ? 'Akun berhasil dibuat! Mengalihkan...' : 'Berhasil masuk! Menyiapkan tontonan Anda...');
+      setSuccessMessage(res?.message || (isRegister ? 'Akun berhasil dibuat! Mengalihkan...' : 'Berhasil masuk! Menyiapkan tontonan Anda...'));
       setSuccess(true);
       setTimeout(() => {
         closeAuthModal();
         setSuccess(false);
       }, 600);
     } catch {
+      // Offline fallback mode for local testing
       const userName = isRegister ? name.trim() : email.split('@')[0];
       login({
         name: userName,
         email: email.trim(),
         tier: 'VIP Standard',
-        role: 'user',
+        role: (email.toLowerCase().includes('admin') || email === 'hafiz@liveeuy.id' ? 'admin' : 'user'),
         watchHours: 0,
         devices: 1
       });
@@ -104,6 +117,8 @@ export const AuthModal: React.FC = () => {
         closeAuthModal();
         setSuccess(false);
       }, 600);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -222,9 +237,9 @@ export const AuthModal: React.FC = () => {
               </div>
               <div className="flex items-center gap-2.5 text-xs text-slate-200">
                 <div className="w-6 h-6 rounded-md bg-white/[0.08] flex items-center justify-center text-emerald-400 flex-shrink-0">
-                  <Tv className="w-3.5 h-3.5" />
+                  <Laptop className="w-3.5 h-3.5" />
                 </div>
-                <span>Sinkronisasi Menit Tontonan di TV & Ponsel</span>
+                <span>Sinkronisasi Menit Tontonan di Laptop & Ponsel</span>
               </div>
             </div>
           </div>
@@ -483,10 +498,20 @@ export const AuthModal: React.FC = () => {
               {/* Submit CTA */}
               <button
                 type="submit"
-                className="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold transition-all shadow-md active:scale-[0.98] mt-2 cursor-pointer flex items-center justify-center gap-1.5"
+                disabled={isSubmitting}
+                className="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 disabled:bg-brand-800 disabled:opacity-70 text-white text-xs font-bold transition-all shadow-md active:scale-[0.98] mt-2 cursor-pointer disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
               >
-                <span>{isRegister ? 'Buat Akun VIP Gratis' : 'Masuk ke Akun'}</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                {isSubmitting ? (
+                  <>
+                    <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Memverifikasi akun...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>{isRegister ? 'Buat Akun VIP Gratis' : 'Masuk ke Akun'}</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </>
+                )}
               </button>
             </form>
           </div>

@@ -1,68 +1,113 @@
-import React from 'react';
+import React, { Suspense } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { WatchProvider, useWatch } from './context/WatchContext';
 import { Navbar } from './components/Navbar';
 import { DetailModal } from './components/DetailModal';
-import { VideoPlayerModal } from './components/VideoPlayerModal';
 import { AuthModal } from './components/AuthModal';
 import { MobileSyncModal } from './components/MobileSyncModal';
-import { DeviceSecurityModal } from './components/DeviceSecurityModal';
 import { PartnershipModal } from './components/PartnershipModal';
 import { Footer } from './components/Footer';
-import {
-  HomePage,
-  MoviesPage,
-  SeriesPage,
-  TrendingPage,
-  WatchlistPage,
-  SearchPage,
-  AdminPage
-} from './pages';
+import { HomePage } from './pages/HomePage';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { NetworkStatusToast } from './components/NetworkStatusToast';
+import { CatalogGridSkeleton } from './components/SkeletonLoader';
+import { useDocumentTitle } from './hooks/useDocumentTitle';
+
+// Lazy-loaded pages for code splitting & optimal bundle size
+const MoviesPage = React.lazy(() => import('./pages/MoviesPage').then(m => ({ default: m.MoviesPage })));
+const SeriesPage = React.lazy(() => import('./pages/SeriesPage').then(m => ({ default: m.SeriesPage })));
+const TrendingPage = React.lazy(() => import('./pages/TrendingPage').then(m => ({ default: m.TrendingPage })));
+const WatchlistPage = React.lazy(() => import('./pages/WatchlistPage').then(m => ({ default: m.WatchlistPage })));
+const SearchPage = React.lazy(() => import('./pages/SearchPage').then(m => ({ default: m.SearchPage })));
+const AdminPage = React.lazy(() => import('./pages/AdminPage'));
+
+// Lazy-loaded heavy modals
+const VideoPlayerModal = React.lazy(() => import('./components/VideoPlayerModal').then(m => ({ default: m.VideoPlayerModal })));
+const DeviceSecurityModal = React.lazy(() => import('./components/DeviceSecurityModal').then(m => ({ default: m.DeviceSecurityModal })));
+
+const PageLoader: React.FC<{ isCatalog?: boolean }> = ({ isCatalog }) => {
+  if (isCatalog) {
+    return <CatalogGridSkeleton count={12} />;
+  }
+
+  return (
+    <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4">
+      <div className="relative">
+        <div className="w-12 h-12 rounded-full border-2 border-brand-500/20 border-t-brand-500 animate-spin" />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="w-2 h-2 rounded-full bg-brand-500 animate-ping" />
+        </div>
+      </div>
+      <p className="text-xs font-semibold text-slate-400 tracking-wider uppercase animate-pulse">
+        Memuat Sinema...
+      </p>
+    </div>
+  );
+};
 
 const MainContent: React.FC = () => {
-  const { currentTab, searchQuery } = useWatch();
-  const isAdminView = currentTab === 'admin' && !searchQuery.trim();
+  useDocumentTitle();
+  const { currentTab } = useWatch();
+  const location = useLocation();
+  const isAdminView = location.pathname.startsWith('/admin') || currentTab === 'admin';
+  const isCatalogRoute = ['/movies', '/tv', '/series', '/trending', '/watchlist', '/search'].includes(location.pathname);
 
   return (
     <div className={`min-h-screen bg-[#08090d] flex flex-col justify-between ${isAdminView ? 'pb-0' : 'pb-16 md:pb-0'}`}>
       <div>
         {!isAdminView && <Navbar />}
 
-        {/* Clean Modular Page Routing with Distinct Architectural Structures */}
-        {currentTab === 'search' || searchQuery.trim() ? (
-          <SearchPage />
-        ) : currentTab === 'admin' ? (
-          <AdminPage />
-        ) : currentTab === 'movies' ? (
-          <MoviesPage />
-        ) : currentTab === 'tv' ? (
-          <SeriesPage />
-        ) : currentTab === 'trending' ? (
-          <TrendingPage />
-        ) : currentTab === 'watchlist' ? (
-          <WatchlistPage />
-        ) : (
-          <HomePage />
-        )}
+        {/* Route-level Error Boundary with Suspense & Shimmer Skeletons */}
+        <ErrorBoundary 
+          isRouteBoundary 
+          fallbackTitle="Halaman Sementara Tidak Dapat Dimuat"
+          fallbackDescription="Terjadi kendala saat memuat konten pada halaman ini. Anda tetap dapat menggunakan menu navigasi atau kembali ke Beranda."
+        >
+          <Suspense fallback={<PageLoader isCatalog={isCatalogRoute} />}>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/movies" element={<MoviesPage />} />
+              <Route path="/tv" element={<SeriesPage />} />
+              <Route path="/series" element={<Navigate to="/tv" replace />} />
+              <Route path="/trending" element={<TrendingPage />} />
+              <Route path="/watchlist" element={<WatchlistPage />} />
+              <Route path="/search" element={<SearchPage />} />
+              <Route path="/admin" element={<AdminPage />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
+        </ErrorBoundary>
       </div>
 
       {!isAdminView && <Footer />}
 
       {/* Global Modals */}
       <DetailModal />
-      <VideoPlayerModal />
       <AuthModal />
       <MobileSyncModal />
-      <DeviceSecurityModal />
       <PartnershipModal />
+
+      {/* Heavy Modals (Isolated in their own Error Boundary) */}
+      <ErrorBoundary fallbackTitle="Pemutar Video Mengalami Kendala">
+        <Suspense fallback={null}>
+          <VideoPlayerModal />
+          <DeviceSecurityModal />
+        </Suspense>
+      </ErrorBoundary>
+
+      {/* Floating Connectivity Notification Toast */}
+      <NetworkStatusToast />
     </div>
   );
 };
 
 export const App: React.FC = () => {
   return (
-    <WatchProvider>
-      <MainContent />
-    </WatchProvider>
+    <ErrorBoundary fallbackTitle="LiveEuy Mengalami Kendala Sistem">
+      <WatchProvider>
+        <MainContent />
+      </WatchProvider>
+    </ErrorBoundary>
   );
 };
 

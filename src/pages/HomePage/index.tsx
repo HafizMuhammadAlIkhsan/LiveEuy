@@ -67,7 +67,7 @@ export const HomePage: React.FC = () => {
       a: 'Sebagai Tamu (Guest), Anda dapat langsung menonton cuplikan dan film tertentu dalam kualitas HD. Untuk menikmati resolusi 4K UHD, Dolby Atmos, dan simpan riwayat di semua perangkat, silakan buat akun VIP.'
     },
     {
-      q: 'Apakah bisa digunakan di Smart TV dan Ponsel sekaligus?',
+      q: 'Apakah bisa digunakan di Laptop dan Ponsel sekaligus?',
       a: 'Ya! Paket VIP Cinema Ultra mendukung hingga 4 perangkat aktif bersamaan dengan sinkronisasi riwayat cloud instan.'
     },
     {

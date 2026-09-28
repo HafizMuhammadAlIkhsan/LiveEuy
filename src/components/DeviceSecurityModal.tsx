@@ -7,7 +7,6 @@ import {
   Laptop, 
   Tablet, 
   Monitor, 
-  Tv, 
   LogOut, 
   X, 
   MapPin, 
@@ -56,8 +55,6 @@ export const DeviceSecurityModal: React.FC = () => {
         return <Smartphone className={className} />;
       case 'tablet':
         return <Tablet className={className} />;
-      case 'tv':
-        return <Tv className={className} />;
       case 'desktop':
       default:
         return <Laptop className={className} />;
@@ -401,7 +398,7 @@ export const DeviceSecurityModal: React.FC = () => {
                 </h3>
                 <p className="text-xs text-slate-300 leading-relaxed">
                   {includeCurrentDevice ? (
-                    'Tindakan ini akan mengakhiri seluruh sesi login di smartphone, tablet, laptop, smart TV, dan browser ini. Semua token autentikasi akan dicabut di backend. Anda harus login kembali.'
+                    'Tindakan ini akan mengakhiri seluruh sesi login di smartphone, tablet, laptop, dan browser ini. Semua token autentikasi akan dicabut di backend. Anda harus login kembali.'
                   ) : (
                     'Seluruh sesi perangkat lain (smartphone, tablet, laptop lain) akan dicabut seketika. Sesi pada perangkat dan browser yang Anda gunakan saat ini akan tetap aktif.'
                   )}

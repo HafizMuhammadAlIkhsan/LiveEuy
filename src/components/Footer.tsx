@@ -1,12 +1,12 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Globe, Shield, HelpCircle, ShieldCheck } from 'lucide-react';
 import { useWatch } from '../context/WatchContext';
 
 export const Footer: React.FC = () => {
-  const { setCurrentTab, currentTab } = useWatch();
+  const { currentTab } = useWatch();
 
-  const handleNav = (tab: any) => {
-    setCurrentTab(tab);
+  const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -16,19 +16,21 @@ export const Footer: React.FC = () => {
         
         {/* Top Branding & Meta */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <button
-            onClick={() => handleNav('home')}
+          <Link
+            to="/"
+            onClick={scrollToTop}
             className="flex items-center gap-2 text-left group cursor-pointer"
             title="LiveEuy Beranda"
           >
             <span className="text-xl sm:text-2xl font-black tracking-tight text-white select-none">
               LIVE<span className="text-brand-500">EUY</span>
             </span>
-          </button>
+          </Link>
 
           <div className="flex items-center gap-4 sm:gap-6 text-xs flex-wrap">
-            <button 
-              onClick={() => handleNav('admin')}
+            <Link 
+              to="/admin"
+              onClick={scrollToTop}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-colors ${
                 currentTab === 'admin'
                   ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-semibold'
@@ -37,7 +39,7 @@ export const Footer: React.FC = () => {
             >
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
               <span>CMS Admin</span>
-            </button>
+            </Link>
             <div className="flex items-center gap-1.5 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer">
               <Globe className="w-3.5 h-3.5" />
               <span>Indonesia (ID)</span>
@@ -59,29 +61,29 @@ export const Footer: React.FC = () => {
             <p className="font-semibold text-white tracking-wide">Navigasi</p>
             <ul className="space-y-2 text-slate-400 text-xs">
               <li>
-                <button onClick={() => handleNav('home')} className="hover:text-white transition-colors">
+                <Link to="/" onClick={scrollToTop} className="hover:text-white transition-colors">
                   Beranda
-                </button>
+                </Link>
               </li>
               <li>
-                <button onClick={() => handleNav('movies')} className="hover:text-white transition-colors">
+                <Link to="/movies" onClick={scrollToTop} className="hover:text-white transition-colors">
                   Film Bioskop
-                </button>
+                </Link>
               </li>
               <li>
-                <button onClick={() => handleNav('tv')} className="hover:text-white transition-colors">
+                <Link to="/tv" onClick={scrollToTop} className="hover:text-white transition-colors">
                   Serial TV & Drama
-                </button>
+                </Link>
               </li>
               <li>
-                <button onClick={() => handleNav('trending')} className="hover:text-white transition-colors">
+                <Link to="/trending" onClick={scrollToTop} className="hover:text-white transition-colors">
                   Trending Populer
-                </button>
+                </Link>
               </li>
               <li>
-                <button onClick={() => handleNav('watchlist')} className="hover:text-white transition-colors">
+                <Link to="/watchlist" onClick={scrollToTop} className="hover:text-white transition-colors">
                   Koleksi Saya
-                </button>
+                </Link>
               </li>
             </ul>
           </div>
@@ -90,29 +92,29 @@ export const Footer: React.FC = () => {
             <p className="font-semibold text-white tracking-wide">Kategori Sinema</p>
             <ul className="space-y-2 text-slate-400 text-xs">
               <li>
-                <button onClick={() => handleNav('movies')} className="hover:text-white transition-colors">
+                <Link to="/movies" onClick={scrollToTop} className="hover:text-white transition-colors">
                   Aksi & Laga
-                </button>
+                </Link>
               </li>
               <li>
-                <button onClick={() => handleNav('movies')} className="hover:text-white transition-colors">
+                <Link to="/movies" onClick={scrollToTop} className="hover:text-white transition-colors">
                   Fiksi Ilmiah & Sci-Fi
-                </button>
+                </Link>
               </li>
               <li>
-                <button onClick={() => handleNav('movies')} className="hover:text-white transition-colors">
+                <Link to="/movies" onClick={scrollToTop} className="hover:text-white transition-colors">
                   Horor & Misteri Nusantara
-                </button>
+                </Link>
               </li>
               <li>
-                <button onClick={() => handleNav('movies')} className="hover:text-white transition-colors">
+                <Link to="/movies" onClick={scrollToTop} className="hover:text-white transition-colors">
                   Drama & Romansa
-                </button>
+                </Link>
               </li>
               <li>
-                <button onClick={() => handleNav('movies')} className="hover:text-white transition-colors">
+                <Link to="/movies" onClick={scrollToTop} className="hover:text-white transition-colors">
                   Komedi Segar
-                </button>
+                </Link>
               </li>
             </ul>
           </div>

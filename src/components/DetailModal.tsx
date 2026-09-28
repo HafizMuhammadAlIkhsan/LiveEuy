@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   X, 
   Play, 
@@ -13,6 +13,7 @@ import {
 import { useWatch } from '../context/WatchContext';
 import { Review } from '../types';
 import { apiService } from '../services/api';
+import { useModalA11y } from '../hooks/useModalA11y';
 
 export const DetailModal: React.FC = () => {
   const { 
@@ -30,12 +31,20 @@ export const DetailModal: React.FC = () => {
     openMobileSync
   } = useWatch();
 
+  const modalRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'episodes' | 'similar' | 'reviews'>('overview');
   const [selectedSeasonNumber, setSelectedSeasonNumber] = useState<number>(1);
   const [userRating, setUserRating] = useState<number>(10);
   const [userComment, setUserComment] = useState<string>('');
   const [reviewsList, setReviewsList] = useState<Review[]>([]);
   const [hasCopiedShare, setHasCopiedShare] = useState(false);
+
+  // Focus trap, Escape key listener, and body scroll lock
+  useModalA11y({
+    isOpen: Boolean(detailItem),
+    onClose: closeDetail,
+    modalRef
+  });
 
   // Sync reviews when detailItem changes
   React.useEffect(() => {
@@ -96,6 +105,10 @@ export const DetailModal: React.FC = () => {
       onClick={closeDetail}
     >
       <div 
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Detail Sinema: ${detailItem.title}`}
         className="relative w-full max-w-4xl lg:max-w-5xl xl:max-w-6xl 2xl:max-w-[1240px] bg-surface-900 border-t sm:border border-white/10 rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl text-slate-100 max-h-[94vh] sm:max-h-[92vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
