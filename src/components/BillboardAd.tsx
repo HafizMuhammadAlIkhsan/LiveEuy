@@ -50,14 +50,14 @@ const DEFAULT_RIGHT_BANNER: AdCampaign = {
 };
 
 export const BillboardAd: React.FC<BillboardAdProps> = ({ placementIndex = 0, className = '' }) => {
-  const { ads, recordAdImpression, recordAdClick, openPartnershipModal } = useWatch();
+  const { ads, recordAdImpression, recordAdClick } = useWatch();
 
   // Find active billboard feed ads
   const billboardAds = ads.filter(a => a.isActive && a.layer === 'billboard_feed');
 
   // Pair selection with fallback to the authentic dual banners
-  const leftAd: AdCampaign = billboardAds[placementIndex * 2] || DEFAULT_LEFT_BANNER;
-  const rightAd: AdCampaign = billboardAds[placementIndex * 2 + 1] || DEFAULT_RIGHT_BANNER;
+  const leftAd: AdCampaign = billboardAds[(placementIndex * 2) % Math.max(1, billboardAds.length)] || DEFAULT_LEFT_BANNER;
+  const rightAd: AdCampaign = billboardAds[(placementIndex * 2 + 1) % Math.max(1, billboardAds.length)] || DEFAULT_RIGHT_BANNER;
 
   const [hasRecordedImpressions, setHasRecordedImpressions] = useState(false);
 
@@ -79,20 +79,13 @@ export const BillboardAd: React.FC<BillboardAdProps> = ({ placementIndex = 0, cl
   };
 
   return (
-    <div className={`cinema-layout-container my-6 sm:my-8 ${className}`}>
-      {/* Subtle (18+) label above banners, matching authentic pirate streaming site aesthetic */}
-      <div className="flex items-center justify-center mb-2">
-        <span className="text-[11px] font-mono tracking-wider text-slate-500/80 hover:text-slate-400 select-none transition-colors">
-          (18+)
-        </span>
-      </div>
-
-      {/* Dual Horizontal Banners Side-by-Side */}
+    <div className={`cinema-layout-container my-4 sm:my-6 ${className}`}>
+      {/* Dual Horizontal Banners Side-by-Side matching IDLIX streaming layout */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 items-center">
         {/* Left Banner: MEMBER BARU QQ828 */}
         <div
           onClick={() => handleAdClick(leftAd)}
-          className="group relative rounded-xl overflow-hidden cursor-pointer shadow-lg transition-all duration-300 hover:scale-[1.01] hover:brightness-110 active:scale-[0.99] border border-white/5 hover:border-cyan-500/30 bg-black/40"
+          className="group relative rounded-lg sm:rounded-xl overflow-hidden cursor-pointer shadow-md transition-all duration-200 hover:scale-[1.01] hover:brightness-110 active:scale-[0.99] border border-white/5 hover:border-cyan-500/30 bg-black/40"
           role="button"
           tabIndex={0}
           aria-label={leftAd.title}
@@ -106,13 +99,12 @@ export const BillboardAd: React.FC<BillboardAdProps> = ({ placementIndex = 0, cl
               (e.target as HTMLImageElement).src = '/ads/banner-qq828.png';
             }}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>
 
         {/* Right Banner: QQ888BET Berani Coba? */}
         <div
           onClick={() => handleAdClick(rightAd)}
-          className="group relative rounded-xl overflow-hidden cursor-pointer shadow-lg transition-all duration-300 hover:scale-[1.01] hover:brightness-110 active:scale-[0.99] border border-white/5 hover:border-blue-500/30 bg-black/40"
+          className="group relative rounded-lg sm:rounded-xl overflow-hidden cursor-pointer shadow-md transition-all duration-200 hover:scale-[1.01] hover:brightness-110 active:scale-[0.99] border border-white/5 hover:border-blue-500/30 bg-black/40"
           role="button"
           tabIndex={0}
           aria-label={rightAd.title}
@@ -126,19 +118,7 @@ export const BillboardAd: React.FC<BillboardAdProps> = ({ placementIndex = 0, cl
               (e.target as HTMLImageElement).src = '/ads/banner-qq888bet.png';
             }}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>
-      </div>
-
-      {/* Discreet footer meta & partnership link */}
-      <div className="flex items-center justify-between mt-2 px-1 text-[10px] text-slate-500/70">
-        <span className="font-mono">Sponsor LiveEuy Cinema Network</span>
-        <button
-          onClick={openPartnershipModal}
-          className="hover:text-amber-400 transition-colors flex items-center gap-1 cursor-pointer"
-        >
-          <span>Pasang Iklan di Sini</span>
-        </button>
       </div>
     </div>
   );

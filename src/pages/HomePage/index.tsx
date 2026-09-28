@@ -278,6 +278,9 @@ export const HomePage: React.FC = () => {
         {/* Top 10 Ranked Row */}
         <TopTenRow items={allMedia} />
 
+        {/* Dual Ads under Top 10 */}
+        <BillboardAd placementIndex={0} />
+
         {/* Trending in Indonesia */}
         <MediaRow
           title="Sedang Populer di Indonesia"
@@ -286,8 +289,8 @@ export const HomePage: React.FC = () => {
           onViewAll={() => setCurrentTab('trending')}
         />
 
-        {/* Layer 1: In-Feed Native Cinema Billboard Ad */}
-        <BillboardAd placementIndex={0} />
+        {/* Dual Ads under Trending in Indonesia */}
+        <BillboardAd placementIndex={1} />
 
         {/* Action & Sci-Fi Row */}
         <MediaRow
@@ -297,6 +300,9 @@ export const HomePage: React.FC = () => {
           onViewAll={() => setCurrentTab('movies')}
         />
 
+        {/* Dual Ads under Action & Sci-Fi */}
+        <BillboardAd placementIndex={2} />
+
         {/* Drama & Thriller Row */}
         <MediaRow
           title="Serial Drama & Cerita Penuh Misteri"
@@ -305,6 +311,9 @@ export const HomePage: React.FC = () => {
           onViewAll={() => setCurrentTab('tv')}
         />
 
+        {/* Dual Ads under Drama & Thriller */}
+        <BillboardAd placementIndex={3} />
+
         {/* Animation & Comedy Row */}
         <MediaRow
           title="Animasi, Anime & Komedi Menghibur"
@@ -312,6 +321,9 @@ export const HomePage: React.FC = () => {
           items={animationItems}
           onViewAll={() => setCurrentTab('movies')}
         />
+
+        {/* Dual Ads under Animation & Comedy */}
+        <BillboardAd placementIndex={4} />
 
         {/* ========================================================
             GUEST ONLY SECTION: SUBSCRIPTION PLANS & FAQ
