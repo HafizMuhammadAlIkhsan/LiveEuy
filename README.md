@@ -1,6 +1,6 @@
 # LiveEuy Mobile: Aplikasi Streaming Film dan Serial TV
 
-Klien mobile streaming film dan serial televisi berbasis Flutter (Android dan iOS). Repositori ini mencakup aplikasi Flutter serta purwarupa backend RESTful berbasis Spring Boot 3 dengan dokumentasi OpenAPI Swagger.
+Klien mobile streaming film dan serial televisi berbasis Flutter (Android dan iOS). Repositori ini mencakup aplikasi Flutter serta dokumentasi kontrak RESTful API dan spesifikasi integrasi backend LiveEuy.
 
 ---
 
@@ -198,21 +198,13 @@ Konfigurasi alamat endpoint backend:
 - Perangkat Fisik: `http://<IP-LOKAL-KOMPUTER>:8080/api/v1` (komputer dan perangkat berada pada jaringan Wi-Fi yang sama).
 - iOS Simulator: `http://localhost:8080/api/v1`.
 
-### 2. Menjalankan Backend Lokal (Spring Boot)
+### 2. Integrasi Backend & Dokumentasi Kontrak
 
-Jika ingin menjalankan service backend secara lokal:
-
-```bash
-# Melalui Maven
-cd backend
-mvn clean spring-boot:run
-
-# Atau melalui Docker Compose
-cd backend
-docker compose up -d
-```
-
-Dokumentasi Swagger UI dapat diakses melalui browser pada `http://localhost:8080/swagger-ui.html`.
+Aplikasi mobile terhubung ke backend services LiveEuy (`auth-service` dan `catalog-service`). Kontrak API, spesifikasi otentikasi token, dan referensi skema database dapat dilihat pada:
+- [`backend/API_CONTRACT.md`](backend/API_CONTRACT.md): Definisi endpoint, format JSON request/response, dan skema Dio exception.
+- [`backend/AUTHENTICATION_AND_SECURITY.md`](backend/AUTHENTICATION_AND_SECURITY.md): Panduan refresh token rotation dan keamanan sesi.
+- [`backend/DATABASE_GUIDELINES.md`](backend/DATABASE_GUIDELINES.md): Pedoman skema database dan diagram ERD.
+- [`backend/migrations/`](backend/migrations/): Referensi berkas migrasi SQL skema tabel.
 
 ### 3. Pembuatan Berkas Rilis (Production Build)
 

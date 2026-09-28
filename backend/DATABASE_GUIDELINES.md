@@ -6,7 +6,7 @@ Panduan ini ditujukan bagi tim backend dan full-stack untuk menjaga konsistensi 
 
 ## Prinsip Utama (Core Principles)
 
-1. **Database-as-Code**: Semua perubahan skema DDL wajib tercatat dalam berkas migrasi Flyway di `src/main/resources/db/migration/`. Tidak ada perubahan langsung via GUI tool (DBeaver/pgAdmin) di lingkungan bersama.
+1. **Database-as-Code**: Semua perubahan skema DDL wajib tercatat dalam berkas migrasi di `backend/migrations/` (atau migrasi resmi backend service). Tidak ada perubahan langsung via GUI tool (DBeaver/pgAdmin) di lingkungan bersama.
 2. **Immutability of Migrations**: Berkas migrasi yang sudah pernah di-*merge* ke branch utama tidak boleh diedit atau dihapus. Buat berkas migrasi baru untuk perbaikan atau perubahan.
 3. **Idempotensi & Anti Race-Condition**: Gunakan pola `ON CONFLICT` (UPSERT) untuk operasi seperti *Watch Progress* dan *Watchlist* agar aman dari konkurensi multi-device.
 
