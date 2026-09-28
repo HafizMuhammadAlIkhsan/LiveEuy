@@ -72,6 +72,7 @@ import {
   Ban,
   PowerOff
 } from 'lucide-react';
+import { sanitizeMediaCatalog } from '../../utils/security';
 
 export type AdminModuleId = 'media' | 'banner' | 'ads' | 'episodes' | 'users' | 'tracking' | 'analytics' | 'reviews' | 'system';
 
@@ -333,6 +334,7 @@ export const AdminPage: React.FC = () => {
   const [pendingRestoreData, setPendingRestoreData] = useState<{
     fileName: string;
     items: MediaItem[];
+    rejectedCount?: number;
   } | null>(null);
   const [restoreMode, setRestoreMode] = useState<'merge' | 'replace'>('merge');
   const jsonFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -1264,22 +1266,23 @@ export const AdminPage: React.FC = () => {
         const text = event.target?.result as string;
         const parsed = JSON.parse(text);
         
-        let mediaItems: MediaItem[] = [];
+        let mediaItems: any[] = [];
         if (Array.isArray(parsed)) {
           mediaItems = parsed;
         } else if (parsed && Array.isArray(parsed.media)) {
           mediaItems = parsed.media;
         }
 
-        const validItems = mediaItems.filter(item => item && item.id && item.title && item.videoUrl);
-        if (validItems.length === 0) {
-          alert('File JSON tidak valid atau tidak berisi data tayangan LiveEuy yang sesuai.');
+        const { sanitized, rejectedCount } = sanitizeMediaCatalog(mediaItems);
+        if (sanitized.length === 0) {
+          alert('File JSON tidak valid atau seluruh data ditolak oleh sistem keamanan (URL tidak aman / format rusak).');
           return;
         }
 
         setPendingRestoreData({
           fileName: file.name,
-          items: validItems
+          items: sanitized,
+          rejectedCount
         });
         setRestoreMode('merge');
         setIsRestoreModalOpen(true);
@@ -1295,7 +1298,10 @@ export const AdminPage: React.FC = () => {
     if (!pendingRestoreData) return;
     importMediaCatalog(pendingRestoreData.items, restoreMode);
     setIsRestoreModalOpen(false);
-    showToast(`Katalog berhasil dipulihkan! (${pendingRestoreData.items.length} tayangan diproses)`);
+    const rejectedText = pendingRestoreData.rejectedCount && pendingRestoreData.rejectedCount > 0 
+      ? ` (${pendingRestoreData.rejectedCount} item ditolak filter keamanan)` 
+      : '';
+    showToast(`Katalog berhasil dipulihkan! (${pendingRestoreData.items.length} tayangan valid diproses${rejectedText})`);
     setPendingRestoreData(null);
   };
 
@@ -5498,7 +5504,7 @@ export const AdminPage: React.FC = () => {
             {/* Stats preview */}
             <div className="grid grid-cols-2 gap-3 p-3.5 rounded-2xl bg-surface-800/60 border border-white/5 text-xs">
               <div>
-                <span className="text-[10px] text-slate-400 uppercase font-bold block">Tayangan Terdeteksi</span>
+                <span className="text-[10px] text-slate-400 uppercase font-bold block">Tayangan Terverifikasi</span>
                 <span className="text-lg font-black text-emerald-400">{pendingRestoreData.items.length} Tayangan</span>
               </div>
               <div>
@@ -5506,6 +5512,16 @@ export const AdminPage: React.FC = () => {
                 <span className="text-lg font-black text-slate-300">{allMedia.length} Tayangan</span>
               </div>
             </div>
+
+            {/* Security Filter Alert */}
+            {Boolean(pendingRestoreData.rejectedCount && pendingRestoreData.rejectedCount > 0) && (
+              <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs flex items-center gap-2.5">
+                <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                <span className="leading-relaxed">
+                  <strong>Filter Keamanan:</strong> <span className="font-bold underline">{pendingRestoreData.rejectedCount} item</span> ditolak dan disaring otomatis karena URL tidak aman (protokol berbahaya) atau data tidak lengkap.
+                </span>
+              </div>
+            )}
 
             {/* Mode Selection */}
             <div className="space-y-2 text-xs">

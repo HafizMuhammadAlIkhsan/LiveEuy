@@ -20,6 +20,7 @@
    - [2.3 Panduan Playback Stream Video (HLS & MP4) di Mobile](#23-panduan-playback-stream-video-hls--mp4-di-mobile)
 4. [Bagian III: Standar Skema JSON Cadangan Katalog](#-bagian-iii-standar-skema-json-cadangan-katalog)
 5. [Bagian IV: Matriks Pengujian Integrasi Antar-Tim (QA Checklist)](#-bagian-iv-matriks-pengujian-integrasi-antar-tim-qa-checklist)
+6. [Bagian V: Standar Keamanan Siber Platform (Security Hardening Standards)](#-bagian-v-standar-keamanan-siber-platform-security-hardening-standards)
 
 ---
 
@@ -654,3 +655,40 @@ File cadangan yang diekspor dari Web Admin (`liveeuy-catalog-backup-YYYY-MM-DD.j
 | **7** | **Export Backup JSON** | Klik "Cadangkan JSON" di toolbar | Terunduh file `liveeuy-catalog-backup-*.json` berisi semua data media | ✅ Pass | N/A (Admin Web Only) |
 | **8** | **Restore JSON (Merge)** | Unggah file cadangan dengan mode *Merge* | Tayangan baru bertambah tanpa menghapus tayangan lama yang ada | ✅ Pass | N/A (Admin Web Only) |
 | **9** | **Restore JSON (Overwrite)**| Unggah file cadangan dengan mode *Overwrite* | Seluruh katalog tergantikan 1:1 dengan isi file cadangan | ✅ Pass | N/A (Admin Web Only) |
+| **10** | **JSON Protocol Sanitization**| Unggah file JSON berisi URL berbahaya (`javascript:`, `vbscript:`) | Data berbahaya disaring & ditolak otomatis, alert keamanan tampil | ✅ Pass | N/A (Admin Web Only) |
+| **11** | **Brute-Force Rate Limiter** | Coba login salah 5x berturut-turut di modal auth | Form terkunci 60 detik dengan hitung mundur & input dinonaktifkan | ✅ Pass | 📋 Ready for Mobile |
+
+---
+
+## 🛡️ Bagian V: Standar Keamanan Siber Platform (Security Hardening Standards)
+
+Untuk menjaga kedaulatan data pengguna, lisensi tayangan sinema, dan integritas platform, seluruh tim wajib mematuhi standar berikut:
+
+### 5.1 Web Client Hardening
+1. **Content Security Policy (CSP)**:
+   - Dideklarasikan pada `index.html` dengan restriksi `default-src 'self'`, `object-src 'none'`, `base-uri 'self'`, dan daftar whitelist domain media yang diperbolehkan (`test-streams.mux.dev`, `commondatastorage.googleapis.com`, `akamaihd.net`, `cloudflarestream.com`).
+2. **Anti-Clickjacking Defense**:
+   - Skrip frame-buster OWASP dan CSS `display:none` disematkan di `<head>` untuk menggagalkan upaya framing LiveEuy di situs penipuan (*clickjacking*).
+3. **Login Brute-Force Throttling**:
+   - Client throttling otomatis mengunci form selama 60 detik setelah 5 kali kegagalan autentikasi berturut-turut (`src/utils/security.ts`).
+   - Tim Backend wajib mengimbangi dengan Redis-based rate limiting (5 req/menit per IP) pada endpoint `/api/v1/auth/login`.
+4. **Input & JSON Schema Sanitization (OWASP CWE-20 & CWE-79)**:
+   - Setiap berkas cadangan JSON yang diunggah diproses melalui `sanitizeMediaCatalog()`.
+   - URL yang mengandung protokol non-HTTP/HTTPS (seperti `javascript:`, `data:text/html`, `vbscript:`) langsung disaring dan ditolak.
+
+### 5.2 Perlindungan Aliran Konten Video (Media DRM & Anti-Piracy Roadmap)
+1. **CDN Signed URLs / HMAC Tokens**:
+   - URL `.m3u8` master manifest harus memiliki query parameter tanda tangan kriptografis (contoh: `?token=...&expires=1727500000`) yang di-generate backend per pengguna dengan masa berlaku 2-4 jam.
+2. **Enkripsi HLS & DRM**:
+   - Tahap 1: Enkripsi AES-128 via HLS (`#EXT-X-KEY:METHOD=AES-128,URI="https://auth.liveeuy.id/hls/key"`) dengan token otentikasi saat mengambil kunci enkripsi.
+   - Tahap 2: Google Widevine L3/L1 (Android & Desktop Web via EME / Encrypted Media Extensions) & Apple FairPlay (iOS Safari & Flutter iOS).
+
+### 5.3 Mobile Security Standards (Flutter)
+1. **SSL Certificate Pinning**:
+   - Mencegah intersepsi Man-in-the-Middle (MITM) pada lalu lintas API produksi menggunakan sertifikat SHA-256 fingerprint.
+2. **Penyimpanan Kunci Kredensial**:
+   - Wajib menggunakan `flutter_secure_storage` (Android Keystore / iOS Keychain) untuk menyimpan access token & refresh token. Dilarang keras menggunakan plain `SharedPreferences`.
+3. **Anti-Screen Recording & Screenshot (`FLAG_SECURE`)**:
+   - Mengaktifkan `WindowManager.LayoutParams.FLAG_SECURE` pada Activity Android saat player video aktif untuk mencegah perekaman layar ilegal dari film berbayar.
+4. **Root / Jailbreak Detection**:
+   - Memeriksa status perangkat yang di-root untuk membatasi pemutaran resolusi 4K UHD demi memenuhi persyaratan kepatuhan lisensi studio film internasional.

@@ -4,6 +4,7 @@ import { MediaItem, Episode, WatchProgress, ViewTab, User, VisitorSession, Broad
 import { MOCK_MEDIA, MOCK_ADS, MOCK_AD_INQUIRIES } from '../data/mockData';
 import { apiService } from '../services/api';
 import { trackCurrentVisitor, getStoredSessions, resetVisitorTracking, saveStoredSessions, deleteCookie, TRACKER_COOKIE_NAME } from '../utils/cookieTracker';
+import { sanitizeMediaCatalog } from '../utils/security';
 
 interface WatchContextType {
   currentTab: ViewTab;
@@ -417,18 +418,22 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const importMediaCatalog = (items: MediaItem[], mode: 'replace' | 'merge') => {
     if (!items || items.length === 0) return;
+    const { sanitized, rejectedCount } = sanitizeMediaCatalog(items);
+    if (sanitized.length === 0) return;
+
     if (mode === 'replace') {
-      setMediaList(items);
+      setMediaList(sanitized);
       try {
-        localStorage.setItem('liveeuy_custom_media', JSON.stringify(items));
+        localStorage.setItem('liveeuy_custom_media', JSON.stringify(sanitized));
       } catch (e) {
         console.error(e);
       }
-      addAuditLog('Pulihkan Katalog (Overwrite)', 'media', `Mengganti seluruh katalog dengan cadangan (${items.length} tayangan).`);
+      const note = rejectedCount > 0 ? ` (${rejectedCount} item ditolak sistem keamanan)` : '';
+      addAuditLog('Pulihkan Katalog (Overwrite)', 'media', `Mengganti seluruh katalog dengan cadangan (${sanitized.length} tayangan)${note}.`);
     } else {
       setMediaList(prev => {
         const itemMap = new Map(prev.map(item => [item.id, item]));
-        items.forEach(item => itemMap.set(item.id, item));
+        sanitized.forEach(item => itemMap.set(item.id, item));
         const merged = Array.from(itemMap.values());
         try {
           localStorage.setItem('liveeuy_custom_media', JSON.stringify(merged));
@@ -437,7 +442,8 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
         return merged;
       });
-      addAuditLog('Gabungkan Katalog (Merge)', 'media', `Mengimpor dan menggabungkan ${items.length} tayangan ke dalam katalog aktif.`);
+      const note = rejectedCount > 0 ? ` (${rejectedCount} item ditolak sistem keamanan)` : '';
+      addAuditLog('Gabungkan Katalog (Merge)', 'media', `Mengimpor dan menggabungkan ${sanitized.length} tayangan ke dalam katalog aktif${note}.`);
     }
   };
 

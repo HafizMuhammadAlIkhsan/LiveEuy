@@ -18,8 +18,15 @@ import {
   Sparkles,
   Laptop,
   Wifi,
-  Radio
+  Radio,
+  ShieldAlert
 } from 'lucide-react';
+import { 
+  getLoginLockoutStatus, 
+  recordFailedLoginAttempt, 
+  clearLoginLockout, 
+  MAX_LOGIN_ATTEMPTS 
+} from '../utils/security';
 
 export const AuthModal: React.FC = () => {
   const { isAuthModalOpen, closeAuthModal, authModalMode, openAuthModal, login } = useWatch();
@@ -34,6 +41,35 @@ export const AuthModal: React.FC = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [lockoutSeconds, setLockoutSeconds] = useState(0);
+  const [failedAttempts, setFailedAttempts] = useState(0);
+
+  // Check lockout on email change or modal open
+  useEffect(() => {
+    if (email) {
+      const status = getLoginLockoutStatus(email);
+      setLockoutSeconds(status.remainingSeconds);
+      setFailedAttempts(status.attempts);
+    } else {
+      setLockoutSeconds(0);
+      setFailedAttempts(0);
+    }
+  }, [email, isAuthModalOpen]);
+
+  // Countdown timer for brute-force lockout
+  useEffect(() => {
+    if (lockoutSeconds <= 0) return;
+    const interval = setInterval(() => {
+      setLockoutSeconds(prev => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [lockoutSeconds]);
 
   // Sync isRegister when authModalMode changes
   useEffect(() => {
@@ -62,6 +98,11 @@ export const AuthModal: React.FC = () => {
       return;
     }
 
+    if (!isRegister && lockoutSeconds > 0) {
+      setError(`Terlalu banyak percobaan gagal. Akun dikunci sementara demi keamanan. Silakan coba lagi dalam ${lockoutSeconds} detik.`);
+      return;
+    }
+
     setIsSubmitting(true);
     setError('');
 
@@ -73,10 +114,27 @@ export const AuthModal: React.FC = () => {
 
       // Handle backend response with validation or rejection
       if (res && !res.success) {
-        setError(res.message || (isRegister ? 'Gagal mendaftar. Email mungkin sudah terdaftar.' : 'Email atau kata sandi tidak valid.'));
+        if (!isRegister) {
+          const lockResult = recordFailedLoginAttempt(email.trim());
+          setFailedAttempts(lockResult.attempts);
+          if (lockResult.isLocked) {
+            setLockoutSeconds(lockResult.remainingSeconds);
+            setError(`Terlalu banyak percobaan salah (${MAX_LOGIN_ATTEMPTS}/${MAX_LOGIN_ATTEMPTS}). Akun dikunci sementara selama ${lockResult.remainingSeconds} detik.`);
+          } else {
+            const remaining = MAX_LOGIN_ATTEMPTS - lockResult.attempts;
+            setError(`${res.message || 'Email atau kata sandi tidak valid.'} (Sisa percobaan: ${remaining})`);
+          }
+        } else {
+          setError(res.message || 'Gagal mendaftar. Email mungkin sudah terdaftar.');
+        }
         setIsSubmitting(false);
         return;
       }
+
+      // Successful login - clear lockout
+      clearLoginLockout(email.trim());
+      setFailedAttempts(0);
+      setLockoutSeconds(0);
 
       // If backend is running and returned user or success
       const userProfile = res?.user;
@@ -101,6 +159,10 @@ export const AuthModal: React.FC = () => {
       }, 600);
     } catch {
       // Offline fallback mode for local testing
+      clearLoginLockout(email.trim());
+      setFailedAttempts(0);
+      setLockoutSeconds(0);
+
       const userName = isRegister ? name.trim() : email.split('@')[0];
       login({
         name: userName,
@@ -123,6 +185,9 @@ export const AuthModal: React.FC = () => {
   };
 
   const handleDemoVip = () => {
+    clearLoginLockout('hafiz@liveeuy.id');
+    setFailedAttempts(0);
+    setLockoutSeconds(0);
     login({
       name: 'Hafiz Muhammad',
       email: 'hafiz@liveeuy.id',
@@ -140,6 +205,9 @@ export const AuthModal: React.FC = () => {
   };
 
   const handleDemoStandard = () => {
+    clearLoginLockout('budi@liveeuy.id');
+    setFailedAttempts(0);
+    setLockoutSeconds(0);
     login({
       name: 'Budi Santoso',
       email: 'budi@liveeuy.id',
@@ -327,6 +395,21 @@ export const AuthModal: React.FC = () => {
             </div>
 
             {/* Feedback Alerts */}
+            {lockoutSeconds > 0 && !isRegister && (
+              <div className="mb-4 p-3 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-200 text-xs font-medium flex items-start gap-2.5 animate-fade-in">
+                <ShieldAlert className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-semibold text-amber-300">Proteksi Brute Force Aktif</p>
+                  <p className="text-[11px] text-amber-200/80 mt-0.5">
+                    Terlalu banyak percobaan sandi salah ({MAX_LOGIN_ATTEMPTS}/{MAX_LOGIN_ATTEMPTS}). Formulir dikunci sementara demi keamanan akun. Silakan tunggu{' '}
+                    <span className="font-mono font-bold text-white bg-black/40 px-1.5 py-0.5 rounded border border-amber-500/30">
+                      {lockoutSeconds} detik
+                    </span>.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {success && (
               <div className="mb-4 p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-medium flex items-center gap-2 animate-fade-in">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
@@ -334,7 +417,7 @@ export const AuthModal: React.FC = () => {
               </div>
             )}
 
-            {error && (
+            {error && (!lockoutSeconds || isRegister) && (
               <div className="mb-4 p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-medium animate-fade-in">
                 {error}
               </div>
@@ -442,9 +525,10 @@ export const AuthModal: React.FC = () => {
                   <input
                     type="email"
                     value={email}
+                    disabled={isSubmitting || (!isRegister && lockoutSeconds > 0)}
                     onChange={e => setEmail(e.target.value)}
                     placeholder="nama@email.com"
-                    className="w-full bg-white/[0.04] border border-white/[0.1] focus:border-brand-500 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none transition-colors"
+                    className="w-full bg-white/[0.04] border border-white/[0.1] focus:border-brand-500 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
               </div>
@@ -455,8 +539,9 @@ export const AuthModal: React.FC = () => {
                   {!isRegister && (
                     <button
                       type="button"
+                      disabled={lockoutSeconds > 0}
                       onClick={() => setError('Tautan pemulihan kata sandi telah dikirim ke email terdaftar demo.')}
-                      className="text-[10px] text-slate-400 hover:text-brand-400 transition-colors"
+                      className="text-[10px] text-slate-400 hover:text-brand-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       Lupa sandi?
                     </button>
@@ -467,9 +552,10 @@ export const AuthModal: React.FC = () => {
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
+                    disabled={isSubmitting || (!isRegister && lockoutSeconds > 0)}
                     onChange={e => setPassword(e.target.value)}
                     placeholder="Minimal 6 karakter"
-                    className="w-full bg-white/[0.04] border border-white/[0.1] focus:border-brand-500 rounded-xl pl-9 pr-10 py-2 text-xs text-white placeholder-slate-500 focus:outline-none transition-colors"
+                    className="w-full bg-white/[0.04] border border-white/[0.1] focus:border-brand-500 rounded-xl pl-9 pr-10 py-2 text-xs text-white placeholder-slate-500 focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                   <button
                     type="button"
@@ -488,8 +574,9 @@ export const AuthModal: React.FC = () => {
                   <input
                     type="checkbox"
                     checked={rememberMe}
+                    disabled={lockoutSeconds > 0}
                     onChange={e => setRememberMe(e.target.checked)}
-                    className="w-3.5 h-3.5 rounded bg-white/[0.05] border-white/20 text-brand-600 focus:ring-0 cursor-pointer"
+                    className="w-3.5 h-3.5 rounded bg-white/[0.05] border-white/20 text-brand-600 focus:ring-0 cursor-pointer disabled:opacity-50"
                   />
                   <span className="text-[11px] text-slate-400">Ingat sesi di perangkat ini</span>
                 </label>
@@ -498,13 +585,18 @@ export const AuthModal: React.FC = () => {
               {/* Submit CTA */}
               <button
                 type="submit"
-                disabled={isSubmitting}
-                className="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 disabled:bg-brand-800 disabled:opacity-70 text-white text-xs font-bold transition-all shadow-md active:scale-[0.98] mt-2 cursor-pointer disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                disabled={isSubmitting || (!isRegister && lockoutSeconds > 0)}
+                className="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 disabled:bg-slate-800 disabled:border disabled:border-white/10 disabled:opacity-60 text-white text-xs font-bold transition-all shadow-md active:scale-[0.98] mt-2 cursor-pointer disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
               >
                 {isSubmitting ? (
                   <>
                     <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     <span>Memverifikasi akun...</span>
+                  </>
+                ) : !isRegister && lockoutSeconds > 0 ? (
+                  <>
+                    <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Terkunci Sementara ({lockoutSeconds}s)</span>
                   </>
                 ) : (
                   <>
