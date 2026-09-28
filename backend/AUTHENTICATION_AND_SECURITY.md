@@ -22,11 +22,21 @@ Sistem autentikasi LiveEuy menerapkan standar keamanan modern berbasis **JWT (JS
 
 | Parameter | Frontend Web (React 18 + Vite) | Mobile Client (Flutter Android & iOS) |
 |---|---|---|
+| **Identitas Header HTTP** | `User-Agent: Mozilla/5.0...` | `User-Agent: LiveEuy-Mobile/2.4.0 (Android/iOS)`, `X-Device-Type: Mobile` |
+| **Tipe Perangkat (`deviceType`)** | `'Desktop'` / `'Tablet'` | `'Mobile'` |
 | **Mekanisme Penyimpanan Refresh Token** | **Cookie HttpOnly** (`SameSite=Lax`, `Path=/api/v1/auth`, `MaxAge=7d`) | **`flutter_secure_storage`** (Hardware-backed Keystore & Keychain) |
 | **Akses JavaScript / Dart** | ❌ **Terisolasi total**: JavaScript di browser tidak bisa membaca cookie (Kebal serangan XSS). | 🔑 Aplikasi membaca secara aman lewat API native OS berenkripsi. |
 | **Penyimpanan Access Token** | Variabel memori (React Context / Zustand / memory variable). | State provider memori (Riverpod `authProvider`). |
 | **Apakah boleh LocalStorage / SharedPreferences?** | ❌ **Dilarang keras**: `localStorage` rentan XSS. | ❌ **Dilarang keras**: `shared_preferences` menyimpan *plaintext* XML/.plist terbuka (Melanggar OWASP M1). |
 | **Alur Refresh Request** | Browser otomatis melampirkan cookie saat menembak POST `/api/v1/auth/refresh` (`withCredentials: true`). | Mobile membaca token dari Secure Storage lalu mengirimkan JSON body `{ "refreshToken": "..." }`. |
+| **Manajemen Keamanan Sesi** | Modal `DeviceSecurityModal` | Bottom sheet `DeviceSecuritySheet` |
+
+> [!IMPORTANT]
+> **Pembedaan Sesi Mobile vs Web pada Backend:**
+> Backend service (Go `auth-service` & Spring Boot) membaca header `User-Agent` dan `X-Device-Type` saat login/registrasi. Token refresh disimpan bersama nama dan tipe perangkat pengguna (`device_name`). Hal ini memungkinkan pencabutan sesi secara granular tanpa logout massal:
+> 1. Pengguna smartphone dapat melihat apakah akun mereka aktif di browser PC (`Google Chrome - Windows`).
+> 2. Pengguna dapat mencabut sesi web yang mencurigakan secara terpisah via `DELETE /api/v1/auth/devices/{deviceId}`.
+> 3. Pengguna dapat keluar dari seluruh perangkat web lain (`POST /api/v1/auth/logout-all` dengan `includeCurrent: false`) tanpa mengganggu sesi mobile aktif.
 
 > [!IMPORTANT]
 > **Mengapa Flutter Tidak Boleh Menggunakan SharedPreferences untuk Token?**

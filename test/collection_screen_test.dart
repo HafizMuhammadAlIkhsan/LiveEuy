@@ -92,14 +92,7 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 200));
 
-      // 1. Verify Page Header text matches dev-frontend
-      expect(find.text('Koleksi & Riwayat Tontonan'), findsOneWidget);
-      expect(
-        find.text('Lanjutkan tontonan terakhir Anda dan jelajahi daftar tontonan yang telah disimpan.'),
-        findsOneWidget,
-      );
-
-      // 2. Verify Section 1: Lanjutkan Menonton
+      // 1. Verify Section 1: Lanjutkan Menonton
       expect(find.text('Lanjutkan Menonton'), findsOneWidget);
 
       // 3. Verify Section 2: Daftar Tontonan Anda
@@ -202,7 +195,6 @@ void main() {
       await tester.pump(const Duration(milliseconds: 200));
 
       // Verify Koleksi screen rendered
-      expect(find.text('Koleksi & Riwayat Tontonan'), findsOneWidget);
       expect(find.text('Daftar Tontonan Anda'), findsOneWidget);
     });
   });

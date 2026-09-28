@@ -161,6 +161,37 @@ Data preferensi dan watch progress dimuat lebih awal dari cache lokal sebelum re
 
 ---
 
+## Manajemen Keamanan Perangkat & Pembedaan Sesi Login (Mobile vs Web)
+
+LiveEuy Mobile mengimplementasikan arsitektur pembedaan sesi login perangkat yang terpadu dengan klien web (`dev-frontend`) dan backend (`auth-service` / Spring Boot):
+
+### 1. Identifikasi Klien via HTTP Header
+
+Setiap request dari klien mobile ke backend secara otomatis menginjeksi header identitas perangkat melalui `ApiConfig`:
+- **`User-Agent`**: `LiveEuy-Mobile/2.4.0 (Android; Mobile)` atau `LiveEuy-Mobile/2.4.0 (iOS; Mobile)` (dibaca oleh Go `auth-service` untuk pencatatan sesi perangkat).
+- **`X-Device-Type`**: `'Mobile'` (membedakan klien mobile dari web yang bernilai `'Desktop'` atau `'Web'`).
+- **`X-Client-Platform`**: `'Android'` atau `'iOS'`.
+
+### 2. Pembedaan Sesi Login (Mobile vs Web)
+
+| Parameter Sesi | Klien Mobile (`liveeuy_mob`) | Klien Web (`dev-frontend`) |
+| :--- | :--- | :--- |
+| **Tipe Perangkat (`deviceType`)** | `'Mobile'` | `'Desktop'` / `'Tablet'` |
+| **Penyimpanan Kredensial** | `FlutterSecureStorage` (Android Keystore / iOS Keychain) | `HttpOnly` Cookie (`SameSite=Lax`) |
+| **Identitas User-Agent** | `LiveEuy-Mobile/2.4.0` | `Mozilla/5.0... (Browser Web)` |
+| **Antarmuka Manajemen Sesi** | `DeviceSecuritySheet` (Tab Akun) | `DeviceSecurityModal` (Navbar / Profile) |
+| **Status Perangkat Ini** | Ditandai badge hijau `[MOBILE • INI]` | Ditandai badge `[PERANGKAT INI]` |
+
+### 3. Fungsionalitas Lembar Keamanan Perangkat (`DeviceSecuritySheet`)
+
+Pengguna dapat membuka menu **"Perangkat Terhubung & Sesi"** pada tab Akun untuk:
+- Memeriksa sesi perangkat smartphone yang sedang digunakan (IP, OS, lokasi, dan status keaktifan).
+- Melihat daftar sesi aktif dari browser Web (misalnya Google Chrome di Windows, Safari di macOS).
+- **Pencabutan Sesi Tunggal**: Mengeluarkan sesi browser web tertentu dari jarak jauh via `DELETE /api/v1/auth/devices/{deviceId}`.
+- **Pencabutan Sesi Massal**: Menutup seluruh sesi web lain sekaligus via `POST /api/v1/auth/logout-all` (`{"includeCurrent": false}`) tanpa mempengaruhi sesi login mobile saat ini.
+
+---
+
 ## Integrasi API Backend
 
 Pemetaan endpoint backend (`origin/dev-backend`) dengan klien mobile:

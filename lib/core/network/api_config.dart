@@ -46,10 +46,39 @@ class ApiConfig {
   /// Request timeout duration
   static const Duration timeout = Duration(seconds: 10);
 
-  /// Default HTTP headers
-  static const Map<String, String> defaultHeaders = {
+  /// Client User-Agent identifying LiveEuy Mobile client
+  static String get clientUserAgent {
+    if (kIsWeb) return 'LiveEuy-Web/2.4.0 (Flutter Web)';
+    try {
+      if (Platform.isIOS) return 'LiveEuy-Mobile/2.4.0 (iOS; Mobile)';
+      if (Platform.isAndroid) return 'LiveEuy-Mobile/2.4.0 (Android; Mobile)';
+    } catch (_) {}
+    return 'LiveEuy-Mobile/2.4.0 (Mobile; Dart)';
+  }
+
+  /// Device classification matching dev-frontend ('Mobile' | 'Desktop' | 'Tablet')
+  static String get deviceType {
+    if (kIsWeb) return 'Desktop';
+    return 'Mobile';
+  }
+
+  /// Client platform string ('Android' | 'iOS' | 'Web')
+  static String get clientPlatform {
+    if (kIsWeb) return 'Web';
+    try {
+      if (Platform.isIOS) return 'iOS';
+      if (Platform.isAndroid) return 'Android';
+    } catch (_) {}
+    return 'Mobile';
+  }
+
+  /// Default HTTP headers distinguishing mobile app from web
+  static Map<String, String> get defaultHeaders => {
     'Content-Type': 'application/json; charset=UTF-8',
     'Accept': 'application/json',
+    'User-Agent': clientUserAgent,
+    'X-Device-Type': deviceType,
+    'X-Client-Platform': clientPlatform,
   };
 
   /// Default active user ID for user-scoped endpoints
@@ -67,4 +96,10 @@ class ApiConfig {
   static const String progressPath = '/user/progress';
   static String reviewsPath(String mediaId) => '/media/$mediaId/reviews';
   static const String settingsPath = '/user/settings';
+
+  // Device & Auth Security paths
+  static const String logoutPath = '/auth/logout';
+  static const String logoutAllPath = '/auth/logout-all';
+  static String revokeDevicePath(String deviceId) => '/auth/devices/$deviceId';
 }
+

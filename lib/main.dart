@@ -15,6 +15,7 @@ import 'providers/user_settings_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/deeplink/deep_link_service.dart';
 import 'core/storage/local_storage_service.dart';
+import 'shared/widgets/device_security_sheet.dart';
 import 'shared/widgets/streamflix_logo.dart';
 
 Future<void> main() async {
@@ -1512,6 +1513,31 @@ class _AkunTabState extends ConsumerState<_AkunTab> {
               title: 'Tentang LiveEuy',
               subtitle: 'Versi 2.4.0 (Build 412) • Kebijakan Privasi',
               onTap: () => _showAboutDialog(context),
+            ),
+
+            const SizedBox(height: 20),
+            _buildSectionHeader('KEAMANAN & PERANGKAT'),
+            _buildSettingsTile(
+              icon: Icons.devices_rounded,
+              title: 'Perangkat Terhubung & Sesi',
+              subtitle: user.isLoggedIn
+                  ? 'Perangkat ini: Mobile • ${user.activeSessions.where((s) => !s.isCurrentDevice).length} sesi Web aktif'
+                  : 'Lihat status sesi dan perangkat login',
+              onTap: () {
+                if (!user.isLoggedIn) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Silakan masuk terlebih dahulu untuk melihat sesi perangkat.',
+                        style: GoogleFonts.outfit(),
+                      ),
+                      backgroundColor: AppColors.surfaceContainerHighest,
+                    ),
+                  );
+                  return;
+                }
+                DeviceSecuritySheet.show(context);
+              },
             ),
 
             const SizedBox(height: 28),

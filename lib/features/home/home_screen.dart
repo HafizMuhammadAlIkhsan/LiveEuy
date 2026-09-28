@@ -626,13 +626,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     width: 34,
                     height: 34,
                     padding: const EdgeInsets.all(1.5),
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       shape: BoxShape.circle,
-                      color: AppColors.surfaceContainerHigh,
-                      border: Border.all(
-                        color: AppColors.brandEuy.withValues(alpha: 0.65),
-                        width: 1.5,
-                      ),
+                      gradient: AppColors.profileAvatarGradient,
                     ),
                     child: ClipOval(
                       child: CachedNetworkImage(

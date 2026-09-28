@@ -323,6 +323,51 @@ Sistem autentikasi LiveEuy mengadopsi standar industri modern (**Short-lived Acc
 
 ---
 
+### f. Logout dari Semua Perangkat (`POST /api/v1/auth/logout-all`)
+- **Method**: `POST`
+- **Path**: `/api/v1/auth/logout-all`
+- **Header**: `Authorization: Bearer <accessToken>`
+- **Request Body (Opsional)**:
+  ```json
+  {
+    "includeCurrent": false
+  }
+  ```
+  - `includeCurrent = true`: Mencabut seluruh sesi login termasuk perangkat ini.
+  - `includeCurrent = false`: Mencabut seluruh sesi perangkat lain (Web / Laptop / Tablet) sementara sesi perangkat ini tetap aktif.
+- **Response Body (`200 OK`)**:
+  ```json
+  {
+    "success": true,
+    "message": "Berhasil mengeluarkan seluruh perangkat lain. Sesi pada perangkat ini tetap aktif.",
+    "data": {
+      "revokedSessionsCount": 3,
+      "includeCurrent": false,
+      "timestamp": 1759020000000
+    },
+    "timestamp": "2026-09-28T10:00:00"
+  }
+  ```
+
+---
+
+### g. Keluarkan Perangkat Tertentu (`DELETE /api/v1/auth/devices/{deviceId}`)
+- **Method**: `DELETE`
+- **Path**: `/api/v1/auth/devices/{deviceId}`
+- **Path Parameter**: `deviceId` (misal `sess-web-jkt-01`)
+- **Header**: `Authorization: Bearer <accessToken>`
+- **Response Body (`200 OK`)**:
+  ```json
+  {
+    "success": true,
+    "message": "Perangkat dengan ID sess-web-jkt-01 berhasil dikeluarkan.",
+    "data": null,
+    "timestamp": "2026-09-28T10:00:00"
+  }
+  ```
+
+---
+
 ### Referensi Implementasi Klien Frontend (React 18 + Axios)
 
 Berikut adalah referensi implementasi lengkap untuk tim Frontend Web (`src/api/authApi.ts` atau Axios Interceptor):

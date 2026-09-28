@@ -366,26 +366,16 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                     padding: const EdgeInsets.all(1.5),
                     decoration: const BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [
-                          _cyan400,
-                          _blue500,
-                          Color(0xFF6366F1),
-                        ],
-                        begin: Alignment.bottomLeft,
-                        end: Alignment.topRight,
-                      ),
+                      gradient: AppColors.profileAvatarGradient,
                     ),
                     child: ClipOval(
                       child: CachedNetworkImage(
                         imageUrl: user.avatarUrl,
                         fit: BoxFit.cover,
-                        placeholder: (context, url) =>
-                            Container(color: _surface800),
+                        placeholder: (context, url) => Container(color: AppColors.surfaceContainerHigh),
                         errorWidget: (context, url, err) => Container(
-                          color: _surface800,
-                          child: const Icon(Icons.person_rounded,
-                              size: 18, color: _blue400),
+                          color: AppColors.surfaceContainerHigh,
+                          child: const Icon(Icons.person_rounded, size: 18, color: AppColors.primary),
                         ),
                       ),
                     ),
@@ -395,88 +385,11 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
             ],
           ),
 
-          // 2. Header Halaman Koleksi & Riwayat (1:1 dev-frontend WatchlistView header)
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: _blue500.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: _blue500.withValues(alpha: 0.25),
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.bookmark_rounded,
-                          color: _blue500,
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Koleksi & Riwayat Tontonan',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Lanjutkan tontonan terakhir Anda dan jelajahi daftar tontonan yang telah disimpan.',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 12,
-                                color: _slate400,
-                                height: 1.35,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.12),
-                          ),
-                        ),
-                        child: Text(
-                          '${watchlistItems.length} Tersimpan',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: _slate300,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // 3. SECTION 1: LANJUTKAN MENONTON (Jika ada riwayat tontonan aktif)
+          // 2. SECTION 1: LANJUTKAN MENONTON (Jika ada riwayat tontonan aktif)
           if (continueWatchingItems.isNotEmpty) ...[
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
                 child: Row(
                   children: [
                     const Icon(
@@ -540,7 +453,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
           // 4. SECTION 2: DAFTAR TONTONAN ANDA (Header + Filter Chips)
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
+              padding: EdgeInsets.fromLTRB(16, continueWatchingItems.isNotEmpty ? 6 : 16, 16, 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
