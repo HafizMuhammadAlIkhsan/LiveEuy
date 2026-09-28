@@ -79,7 +79,7 @@ export const VideoPlayerModal: React.FC = () => {
   const isVip = user?.tier === 'VIP Cinema Ultra';
   const prerollAd = useMemo(() => {
     if (isVip) return null;
-    const activePrerolls = ads.filter(a => a.layer === 'video_preroll' && a.active);
+    const activePrerolls = ads.filter(a => a.layer === 'video_preroll' && a.isActive);
     return activePrerolls.length > 0 ? activePrerolls[0] : null;
   }, [ads, isVip]);
 
