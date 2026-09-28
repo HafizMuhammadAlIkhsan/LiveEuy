@@ -170,4 +170,14 @@ public class MediaItem {
 
     public String getCountry() { return country; }
     public void setCountry(String country) { this.country = country; }
+
+    // Dual compatibility with Mobile & older clients
+    public String getSynopsis() { return overview; }
+    public void setSynopsis(String synopsis) { this.overview = synopsis; }
+
+    public double getUserRating() { return rating; }
+    public void setUserRating(double userRating) { this.rating = userRating; }
+
+    public Integer getTop10Rank() { return topRank; }
+    public void setTop10Rank(Integer top10Rank) { this.topRank = top10Rank; }
 }

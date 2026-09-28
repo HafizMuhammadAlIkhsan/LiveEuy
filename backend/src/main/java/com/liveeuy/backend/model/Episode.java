@@ -42,6 +42,17 @@ public class Episode {
         this.videoUrl = videoUrl;
     }
 
+    public Episode(String id, int episodeNumber, String title, String synopsis, String thumbnailUrl, String videoUrl, String duration) {
+        this.id = id;
+        this.episodeNumber = episodeNumber;
+        this.seasonNumber = 1;
+        this.title = title;
+        this.overview = synopsis;
+        this.thumbnail = thumbnailUrl;
+        this.videoUrl = videoUrl;
+        this.duration = duration;
+    }
+
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 
@@ -57,11 +68,17 @@ public class Episode {
     public String getOverview() { return overview; }
     public void setOverview(String overview) { this.overview = overview; }
 
+    public String getSynopsis() { return overview; }
+    public void setSynopsis(String synopsis) { this.overview = synopsis; }
+
     public String getDuration() { return duration; }
     public void setDuration(String duration) { this.duration = duration; }
 
     public String getThumbnail() { return thumbnail; }
     public void setThumbnail(String thumbnail) { this.thumbnail = thumbnail; }
+
+    public String getThumbnailUrl() { return thumbnail; }
+    public void setThumbnailUrl(String thumbnailUrl) { this.thumbnail = thumbnailUrl; }
 
     public String getVideoUrl() { return videoUrl; }
     public void setVideoUrl(String videoUrl) { this.videoUrl = videoUrl; }

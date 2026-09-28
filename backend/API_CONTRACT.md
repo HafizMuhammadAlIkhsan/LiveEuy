@@ -156,3 +156,531 @@ Semua endpoint mengembalikan struktur pembungkus JSON standar:
 | `userRating` | `Double` | Rata-rata rating bintang 1.0-10.0 |
 | `continueWatchingProgress` | `Double` | Progres tontonan pengguna (0.0-1.0) |
 | `seasons` | `List<Season>` | Daftar musim & episode (khusus serial) |
+
+---
+
+### 🔄 Interoperabilitas & Keselarasan Frontend Web (Universal Compatibility)
+Untuk menjamin kompatibilitas tanpa *breaking changes* antara **Web (React)** dan **Mobile (Flutter)**:
+
+| Field Standar Backend / Mobile | Alias Kompatibel Web (`src/types.ts`) | Keterangan / Normalisasi |
+|---|---|---|
+| `synopsis` | `overview` | Kedua field disediakan oleh backend |
+| `genre` | `genres: List<String>` | `genres` berupa array token, `genre` string utama |
+| `userRating` | `rating` | Skala rating numerik yang sama (0 - 10) |
+| `top10Rank` | `topRank` | Urutan peringkat Top 10 (1 - 10) |
+| `resolutionBadges` | `quality`, `audio` | Berisi badge resolusi & audio terpadu |
+| `userName` (Review) | `author` | Nama penulis ulasan |
+| `userAvatarUrl` (Review) | `avatar` | URL avatar penulis ulasan |
+| `thumbnailUrl` (Episode) | `thumbnail` | URL gambar cuplikan episode |
+
+---
+
+## 🔐 5. Autentikasi, Refresh Token, & Manajemen Cookie (`/api/v1/auth`)
+
+Sistem autentikasi LiveEuy mengadopsi standar industri modern (**Short-lived Access Token** + **Long-lived Refresh Token with Cookie HttpOnly**) yang aman dari celah XSS dan CSRF, serta mendukung klien multiplatform (**Web React** dan **Mobile Flutter**).
+
+```
+   ┌────────────────────────────────────────────────────────┐
+   │                  ALUR SILENT REFRESH                   │
+   │                                                        │
+   │  [Frontend / Mobile]               [Spring Boot]       │
+   │          │                               │             │
+   │          │─── POST /api/v1/auth/login ──>│             │
+   │          │<── 200 OK (AccessToken) ─────│             │
+   │          │    + Set-Cookie (HttpOnly)    │             │
+   │          │                               │             │
+   │          │─── GET /api/v1/media (401) ──>│ (Token Exp) │
+   │          │<── 401 Unauthorized ──────────│             │
+   │          │                               │             │
+   │          │─── POST /auth/refresh ───────>│ (Kirim      │
+   │          │    (Cookie otomatis terkirim) │  Cookie /   │
+   │          │<── 200 OK (New AccessToken) ──│  Body)      │
+   │          │    + New Rotated Cookie       │             │
+   │          │                               │             │
+   │          │─── Retry GET /media (200) ───>│ (Sukses!)   │
+   └────────────────────────────────────────────────────────┘
+```
+
+---
+
+### a. Registrasi Pengguna Baru (`POST /api/v1/auth/register`)
+- **Method**: `POST`
+- **Path**: `/api/v1/auth/register`
+- **Request Body**:
+  ```json
+  {
+    "name": "Aria Pratama",
+    "email": "aria@liveeuy.id",
+    "password": "PasswordKuat123!"
+  }
+  ```
+- **Response Body (`201 Created` / `200 OK`)**:
+  ```json
+  {
+    "success": true,
+    "message": "Registrasi berhasil. Akun Anda telah siap!",
+    "data": {
+      "accessToken": "eyJhbGciOi...",
+      "refreshToken": "eyJhbGciOi...",
+      "tokenType": "Bearer",
+      "expiresIn": 900,
+      "user": {
+        "id": "usr_99812",
+        "name": "Aria Pratama",
+        "email": "aria@liveeuy.id",
+        "avatarUrl": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120",
+        "membershipTier": "REGULAR"
+      }
+    },
+    "timestamp": "2026-09-25T11:00:00"
+  }
+  ```
+
+---
+
+### b. Login Pengguna (`POST /api/v1/auth/login`)
+- **Method**: `POST`
+- **Path**: `/api/v1/auth/login`
+- **Request Body**:
+  ```json
+  {
+    "email": "hafiz@streamflix.id",
+    "password": "password123",
+    "rememberMe": true
+  }
+  ```
+- **Response Headers**:
+  ```http
+  Set-Cookie: refreshToken=eyJhbGciOi...; Path=/api/v1/auth; Max-Age=604800; HttpOnly; SameSite=Lax
+  ```
+- **Response Body**:
+  ```json
+  {
+    "success": true,
+    "message": "Login berhasil. Selamat datang kembali!",
+    "data": {
+      "accessToken": "eyJhbGciOi...",
+      "refreshToken": "eyJhbGciOi...",
+      "tokenType": "Bearer",
+      "expiresIn": 900,
+      "user": {
+        "id": "user_hafiz",
+        "name": "Hafiz Muhammad",
+        "email": "hafiz@streamflix.id",
+        "avatarUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120",
+        "membershipTier": "VIP_4K"
+      }
+    },
+    "timestamp": "2026-09-25T10:00:00"
+  }
+  ```
+
+---
+
+### c. Refresh Access Token (`POST /api/v1/auth/refresh`)
+- **Method**: `POST`
+- **Path**: `/api/v1/auth/refresh`
+- **Mekanisme Dual-Mode (Web & Mobile)**:
+  - **Web**: Browser **otomatis mengirimkan cookie** `refreshToken` melalui header `Cookie: refreshToken=...` (Cukup pastikan `withCredentials: true` atau `credentials: 'include'`).
+  - **Mobile**: Klien mobile dapat mengirimkan JSON body `{ "refreshToken": "..." }` jika tidak mengandalkan cookie storage.
+- **Keamanan (Refresh Token Rotation)**:
+  - Token lama langsung dicabut dari server begitu digunakan.
+  - Backend menerbitkan pasangan Access Token baru + Refresh Token baru via `Set-Cookie`.
+- **Response Body**:
+  ```json
+  {
+    "success": true,
+    "message": "Access token berhasil diperbarui",
+    "data": {
+      "accessToken": "eyJhbGciOi...NEW_ACCESS_TOKEN",
+      "refreshToken": "eyJhbGciOi...NEW_REFRESH_TOKEN",
+      "tokenType": "Bearer",
+      "expiresIn": 900,
+      "user": { ... }
+    }
+  }
+  ```
+
+---
+
+### d. Logout Pengguna (`POST /api/v1/auth/logout`)
+- **Method**: `POST`
+- **Path**: `/api/v1/auth/logout`
+- **Efek Operasi**:
+  - Mencabut refresh token dari daftar token aktif di server.
+  - Mengembalikan instruksi penghapusan cookie ke browser:
+    ```http
+    Set-Cookie: refreshToken=; Path=/api/v1/auth; Max-Age=0; HttpOnly; SameSite=Lax
+    ```
+
+---
+
+### e. Profil Pengguna Aktif (`GET /api/v1/auth/me`)
+- **Method**: `GET`
+- **Path**: `/api/v1/auth/me`
+- **Header**: `Authorization: Bearer <accessToken>`
+- **Response Body**: Mengembalikan data profil `User` pengguna saat ini.
+
+---
+
+### 💻 Referensi Implementasi Klien Frontend (React 18 + Axios)
+
+Berikut adalah referensi implementasi lengkap untuk tim Frontend Web (`src/api/authApi.ts` atau Axios Interceptor):
+
+```typescript
+import axios from 'axios';
+
+export const apiClient = axios.create({
+  baseURL: 'http://localhost:8080/api/v1',
+  withCredentials: true, // WAJIB: agar browser menyertakan HttpOnly cookie ke backend
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+let inMemoryAccessToken: string | null = null;
+
+export const setAccessToken = (token: string | null) => {
+  inMemoryAccessToken = token;
+};
+
+// 1. Request Interceptor: Pasang Bearer token jika tersedia
+apiClient.interceptors.request.use((config) => {
+  if (inMemoryAccessToken && !config.headers.Authorization) {
+    config.headers.Authorization = `Bearer ${inMemoryAccessToken}`;
+  }
+  return config;
+});
+
+// 2. Response Interceptor: Tangani 401 dan jalankan Silent Refresh
+let isRefreshing = false;
+let failedQueue: Array<{ resolve: (token: string) => void; reject: (err: any) => void }> = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) prom.reject(error);
+    else prom.resolve(token!);
+  });
+  failedQueue = [];
+};
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Jika error 401 dan bukan request refresh/login itu sendiri
+    if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/auth/')) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then((token) => {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return apiClient(originalRequest);
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        // Panggil endpoint refresh (Cookie HttpOnly terkirim otomatis oleh browser)
+        const res = await axios.post(
+          'http://localhost:8080/api/v1/auth/refresh',
+          {},
+          { withCredentials: true }
+        );
+
+        const newAccessToken = res.data.data.accessToken;
+        setAccessToken(newAccessToken);
+        processQueue(null, newAccessToken);
+
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        return apiClient(originalRequest);
+      } catch (refreshErr) {
+        processQueue(refreshErr, null);
+        setAccessToken(null);
+        // Arahkan ke halaman login jika refresh token kedaluwarsa
+        return Promise.reject(refreshErr);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+```
+
+---
+
+### 📱 Referensi Implementasi Klien Mobile (Flutter + `flutter_secure_storage`)
+
+Berikut adalah referensi implementasi lengkap untuk tim Mobile Flutter (`lib/core/storage/token_storage_service.dart` & `ApiClient` retry interceptor):
+
+#### 1. Penyimpanan Token Terenkripsi (`TokenStorageService`)
+```dart
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+class TokenStorageService {
+  static const _accessTokenKey = 'liveeuy_access_token';
+  static const _refreshTokenKey = 'liveeuy_refresh_token';
+
+  static const _storage = FlutterSecureStorage(
+    aOptions: AndroidOptions(
+      encryptedSharedPreferences: true,
+      resetOnError: true,
+    ),
+    iOptions: IOSOptions(
+      accessibility: KeychainAccessibility.first_unlock,
+    ),
+  );
+
+  static Future<void> saveTokens({
+    required String accessToken,
+    required String refreshToken,
+  }) async {
+    await Future.wait([
+      _storage.write(key: _accessTokenKey, value: accessToken),
+      _storage.write(key: _refreshTokenKey, value: refreshToken),
+    ]);
+  }
+
+  static Future<String?> getAccessToken() => _storage.read(key: _accessTokenKey);
+  static Future<String?> getRefreshToken() => _storage.read(key: _refreshTokenKey);
+
+  static Future<void> clearTokens() async {
+    await Future.wait([
+      _storage.delete(key: _accessTokenKey),
+      _storage.delete(key: _refreshTokenKey),
+    ]);
+  }
+}
+```
+
+#### 2. Mekanisme Silent Refresh di Mobile Client
+```dart
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
+Future<http.Response> executeWithAutoRefresh(
+  Future<http.Response> Function(String? token) requestFn,
+) async {
+  String? accessToken = await TokenStorageService.getAccessToken();
+  var response = await requestFn(accessToken);
+
+  // Jika token expired (401), lakukan silent refresh via body JSON
+  if (response.statusCode == 401) {
+    final refreshToken = await TokenStorageService.getRefreshToken();
+    if (refreshToken == null) {
+      await TokenStorageService.clearTokens();
+      return response;
+    }
+
+    final refreshRes = await http.post(
+      Uri.parse('http://10.0.2.2:8080/api/v1/auth/refresh'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'refreshToken': refreshToken}),
+    );
+
+    if (refreshRes.statusCode == 200) {
+      final data = jsonDecode(refreshRes.body)['data'];
+      final newAccessToken = data['accessToken'] as String;
+      final newRefreshToken = data['refreshToken'] as String;
+
+      await TokenStorageService.saveTokens(
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken,
+      );
+
+      // Ulangi request asli dengan accessToken yang baru
+      response = await requestFn(newAccessToken);
+    } else {
+      await TokenStorageService.clearTokens();
+    }
+  }
+
+  return response;
+}
+```
+
+---
+
+## ⚙️ 6. Pengaturan Pengguna & Kualitas Streaming (`/api/v1/user/settings`)
+
+Endpoint untuk mengelola preferensi pemutar streaming, pemilihan kualitas resolusi video, status audio spasial, dan pemakaian cache.
+
+### a. Ambil Pengaturan Pengguna (`GET /api/v1/user/settings`)
+* **Method**: `GET`
+* **Path**: `/api/v1/user/settings`
+* **Query Params**: `userId` (opsional, default: `user_hafiz`)
+* **Header**: `Authorization: Bearer <accessToken>` (opsional jika dalam sesi autentikasi)
+* **Response Body (`200 OK`)**:
+  ```json
+  {
+    "success": true,
+    "message": "Pengaturan pengguna berhasil dimuat",
+    "data": {
+      "userId": "user_hafiz",
+      "streamingQuality": "AUTO",
+      "spatialAudio": true,
+      "autoSkipIntro": true,
+      "wifiOnlyDownload": true,
+      "downloadQuality": "HIGH",
+      "notifications": true,
+      "cacheSizeBytes": 356515840
+    },
+    "timestamp": "2026-09-25T11:30:00"
+  }
+  ```
+
+---
+
+### b. Perbarui Pengaturan Pengguna (`PUT /api/v1/user/settings`)
+* **Method**: `PUT`
+* **Path**: `/api/v1/user/settings`
+* **Query Params**: `userId` (opsional, default: `user_hafiz`)
+* **Payload Request**:
+  ```json
+  {
+    "streamingQuality": "FHD_1080P",
+    "spatialAudio": true,
+    "autoSkipIntro": true,
+    "wifiOnlyDownload": true,
+    "downloadQuality": "HIGH",
+    "notifications": true,
+    "cacheSizeBytes": 0
+  }
+  ```
+* **Response Body (`200 OK`)**:
+  ```json
+  {
+    "success": true,
+    "message": "Pengaturan pengguna berhasil diperbarui",
+    "data": {
+      "userId": "user_hafiz",
+      "streamingQuality": "FHD_1080P",
+      "spatialAudio": true,
+      "autoSkipIntro": true,
+      "wifiOnlyDownload": true,
+      "downloadQuality": "HIGH",
+      "notifications": true,
+      "cacheSizeBytes": 0
+    },
+    "timestamp": "2026-09-25T11:30:01"
+  }
+  ```
+
+---
+
+### 🎚️ Spesifikasi Enum Nilai Kualitas Streaming (`streamingQuality`)
+
+| Kode Enum | Label Tampilan | Resolusi Video | Estimasi Kuota Data | Kebutuhan Membership |
+|---|---|---|---|---|
+| `AUTO` | Otomatis (Adaptif) | Hingga 1080p | Adaptif (~0.5 - 2.0 GB / jam) | Semua Pengguna (Rekomendasi) |
+| `DATA_SAVER` | Hemat Data | SD 480p | ~0.3 GB / jam | Semua Pengguna |
+| `HD_720P` | Standar HD | HD 720p | ~0.7 GB / jam | Semua Pengguna |
+| `FHD_1080P` | Tinggi Full HD | FHD 1080p | ~1.5 GB / jam | Semua Pengguna |
+| `UHD_4K` | Maksimal Ultra HD | 4K UHD & Dolby | ~7.0 GB / jam | Khusus Member **LIVEEUY VIP 4K** |
+
+> [!NOTE]
+> Jika pengguna dengan tier standar (`REGULAR`) mencoba memilih `UHD_4K`, klien mobile akan mengarahkan ke lembar upgrade VIP, dan backend dapat memvalidasi tier pengguna melalui status `User.membershipTier`.
+
+---
+
+### 💻 Contoh Pengujian via cURL
+
+```bash
+# 1. Mengambil Pengaturan
+curl -X GET "http://localhost:8080/api/v1/user/settings?userId=user_hafiz"
+
+# 2. Mengubah Kualitas ke 1080p
+curl -X PUT "http://localhost:8080/api/v1/user/settings?userId=user_hafiz" \
+  -H "Content-Type: application/json" \
+  -d '{"streamingQuality":"FHD_1080P","spatialAudio":true,"autoSkipIntro":true,"wifiOnlyDownload":true,"notifications":true}'
+```
+
+---
+
+## ⚡ Arsitektur Penanganan Kesalahan Klien: Dio & DioException (Mobile & Web)
+
+Untuk menjamin keandalan dan konsistensi interaksi jaringan antara klien Flutter (`dev-mobile`) dan server Spring Boot (`dev-backend`), seluruh lapisan jaringan HTTP telah distandarisasi menggunakan arsitektur **Dio & DioException** (spesifikasi Dio 5.x).
+
+### 1. Klasifikasi Tipe `DioExceptionType`
+
+| `DioExceptionType` | Kondisi Pemicu | Respon Backend / Status Code | Kelas Turunan di Klien |
+|---|---|---|---|
+| `badResponse` | Server mengembalikan kode 4xx atau 5xx | HTTP 400, 401, 403, 404, 409, 422, 500 | `BadRequestException`, `UnauthorizedException`, `ForbiddenException`, `NotFoundException`, `ConflictException`, `ServerException` |
+| `connectionTimeout` | Timeout saat inisialisasi koneksi soket TCP | *Tidak ada respon* (Timeout > 15s) | `ApiTimeoutException` |
+| `sendTimeout` | Timeout saat upload payload request | *Tidak ada respon* | `ApiTimeoutException` |
+| `receiveTimeout` | Timeout saat menunggu stream byte respon | *Tidak ada respon* | `ApiTimeoutException` |
+| `connectionError` | Koneksi jaringan terputus / offline / server down | `SocketException` / DNS failure | `NetworkException` |
+| `badCertificate` | Kegagalan handshake TLS/SSL | Sertifikat HTTPS tidak valid | `DioException.badCertificate` |
+| `cancel` | Request dibatalkan oleh pengguna / navigasi | Pembatalan klien | `DioException.cancel` |
+| `unknown` | Kesalahan tidak terduga lainnya | Error runtime / format data corrupt | `DioException.unknown` |
+
+---
+
+### 2. Standar Ekstraksi Pesan Error dari `ApiResponse`
+
+Setiap kali terjadi `badResponse` (4xx/5xx), objek `DioException` secara otomatis membongkar payload JSON standar backend Spring Boot (`message`, `error`, atau array `errors`):
+```json
+{
+  "success": false,
+  "message": "Film tidak ditemukan dengan ID: m999",
+  "data": null,
+  "timestamp": "2026-09-25T14:15:00"
+}
+```
+* **`e.backendMessage`**: Otomatis mengekstrak nilai `"message"` (`"Film tidak ditemukan dengan ID: m999"`).
+* **`e.statusCode`**: Mengembalikan status code numerik HTTP (`404`, `400`, `401`, `409`, dll).
+* **Helper Boolean Ekspresif**:
+  - `e.isBadRequest`: `true` untuk HTTP 400 & 422.
+  - `e.isUnauthorized`: `true` untuk HTTP 401.
+  - `e.isForbidden`: `true` untuk HTTP 403.
+  - `e.isNotFound`: `true` untuk HTTP 404.
+  - `e.isConflict`: `true` untuk HTTP 409 (duplikasi email/data).
+  - `e.isServerError`: `true` untuk status code HTTP 5xx.
+  - `e.isNetworkError`: `true` saat offline atau server mati.
+  - `e.isTimeout`: `true` untuk kegagalan connect, send, atau receive timeout.
+  - `e.isBadCertificate`: `true` untuk sertifikat SSL tidak valid.
+  - `e.isCancelled`: `true` jika request dibatalkan klien.
+
+---
+
+### 3. Pipeline Interceptor Jaringan
+
+Klien HTTP dilengkapi pipeline interceptor 3 arah (`onRequest`, `onResponse`, `onError`):
+* **`LoggingInterceptor`**: Mencatat rute HTTP, status code, dan error secara rapi pada mode debug (`[Dio/HTTP] --> GET /api/v1/media`, `[Dio/HTTP] <-- [200]`).
+* **`AuthInterceptor`**: Menginjeksi header `Authorization: Bearer <token>` secara otomatis jika pengguna memiliki sesi aktif.
+* **`ErrorInterceptor`**: Menangkap kegagalan jaringan untuk logging terpusat, analitik error, atau navigasi sesi logout otomatis.
+
+---
+
+### 4. Contoh Penggunaan di Sisi Klien (Flutter / Dart)
+
+```dart
+try {
+  final media = await apiClient.get<Movie>(
+    '/media/m999',
+    fromJson: (json) => Movie.fromJson(json),
+  );
+  print('Judul: ${media.data?.title}');
+} on ConflictException catch (e) {
+  showSnackbar('Konflik: ${e.backendMessage}');
+} on DioException catch (e) {
+  if (e.isNotFound) {
+    showToast('Tayangan tidak ditemukan di katalog LiveEuy');
+  } else if (e.isUnauthorized) {
+    navigateToLogin();
+  } else if (e.isNetworkError) {
+    showOfflineBanner(e.message);
+  } else {
+    showErrorDialog(e.backendMessage ?? 'Terjadi kesalahan sistem (${e.statusCode})');
+  }
+}
+```
+
+
+
+

@@ -122,6 +122,8 @@ erDiagram
     USERS ||--o{ WATCHLISTS : "menyimpan"
     USERS ||--o{ WATCH_HISTORY : "memiliki riwayat"
     USERS ||--o{ REVIEWS : "menulis"
+    USERS ||--o{ REFRESH_TOKENS : "memiliki sesi"
+    USERS ||--|| USER_SETTINGS : "mengatur"
     
     MEDIA ||--o{ MEDIA_GENRES : "memiliki"
     MEDIA ||--o{ MEDIA_CAST : "dibintangi"
@@ -142,6 +144,29 @@ erDiagram
         numeric watch_hours
         int max_devices
         timestamp created_at
+    }
+
+    USER_SETTINGS {
+        string user_id PK_FK
+        string streaming_quality
+        boolean spatial_audio
+        boolean auto_skip_intro
+        boolean wifi_only_download
+        string download_quality
+        boolean notifications
+        bigint cache_size_bytes
+        timestamp updated_at
+    }
+
+    REFRESH_TOKENS {
+        string id PK
+        string user_id FK
+        string token_hash UK
+        timestamp expires_at
+        boolean is_revoked
+        string replaced_by_token
+        timestamp created_at
+        timestamp revoked_at
     }
 
     MEDIA {
@@ -219,6 +244,46 @@ DO UPDATE SET
     duration_seconds = EXCLUDED.duration_seconds,
     percentage = EXCLUDED.percentage,
     last_watched_at = CURRENT_TIMESTAMP;
+```
+
+### 3. Refresh Token Rotation (RTR) & Anti-Replay Detection
+Untuk memastikan Refresh Token hanya dapat digunakan satu kali:
+
+```sql
+-- Cabut token lama saat pengguna meminta Access Token baru
+UPDATE refresh_tokens
+SET is_revoked = TRUE,
+    revoked_at = NOW(),
+    replaced_by_token = ?
+WHERE token_hash = ? AND is_revoked = FALSE;
+
+-- Jika query di atas mengembalikan 0 baris (artinya token sudah pernah dicabut),
+-- anggap sebagai REPLAY ATTACK dan hanguskan seluruh token user:
+UPDATE refresh_tokens
+SET is_revoked = TRUE,
+    revoked_at = NOW()
+WHERE user_id = ?;
+```
+
+### 4. UPSERT untuk User Settings & Kualitas Streaming
+Sinkronisasi preferensi pemutar secara idempotensial:
+
+```sql
+INSERT INTO user_settings (
+    user_id, streaming_quality, spatial_audio, auto_skip_intro,
+    wifi_only_download, download_quality, notifications, cache_size_bytes, updated_at
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+ON CONFLICT (user_id)
+DO UPDATE SET
+    streaming_quality = COALESCE(EXCLUDED.streaming_quality, user_settings.streaming_quality),
+    spatial_audio = COALESCE(EXCLUDED.spatial_audio, user_settings.spatial_audio),
+    auto_skip_intro = COALESCE(EXCLUDED.auto_skip_intro, user_settings.auto_skip_intro),
+    wifi_only_download = COALESCE(EXCLUDED.wifi_only_download, user_settings.wifi_only_download),
+    download_quality = COALESCE(EXCLUDED.download_quality, user_settings.download_quality),
+    notifications = COALESCE(EXCLUDED.notifications, user_settings.notifications),
+    cache_size_bytes = COALESCE(EXCLUDED.cache_size_bytes, user_settings.cache_size_bytes),
+    updated_at = NOW();
 ```
 
 ---

@@ -1,6 +1,7 @@
 import '../../models/movie_model.dart';
 import '../../models/episode_model.dart';
 import '../../models/review_model.dart';
+import '../../models/season_model.dart';
 
 class MockData {
   // Sample streaming videos (Public sample MP4 videos)
@@ -13,28 +14,117 @@ class MockData {
   static const String sampleVideo4 =
       'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
 
+  static const List<Season> cyberpunkSeasons = [
+    Season(
+      id: 'cp_s1',
+      seasonNumber: 1,
+      title: 'Musim 1: Kode Pembuka',
+      episodes: [
+        Episode(
+          id: 'cp-s1-e1',
+          episodeNumber: 1,
+          seasonNumber: 1,
+          title: 'Sinyal Hitam dari Batavia Hilir',
+          duration: '52m',
+          synopsis:
+              'Arga menerima pesan terenkripsi dari seseorang yang seharusnya sudah meninggal 5 tahun lalu.',
+          thumbnailUrl:
+              'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=500&auto=format&fit=crop&q=80',
+          videoUrl: sampleVideo3,
+          progress: 0.8,
+        ),
+        Episode(
+          id: 'cp-s1-e2',
+          episodeNumber: 2,
+          seasonNumber: 1,
+          title: 'Protokol Sang Hyang',
+          duration: '48m',
+          synopsis:
+              'Penyelidikan membawa Arga ke fasilitas rahasia di kedalaman bawah laut Jawa Timur.',
+          thumbnailUrl:
+              'https://images.unsplash.com/photo-1518770660439-4636190af475?w=500&auto=format&fit=crop&q=80',
+          videoUrl: sampleVideo2,
+        ),
+        Episode(
+          id: 'cp-s1-e3',
+          episodeNumber: 3,
+          seasonNumber: 1,
+          title: 'Serbuan di Menara Kaca',
+          duration: '55m',
+          synopsis:
+              'Konfrontasi bersenjata mematikan meletus di atap pencakar langit distrik Megasari.',
+          thumbnailUrl:
+              'https://images.unsplash.com/photo-1515260268569-9271009adfdb?w=500&auto=format&fit=crop&q=80',
+          videoUrl: sampleVideo1,
+        ),
+      ],
+    ),
+    Season(
+      id: 'cp_s2',
+      seasonNumber: 2,
+      title: 'Musim 2: Pemberontakan Digital',
+      episodes: [
+        Episode(
+          id: 'cp-s2-e1',
+          episodeNumber: 1,
+          seasonNumber: 2,
+          title: 'Fajar yang Hilang',
+          duration: '50m',
+          synopsis:
+              'Setelah insiden besar di Menara Kaca, sindikat AI mulai memperluas jaringannya.',
+          thumbnailUrl:
+              'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=500&auto=format&fit=crop&q=80',
+          videoUrl: sampleVideo4,
+        ),
+      ],
+    ),
+  ];
+
   static final List<Movie> heroMovies = [
     const Movie(
-      id: 'm_hero',
-      title: 'Gundala: Negeri Terakhir',
+      id: 'cyberpunk-neo-nusantara',
+      title: 'Cyberpunk: Neo Nusantara',
       synopsis:
-          'Ketika peradaban berada di ambang keruntuhan akibat intrik elite bawah tanah, Sancaka harus merelakan segalanya demi menyalakan petir terakhir penentu nasib bangsa.',
+          'Di megalopolis Nusantara pada tahun 2099, seorang mantan agen siber terpaksa berhadapan dengan sindikat AI misterius yang mengendalikan aliran data dan memori seluruh warga kota.',
       posterUrl:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuChxR7qJY8oJAUH9fjwwBQ0UiHMDmcnzTrPpVONtc8qEjz2zwPZZxhgKv8CCEdhKLoBjhcZlcZ325bNnL741oqm7KEI1qaQidW9ui3BggZmizl1UZYDVVVKT0x71GHZtZn5QwovgLN23ExGqe_x8OEmuC1o419OosQ4J669bteS8e9hec3Ay-VzLrGkH6o3XXAmGLToVNhKKX-YazhUTVZAZhbJ7AV3p0zexIVwcf2cItNqaW5og1NR',
+          'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=600&auto=format&fit=crop&q=80',
       backdropUrl:
-          'https://lh3.googleusercontent.com/aida-public/AB6AXuChxR7qJY8oJAUH9fjwwBQ0UiHMDmcnzTrPpVONtc8qEjz2zwPZZxhgKv8CCEdhKLoBjhcZlcZ325bNnL741oqm7KEI1qaQidW9ui3BggZmizl1UZYDVVVKT0x71GHZtZn5QwovgLN23ExGqe_x8OEmuC1o419OosQ4J669bteS8e9hec3Ay-VzLrGkH6o3XXAmGLToVNhKKX-YazhUTVZAZhbJ7AV3p0zexIVwcf2cItNqaW5og1NR',
-      videoUrl: sampleVideo1,
-      matchScore: 98,
+          'https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=1600&auto=format&fit=crop&q=80',
+      videoUrl: sampleVideo3,
+      matchScore: 99,
       ageRating: '18+',
-      resolutionBadges: ['4K UHD', 'Dolby Atmos'],
-      genre: 'Aksi & Pahlawan Super',
-      durationOrSeasons: '2 Jam 15 Min',
-      releaseYear: 2024,
-      director: 'Joko Anwar',
-      cast: ['Abimana Aryasatya', 'Tara Basro', 'Bront Palarae', 'Ario Bayu'],
+      resolutionBadges: ['4K UHD'],
+      genre: 'Fiksi Ilmiah • Aksi • Thriller',
+      durationOrSeasons: '2 Musim (5 Episode)',
+      releaseYear: 2026,
+      director: 'Timo Tjahjanto',
+      cast: ['Iko Uwais', 'Chelsea Islan', 'Reza Rahadian', 'Tara Basro'],
       isTop10: true,
       top10Rank: 1,
-      userRating: 9.3,
+      userRating: 9.4,
+      seasons: cyberpunkSeasons,
+    ),
+    const Movie(
+      id: 'chronicles-of-elysium',
+      title: 'Chronicles of Elysium',
+      synopsis:
+          'Ekspedisi koloni manusia ke perbatasan tata surya menemukan artefak purba peradaban asing yang mengubah persepsi tentang asal-usul kehidupan di bumi.',
+      posterUrl:
+          'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&auto=format&fit=crop&q=80',
+      backdropUrl:
+          'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1600&auto=format&fit=crop&q=80',
+      videoUrl: sampleVideo2,
+      matchScore: 97,
+      ageRating: '13+',
+      resolutionBadges: ['4K UHD'],
+      genre: 'Fiksi Ilmiah • Fantasi',
+      durationOrSeasons: '2 Jam 34 Min',
+      releaseYear: 2026,
+      director: 'Denis Villeneuve',
+      cast: ['Alexander Skarsgard', 'Rebecca Ferguson', 'Ken Watanabe'],
+      isTop10: true,
+      top10Rank: 2,
+      userRating: 9.1,
     ),
     const Movie(
       id: 'm1',
@@ -48,15 +138,37 @@ class MockData {
       videoUrl: sampleVideo2,
       matchScore: 99,
       ageRating: '16+',
-      resolutionBadges: ['4K UHD', 'Dolby Vision', 'Dolby Atmos'],
+      resolutionBadges: ['4K UHD', 'Dolby Vision'],
       genre: 'Drama Periode',
       durationOrSeasons: '1 Musim (5 Episode)',
       releaseYear: 2023,
       director: 'Kamila Andini, Ifa Isfansyah',
       cast: ['Dian Sastrowardoyo', 'Ario Bayu', 'Putri Marino', 'Arya Saloka'],
       isTop10: true,
-      top10Rank: 1,
+      top10Rank: 3,
       userRating: 8.8,
+    ),
+    const Movie(
+      id: 'm_hero',
+      title: 'Gundala: Negeri Terakhir',
+      synopsis:
+          'Ketika peradaban berada di ambang keruntuhan akibat intrik elite bawah tanah, Sancaka harus merelakan segalanya demi menyalakan petir terakhir penentu nasib bangsa.',
+      posterUrl:
+          'https://lh3.googleusercontent.com/aida-public/AB6AXuChxR7qJY8oJAUH9fjwwBQ0UiHMDmcnzTrPpVONtc8qEjz2zwPZZxhgKv8CCEdhKLoBjhcZlcZ325bNnL741oqm7KEI1qaQidW9ui3BggZmizl1UZYDVVVKT0x71GHZtZn5QwovgLN23ExGqe_x8OEmuC1o419OosQ4J669bteS8e9hec3Ay-VzLrGkH6o3XXAmGLToVNhKKX-YazhUTVZAZhbJ7AV3p0zexIVwcf2cItNqaW5og1NR',
+      backdropUrl:
+          'https://lh3.googleusercontent.com/aida-public/AB6AXuChxR7qJY8oJAUH9fjwwBQ0UiHMDmcnzTrPpVONtc8qEjz2zwPZZxhgKv8CCEdhKLoBjhcZlcZ325bNnL741oqm7KEI1qaQidW9ui3BggZmizl1UZYDVVVKT0x71GHZtZn5QwovgLN23ExGqe_x8OEmuC1o419OosQ4J669bteS8e9hec3Ay-VzLrGkH6o3XXAmGLToVNhKKX-YazhUTVZAZhbJ7AV3p0zexIVwcf2cItNqaW5og1NR',
+      videoUrl: sampleVideo1,
+      matchScore: 98,
+      ageRating: '18+',
+      resolutionBadges: ['4K UHD'],
+      genre: 'Aksi & Pahlawan Super',
+      durationOrSeasons: '2 Jam 15 Min',
+      releaseYear: 2024,
+      director: 'Joko Anwar',
+      cast: ['Abimana Aryasatya', 'Tara Basro', 'Bront Palarae', 'Ario Bayu'],
+      isTop10: true,
+      top10Rank: 4,
+      userRating: 9.3,
     ),
     const Movie(
       id: 'm3',
@@ -70,14 +182,14 @@ class MockData {
       videoUrl: sampleVideo3,
       matchScore: 97,
       ageRating: '18+',
-      resolutionBadges: ['4K UHD', 'Dolby Atmos'],
+      resolutionBadges: ['4K UHD'],
       genre: 'Aksi & Laga',
       durationOrSeasons: '2 Jam 24 Min',
       releaseYear: 2024,
       director: 'Timo Tjahjanto',
       cast: ['Aurora Ribero', 'Hana Malasan', 'Ali Fikry', 'Adipati Dolken'],
       isTop10: true,
-      top10Rank: 2,
+      top10Rank: 5,
       userRating: 9.0,
     ),
   ];
@@ -492,6 +604,63 @@ class MockData {
       director: 'Tommy Dewo',
       cast: ['Abimana Aryasatya'],
     ),
+    const Movie(
+      id: 'sim_7',
+      title: 'Agak Laen',
+      synopsis: 'Empat sekawan penjaga rumah hantu pasar malam panik setelah seorang politisi meninggal mendadak di dalam wahana mereka.',
+      posterUrl:
+          'https://lh3.googleusercontent.com/aida-public/AB6AXuCvSAQfk73Ost_BO_5v-5pKB3ePUfLHybc-BP-j2rlfrzeFouYyXy_BlM-xcZ7j3jW86DKQbxdGQaSsn2wmK3-_-vCJk-xreLuxncjWjBMVxW-FR9Zw5tPyfDda22YTrXZN3KRrZoe7uraGsrMOCP_aYuZD8J8DFYJ1PZ57B_N0iwxeVTgkM3ZD8gaRpHGGUVqGlerbMmGxpoo-wWAYTrIGkC-03QwexPqNyB08ZehAL7w0oDPDV9bC',
+      backdropUrl:
+          'https://lh3.googleusercontent.com/aida-public/AB6AXuCvSAQfk73Ost_BO_5v-5pKB3ePUfLHybc-BP-j2rlfrzeFouYyXy_BlM-xcZ7j3jW86DKQbxdGQaSsn2wmK3-_-vCJk-xreLuxncjWjBMVxW-FR9Zw5tPyfDda22YTrXZN3KRrZoe7uraGsrMOCP_aYuZD8J8DFYJ1PZ57B_N0iwxeVTgkM3ZD8gaRpHGGUVqGlerbMmGxpoo-wWAYTrIGkC-03QwexPqNyB08ZehAL7w0oDPDV9bC',
+      videoUrl: sampleVideo1,
+      matchScore: 98,
+      ageRating: '13+',
+      resolutionBadges: ['4K UHD'],
+      genre: 'Komedi • Horor',
+      durationOrSeasons: '1 Jam 59 Min',
+      releaseYear: 2024,
+      director: 'Muhadkly Acho',
+      cast: ['Bene Dion', 'Boris Bokir', 'Indra Jegel', 'Oki Rengga'],
+      userRating: 9.2,
+    ),
+    const Movie(
+      id: 'sim_8',
+      title: 'Si Juki The Movie: Harta Pulau Monyet',
+      synopsis: 'Juki dan kawan-kawan berlayar menemukan peta harta karun misterius peninggalan nenek moyang demi menyelamatkan kampung.',
+      posterUrl:
+          'https://lh3.googleusercontent.com/aida-public/AB6AXuBlN--UlSbmVjzTLxb2o9qdL8Q8OhlaFHUBX3KHmBUwdWpmxhMzE8Q54ZWlrL5ll0oQNOjs-kACU6V4_P57Yn3ff8g41Saf8ne-6b2ggJU5WSTE2vdgg7S4FeewD0AMQDdcdFjE5JNvppE8Ovn3UFGtwwgFm4iy0COa4vwefzqCb9ocN2daeCE2CQJafAAcvok2g_rHBIuo5AamlS3uKXm0I7O_9OS5B5SsVl0ImjuIETKl_EzDOwVf',
+      backdropUrl:
+          'https://lh3.googleusercontent.com/aida-public/AB6AXuBlN--UlSbmVjzTLxb2o9qdL8Q8OhlaFHUBX3KHmBUwdWpmxhMzE8Q54ZWlrL5ll0oQNOjs-kACU6V4_P57Yn3ff8g41Saf8ne-6b2ggJU5WSTE2vdgg7S4FeewD0AMQDdcdFjE5JNvppE8Ovn3UFGtwwgFm4iy0COa4vwefzqCb9ocN2daeCE2CQJafAAcvok2g_rHBIuo5AamlS3uKXm0I7O_9OS5B5SsVl0ImjuIETKl_EzDOwVf',
+      videoUrl: sampleVideo2,
+      matchScore: 93,
+      ageRating: 'SU',
+      resolutionBadges: ['FHD 1080p'],
+      genre: 'Animasi • Petualangan',
+      durationOrSeasons: '1 Jam 47 Min',
+      releaseYear: 2024,
+      director: 'Faza Meonk',
+      cast: ['Faza Meonk', 'Indro Warkop', 'Jaja Mihardja'],
+      userRating: 8.6,
+    ),
+    const Movie(
+      id: 'sim_9',
+      title: 'Rencana Besar',
+      synopsis: 'Penggelapan dana 17 miliar di bank terkemuka membongkar skandal konspirasi elite politik dan kekuasaan korup.',
+      posterUrl:
+          'https://lh3.googleusercontent.com/aida-public/AB6AXuDySM2QF80YwYvVgxuS1EHEONYlbR_veTvdaMeVOCmaMIXvSk7kcCHgOJfyzAIRBdKPKslvII6nsesuk2Jrxnwvh3Vpn5qpt7qwECVUQYNwAlJNVEdC9pqt6wFoXODXp6fwynYefx8yxW9yD7WcDXvQ8cUlignXLMTDJNWNYk1cHxkCVLXQH8aNCLoXwz_NbulIebm5jjHPW5zYkqWs5yrL3rYul5CURveLxVkLd5drYANEUon_8Rx9',
+      backdropUrl:
+          'https://lh3.googleusercontent.com/aida-public/AB6AXuDySM2QF80YwYvVgxuS1EHEONYlbR_veTvdaMeVOCmaMIXvSk7kcCHgOJfyzAIRBdKPKslvII6nsesuk2Jrxnwvh3Vpn5qpt7qwECVUQYNwAlJNVEdC9pqt6wFoXODXp6fwynYefx8yxW9yD7WcDXvQ8cUlignXLMTDJNWNYk1cHxkCVLXQH8aNCLoXwz_NbulIebm5jjHPW5zYkqWs5yrL3rYul5CURveLxVkLd5drYANEUon_8Rx9',
+      videoUrl: sampleVideo4,
+      matchScore: 94,
+      ageRating: '16+',
+      resolutionBadges: ['4K UHD'],
+      genre: 'Drama • Kriminal',
+      durationOrSeasons: '1 Musim (6 Episode)',
+      releaseYear: 2023,
+      director: 'Danial Rifki',
+      cast: ['Dwi Sasono', 'Adipati Dolken', 'Prisia Nasution'],
+      userRating: 8.8,
+    ),
   ];
 
   static List<Movie> get popularMovies => similarMovies;
@@ -599,6 +768,79 @@ class MockData {
       likesCount: 54,
     ),
   ];
+
+  static final List<Review> cyberpunkReviews = [
+    Review(
+      id: 'cp_r1',
+      mediaId: 'cyberpunk-neo-nusantara',
+      userName: 'Rian Pratama',
+      userAvatarUrl:
+          'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80',
+      rating: 10.0,
+      comment:
+          'Visual cyberpunk lokal terbaik yang pernah ada! Detail estetika neon Nusantara dan koreografi aksinya luar biasa intens!',
+      createdAt: DateTime.now().subtract(const Duration(days: 2)),
+      likesCount: 168,
+    ),
+    Review(
+      id: 'cp_r2',
+      mediaId: 'cyberpunk-neo-nusantara',
+      userName: 'Siti Sarah',
+      userAvatarUrl:
+          'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80',
+      rating: 9.0,
+      comment:
+          'Alur cerita penuh kejutan dan plot twist teknologi futuristik. Sound design dan kualitas 4K HDR di layar benar-benar menggelegar.',
+      createdAt: DateTime.now().subtract(const Duration(days: 7)),
+      likesCount: 95,
+    ),
+  ];
+
+  static final List<Review> chroniclesReviews = [
+    Review(
+      id: 'ce_r1',
+      mediaId: 'chronicles-of-elysium',
+      userName: 'Budi Santoso',
+      userAvatarUrl:
+          'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80',
+      rating: 9.5,
+      comment:
+          'Sinematografi luar angkasanya menakjubkan. World building yang sangat kaya, megah, dan filosofis!',
+      createdAt: DateTime.now().subtract(const Duration(days: 3)),
+      likesCount: 112,
+    ),
+  ];
+
+  static final List<Review> gundalaReviews = [
+    Review(
+      id: 'gn_r1',
+      mediaId: 'm_hero',
+      userName: 'Dimas Arya',
+      userAvatarUrl:
+          'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80',
+      rating: 9.3,
+      comment:
+          'Koreografi aksi Joko Anwar semakin matang. Efek petir Sancaka sangat epik dan ceritanya relevan!',
+      createdAt: DateTime.now().subtract(const Duration(days: 4)),
+      likesCount: 78,
+    ),
+  ];
+
+  static List<Review> getInitialReviews(String movieId) {
+    if (movieId == 'cyberpunk-neo-nusantara' || movieId == 'as_1') {
+      return cyberpunkReviews;
+    }
+    if (movieId == 'chronicles-of-elysium') {
+      return chroniclesReviews;
+    }
+    if (movieId == 'm_hero') {
+      return gundalaReviews;
+    }
+    if (movieId == 'm1') {
+      return gadiskretekReviews;
+    }
+    return gadiskretekReviews;
+  }
 
   static List<Movie> getAllMovies() {
     final Map<String, Movie> map = {};
