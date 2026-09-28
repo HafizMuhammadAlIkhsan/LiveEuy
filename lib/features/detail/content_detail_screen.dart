@@ -277,14 +277,23 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
                 Positioned(
                   top: 14,
                   right: 16,
-                  child: Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceContainerHigh.withValues(alpha: 0.8),
-                      shape: BoxShape.circle,
+                  child: GestureDetector(
+                    onTap: () {
+                      _showToast('Memindai perangkat layar pintar...', icon: Icons.cast_connected_rounded, color: AppColors.tertiary);
+                    },
+                    child: Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceContainerHigh.withValues(alpha: 0.85),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: AppColors.outlineVariant.withValues(alpha: 0.3),
+                          width: 1.0,
+                        ),
+                      ),
+                      child: const Icon(Icons.cast_rounded, color: Colors.white, size: 20),
                     ),
-                    child: const Icon(Icons.cast_rounded, color: Colors.white, size: 20),
                   ),
                 ),
                 // Bottom Badges: Trending #1 & 99% Cocok
@@ -299,7 +308,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
                           color: AppColors.tertiaryContainer.withValues(alpha: 0.35),
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(6),
                         ),
                         child: Row(
                           children: [
@@ -399,24 +408,20 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
                   ),
                   const SizedBox(height: 14),
 
-                  // Big Play Button CTA (gradient linear-gradient(135deg, #0066FF 0%, #00B4D8 100%))
+                  // Big Play Button CTA
                   GestureDetector(
                     onTap: () => _playEpisode(widget.movie),
                     child: Container(
                       width: double.infinity,
                       height: 48,
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [AppColors.primaryContainer, Color(0xFF5F5CFF)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(24),
+                        color: AppColors.primaryContainer,
+                        borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.primaryContainer.withValues(alpha: 0.4),
-                            blurRadius: 18,
-                            offset: const Offset(0, 4),
+                            color: AppColors.primaryContainer.withValues(alpha: 0.3),
+                            blurRadius: 10,
+                            offset: const Offset(0, 3),
                           ),
                         ],
                       ),
