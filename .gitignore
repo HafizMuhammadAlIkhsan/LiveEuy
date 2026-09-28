@@ -1,5 +1,5 @@
 # ==============================================================================
-# LiveEuy Project — Git Ignore Rules (Mobile Flutter & Backend Spring Boot)
+# LiveEuy Project: Git Ignore Rules (Mobile Flutter & Backend Spring Boot)
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
@@ -120,3 +120,14 @@ desktop.ini
 .env.*.local
 *.pem
 *.key
+
+# ------------------------------------------------------------------------------
+# 8. Local Specifications & Product Requirements (Local only)
+# ------------------------------------------------------------------------------
+*PRD*.md
+PRD*.md
+
+# Graphify / AI tool outputs
+graphify-out/
+
+

@@ -1,10 +1,10 @@
-# LiveEuy — Database Architecture & Anti-Conflict Guidelines
+# LiveEuy: Arsitektur Database dan Pedoman Migrasi
 
 Panduan ini ditujukan bagi tim backend dan full-stack untuk menjaga konsistensi skema database, mencegah konflik migrasi, dan memastikan integritas data saat bekerja bersama dalam repository ini.
 
 ---
 
-## 🏛️ Prinsip Utama (Core Principles)
+## Prinsip Utama (Core Principles)
 
 1. **Database-as-Code**: Semua perubahan skema DDL wajib tercatat dalam berkas migrasi Flyway di `src/main/resources/db/migration/`. Tidak ada perubahan langsung via GUI tool (DBeaver/pgAdmin) di lingkungan bersama.
 2. **Immutability of Migrations**: Berkas migrasi yang sudah pernah di-*merge* ke branch utama tidak boleh diedit atau dihapus. Buat berkas migrasi baru untuk perbaikan atau perubahan.
@@ -12,7 +12,7 @@ Panduan ini ditujukan bagi tim backend dan full-stack untuk menjaga konsistensi 
 
 ---
 
-## 📐 Konvensi Penamaan Berkas Migrasi Flyway
+## Konvensi Penamaan Berkas Migrasi Flyway
 
 Format nama berkas:
 ```text
@@ -32,7 +32,7 @@ Aturan:
 
 ---
 
-## 📊 Entity Relationship Diagram (ERD)
+## Entity Relationship Diagram (ERD)
 
 ```mermaid
 erDiagram
@@ -153,7 +153,7 @@ erDiagram
 
 ---
 
-## 🛡️ Pola Anti-Konflik & Race Condition
+## Pola Anti-Konflik & Race Condition
 
 ### 1. UPSERT untuk Watch Progress
 Untuk menghindari race condition saat aplikasi mobile mengirim *progress sync* berkala:
@@ -219,7 +219,7 @@ DO UPDATE SET
 
 ---
 
-## 🐳 Menjalankan Database PostgreSQL Lokal Terisolasi
+## Menjalankan Database PostgreSQL Lokal Terisolasi
 
 ```bash
 # Menjalankan PostgreSQL lokal via Docker Compose
@@ -234,7 +234,7 @@ docker compose exec postgres psql -U postgres -d liveeuy
 
 ---
 
-## ✅ Checklist Sebelum Mengajukan Pull Request (PR)
+## Checklist Sebelum Mengajukan Pull Request (PR)
 
 - [ ] Skema baru memiliki tipe data yang efisien (`VARCHAR` dengan panjang wajar, `TEXT` untuk deskripsi panjang).
 - [ ] Foreign Key dilengkapi indeks untuk relasi yang sering di-*join*.

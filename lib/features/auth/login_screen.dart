@@ -268,40 +268,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         const StreamFlixLogo(fontSize: 26, height: 40),
                         const SizedBox(height: 16),
 
-                        // Live Ambient Visualizer Strip
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceContainerHigh.withValues(alpha: 0.8),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 8,
-                                height: 8,
-                                decoration: const BoxDecoration(
-                                  color: AppColors.tertiary,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'STREAMING FILM & SERIAL MODERN',
-                                style: GoogleFonts.outfit(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.tertiaryFixed,
-                                  letterSpacing: 0.8,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 20),
 
-                        // Heading with Gradient
+                        // Heading with Editorial Typography
                         RichText(
                           textAlign: TextAlign.center,
                           text: TextSpan(
@@ -310,11 +279,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               fontWeight: FontWeight.w800,
                               color: AppColors.onSurface,
                               height: 1.2,
+                              letterSpacing: -0.3,
                             ),
                             children: [
-                              const TextSpan(text: 'Nonton Film & Serial Favoritmu '),
+                              const TextSpan(text: 'Nonton Film & Serial Pilihan '),
                               TextSpan(
-                                text: 'Tanpa Batas',
+                                text: 'Kualitas Tinggi',
                                 style: GoogleFonts.outfit(
                                   color: AppColors.primary,
                                   fontWeight: FontWeight.w900,
@@ -325,11 +295,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Streaming ribuan film, anime, dan serial pilihan dengan kualitas audio visual jernih.',
+                          'Streaming film, anime, dan serial terlengkap dengan audio visual jernih.',
                           textAlign: TextAlign.center,
                           style: GoogleFonts.inter(
-                            fontSize: 12,
-                            color: AppColors.onSurfaceVariant.withValues(alpha: 0.8),
+                            fontSize: 13,
+                            color: AppColors.onSurfaceVariant.withValues(alpha: 0.85),
                             height: 1.4,
                           ),
                         ),
@@ -593,15 +563,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
             Row(
               children: [
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: const BoxDecoration(color: AppColors.tertiary, shape: BoxShape.circle),
-                ),
+                const Icon(Icons.shield_outlined, size: 14, color: AppColors.outline),
                 const SizedBox(width: 4),
                 Text(
-                  '256-BIT ENCRYPTION',
-                  style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.tertiary),
+                  'Sesi Terlindungi',
+                  style: GoogleFonts.inter(fontSize: 11, color: AppColors.outline),
                 ),
               ],
             ),
@@ -616,17 +582,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             width: double.infinity,
             height: 48,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppColors.primaryContainer, AppColors.tertiaryContainer],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
-              borderRadius: BorderRadius.circular(24),
+              color: AppColors.primaryContainer,
+              borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primaryContainer.withValues(alpha: 0.4),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
+                  color: AppColors.primaryContainer.withValues(alpha: 0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
                 ),
               ],
             ),
@@ -634,11 +596,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: _isLoading
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                   : Text(
-                      'MASUK SEKARANG',
+                      'Masuk ke Akun',
                       style: GoogleFonts.outfit(
                         fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.8,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.2,
                         color: Colors.white,
                       ),
                     ),
@@ -777,17 +739,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             width: double.infinity,
             height: 48,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [AppColors.primaryContainer, Color(0xFF5F5CFF)],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
-              borderRadius: BorderRadius.circular(24),
+              color: AppColors.primaryContainer,
+              borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primaryContainer.withValues(alpha: 0.4),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
+                  color: AppColors.primaryContainer.withValues(alpha: 0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
                 ),
               ],
             ),
@@ -795,11 +753,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: _isLoading
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                   : Text(
-                      'DAFTAR SEKARANG',
+                      'Daftar Akun Baru',
                       style: GoogleFonts.outfit(
                         fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.8,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.2,
                         color: Colors.white,
                       ),
                     ),
@@ -914,18 +872,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 color: AppColors.onSurface,
               ),
             ),
-            Row(
-              children: [
-                Text(
-                  'Lihat Semua',
-                  style: GoogleFonts.outfit(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primary,
+            GestureDetector(
+              onTap: () {
+                _showToast('Katalog Bioskop', 'Jelajahi tayangan bioskop terbaru setelah masuk', icon: Icons.local_movies_rounded);
+              },
+              child: Row(
+                children: [
+                  Text(
+                    'Lihat Semua',
+                    style: GoogleFonts.outfit(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary,
+                    ),
                   ),
-                ),
-                const Icon(Icons.chevron_right_rounded, size: 16, color: AppColors.primary),
-              ],
+                  const Icon(Icons.chevron_right_rounded, size: 16, color: AppColors.primary),
+                ],
+              ),
             ),
           ],
         ),
@@ -938,72 +901,77 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             itemCount: _cinemaTrends.length,
             itemBuilder: (context, index) {
               final item = _cinemaTrends[index];
-              return Container(
-                width: 115,
-                margin: const EdgeInsets.only(right: 10),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  color: AppColors.surfaceContainerLow,
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      CachedNetworkImage(
-                        imageUrl: item['poster']!,
-                        fit: BoxFit.cover,
-                      ),
-                      Container(
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.bottomCenter,
-                            end: Alignment.topCenter,
-                            colors: [
-                              AppColors.surfaceContainerLowest,
-                              Colors.transparent,
-                            ],
-                            stops: [0.0, 0.5],
+              return GestureDetector(
+                onTap: () {
+                  _showToast(item['title']!, 'Tersedia di katalog streaming LiveEuy', icon: Icons.movie_rounded);
+                },
+                child: Container(
+                  width: 115,
+                  margin: const EdgeInsets.only(right: 10),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    color: AppColors.surfaceContainerLow,
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        CachedNetworkImage(
+                          imageUrl: item['poster']!,
+                          fit: BoxFit.cover,
+                        ),
+                        Container(
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.bottomCenter,
+                              end: Alignment.topCenter,
+                              colors: [
+                                AppColors.surfaceContainerLowest,
+                                Colors.transparent,
+                              ],
+                              stops: [0.0, 0.5],
+                            ),
                           ),
                         ),
-                      ),
-                      Positioned(
-                        top: 6,
-                        left: 6,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: item['badge'] == 'TOP 1'
-                                ? AppColors.primaryContainer
-                                : AppColors.surfaceBright,
-                            borderRadius: BorderRadius.circular(4),
+                        Positioned(
+                          top: 6,
+                          left: 6,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: item['badge'] == 'TOP 1'
+                                  ? AppColors.primaryContainer
+                                  : AppColors.surfaceBright,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              item['badge']!,
+                              style: GoogleFonts.outfit(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                              ),
+                            ),
                           ),
+                        ),
+                        Positioned(
+                          bottom: 6,
+                          left: 6,
+                          right: 6,
                           child: Text(
-                            item['badge']!,
+                            item['title']!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: GoogleFonts.outfit(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w800,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
                               color: Colors.white,
                             ),
                           ),
                         ),
-                      ),
-                      Positioned(
-                        bottom: 6,
-                        left: 6,
-                        right: 6,
-                        child: Text(
-                          item['title']!,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.outfit(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               );

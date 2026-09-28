@@ -1,11 +1,11 @@
-# LiveEuy — Spesifikasi Kontrak API (API Contract)
+# LiveEuy: Spesifikasi Kontrak API
 
 Dokumen ini adalah **kontrak resmi (Single Source of Truth)** antara tim **Backend (Spring Boot)**, **Frontend (React)**, dan **Mobile (Flutter)**.  
 Semua klien (Web & Mobile) mengonsumsi endpoint yang **sama persis** tanpa duplikasi di sisi backend.
 
 ---
 
-## 🌐 Base URL
+## Base URL
 - **Local Dev (Web React / iOS Sim)**: `http://localhost:8080/api/v1`
 - **Android Emulator**: `http://10.0.2.2:8080/api/v1`
 - **Physical Device (LAN/Wi-Fi)**: `http://<IP_LAN_HOST>:8080/api/v1`
@@ -13,7 +13,7 @@ Semua klien (Web & Mobile) mengonsumsi endpoint yang **sama persis** tanpa dupli
 
 ---
 
-## 📦 Standar Format Respon JSON (ApiResponse Wrapper)
+## Standar Format Respon JSON (ApiResponse Wrapper)
 
 Semua endpoint mengembalikan struktur pembungkus JSON standar:
 
@@ -28,7 +28,7 @@ Semua endpoint mengembalikan struktur pembungkus JSON standar:
 
 ---
 
-## 📋 Daftar Endpoint Terpadu (Unified Endpoints)
+## Daftar Endpoint Terpadu (Unified Endpoints)
 
 ### 1. Katalog Media & Konten (`/api/v1/media`)
 
@@ -132,7 +132,7 @@ Semua endpoint mengembalikan struktur pembungkus JSON standar:
 
 ---
 
-## 🏷️ Skema Model Data Utama (Data Contract)
+## Skema Model Data Utama (Data Contract)
 
 ### `MediaItem`
 | Field | Tipe | Keterangan |
@@ -159,7 +159,7 @@ Semua endpoint mengembalikan struktur pembungkus JSON standar:
 
 ---
 
-### 🔄 Interoperabilitas & Keselarasan Frontend Web (Universal Compatibility)
+### Interoperabilitas & Keselarasan Frontend Web (Universal Compatibility)
 Untuk menjamin kompatibilitas tanpa *breaking changes* antara **Web (React)** dan **Mobile (Flutter)**:
 
 | Field Standar Backend / Mobile | Alias Kompatibel Web (`src/types.ts`) | Keterangan / Normalisasi |
@@ -175,7 +175,7 @@ Untuk menjamin kompatibilitas tanpa *breaking changes* antara **Web (React)** da
 
 ---
 
-## 🔐 5. Autentikasi, Refresh Token, & Manajemen Cookie (`/api/v1/auth`)
+## 5. Autentikasi, Refresh Token, & Manajemen Cookie (`/api/v1/auth`)
 
 Sistem autentikasi LiveEuy mengadopsi standar industri modern (**Short-lived Access Token** + **Long-lived Refresh Token with Cookie HttpOnly**) yang aman dari celah XSS dan CSRF, serta mendukung klien multiplatform (**Web React** dan **Mobile Flutter**).
 
@@ -323,7 +323,7 @@ Sistem autentikasi LiveEuy mengadopsi standar industri modern (**Short-lived Acc
 
 ---
 
-### 💻 Referensi Implementasi Klien Frontend (React 18 + Axios)
+### Referensi Implementasi Klien Frontend (React 18 + Axios)
 
 Berikut adalah referensi implementasi lengkap untuk tim Frontend Web (`src/api/authApi.ts` atau Axios Interceptor):
 
@@ -414,7 +414,7 @@ apiClient.interceptors.response.use(
 
 ---
 
-### 📱 Referensi Implementasi Klien Mobile (Flutter + `flutter_secure_storage`)
+### Referensi Implementasi Klien Mobile (Flutter + `flutter_secure_storage`)
 
 Berikut adalah referensi implementasi lengkap untuk tim Mobile Flutter (`lib/core/storage/token_storage_service.dart` & `ApiClient` retry interceptor):
 
@@ -506,7 +506,7 @@ Future<http.Response> executeWithAutoRefresh(
 
 ---
 
-## ⚙️ 6. Pengaturan Pengguna & Kualitas Streaming (`/api/v1/user/settings`)
+## 6. Pengaturan Pengguna & Kualitas Streaming (`/api/v1/user/settings`)
 
 Endpoint untuk mengelola preferensi pemutar streaming, pemilihan kualitas resolusi video, status audio spasial, dan pemakaian cache.
 
@@ -573,7 +573,7 @@ Endpoint untuk mengelola preferensi pemutar streaming, pemilihan kualitas resolu
 
 ---
 
-### 🎚️ Spesifikasi Enum Nilai Kualitas Streaming (`streamingQuality`)
+### Spesifikasi Enum Nilai Kualitas Streaming (`streamingQuality`)
 
 | Kode Enum | Label Tampilan | Resolusi Video | Estimasi Kuota Data | Kebutuhan Membership |
 |---|---|---|---|---|
@@ -588,7 +588,7 @@ Endpoint untuk mengelola preferensi pemutar streaming, pemilihan kualitas resolu
 
 ---
 
-### 💻 Contoh Pengujian via cURL
+### Contoh Pengujian via cURL
 
 ```bash
 # 1. Mengambil Pengaturan
@@ -602,7 +602,7 @@ curl -X PUT "http://localhost:8080/api/v1/user/settings?userId=user_hafiz" \
 
 ---
 
-## ⚡ Arsitektur Penanganan Kesalahan Klien: Dio & DioException (Mobile & Web)
+## Arsitektur Penanganan Kesalahan Klien: Dio & DioException (Mobile & Web)
 
 Untuk menjamin keandalan dan konsistensi interaksi jaringan antara klien Flutter (`dev-mobile`) dan server Spring Boot (`dev-backend`), seluruh lapisan jaringan HTTP telah distandarisasi menggunakan arsitektur **Dio & DioException** (spesifikasi Dio 5.x).
 

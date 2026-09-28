@@ -626,16 +626,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     width: 34,
                     height: 34,
                     padding: const EdgeInsets.all(1.5),
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [
-                          Color(0xFFF59E0B),
-                          Color(0xFFF43F5E),
-                          Color(0xFF6366F1),
-                        ],
-                        begin: Alignment.bottomLeft,
-                        end: Alignment.topRight,
+                      color: AppColors.surfaceContainerHigh,
+                      border: Border.all(
+                        color: AppColors.brandEuy.withValues(alpha: 0.65),
+                        width: 1.5,
                       ),
                     ),
                     child: ClipOval(
@@ -970,13 +966,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     color: isSelected
                         ? AppColors.primaryContainer
                         : AppColors.surfaceContainerHigh,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isSelected
+                          ? AppColors.primaryContainer
+                          : AppColors.outlineVariant.withValues(alpha: 0.2),
+                      width: 1,
+                    ),
                     boxShadow: isSelected
                         ? [
                             BoxShadow(
-                              color: AppColors.primaryContainer.withValues(alpha: 0.4),
-                              blurRadius: 16,
-                              offset: const Offset(0, 4),
+                              color: AppColors.primaryContainer.withValues(alpha: 0.25),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
                             ),
                           ]
                         : null,
@@ -1322,11 +1324,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.primaryContainer,
-                                elevation: 6,
-                                shadowColor: AppColors.primaryContainer.withValues(alpha: 0.5),
+                                elevation: 3,
+                                shadowColor: AppColors.primaryContainer.withValues(alpha: 0.35),
                                 padding: const EdgeInsets.symmetric(vertical: 12),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(24),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
                             ),
@@ -1365,10 +1367,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             ),
                             style: OutlinedButton.styleFrom(
                               backgroundColor: AppColors.surfaceContainerHigh.withValues(alpha: 0.9),
-                              side: BorderSide.none,
+                              side: BorderSide(
+                                color: AppColors.outlineVariant.withValues(alpha: 0.35),
+                                width: 1.0,
+                              ),
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(24),
+                                borderRadius: BorderRadius.circular(12),
                               ),
                             ),
                           ),
@@ -1381,8 +1386,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               width: 44,
                               height: 44,
                               decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: AppColors.surfaceContainerHigh.withValues(alpha: 0.7),
+                                borderRadius: BorderRadius.circular(12),
+                                color: AppColors.surfaceContainerHigh.withValues(alpha: 0.85),
+                                border: Border.all(
+                                  color: AppColors.outlineVariant.withValues(alpha: 0.35),
+                                  width: 1.0,
+                                ),
                               ),
                               child: const Icon(
                                 Icons.info_outline_rounded,

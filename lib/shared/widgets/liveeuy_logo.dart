@@ -151,69 +151,22 @@ class LiveEuyLogo extends StatelessWidget {
   }
 }
 
-class _LiveDot extends StatefulWidget {
+class _LiveDot extends StatelessWidget {
   final double size;
   const _LiveDot({required this.size});
 
   @override
-  State<_LiveDot> createState() => _LiveDotState();
-}
-
-class _LiveDotState extends State<_LiveDot> with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1400),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final double pingSize = widget.size * 1.8;
-    return SizedBox(
-      width: pingSize,
-      height: pingSize,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          AnimatedBuilder(
-            animation: _controller,
-            builder: (context, child) {
-              final progress = _controller.value;
-              final scale = 1.0 + (progress * 1.1);
-              final opacity = (1.0 - progress).clamp(0.0, 1.0) * 0.75;
-              return Transform.scale(
-                scale: scale,
-                child: Container(
-                  width: widget.size,
-                  height: widget.size,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.brandEuy.withValues(alpha: opacity),
-                  ),
-                ),
-              );
-            },
-          ),
-          Container(
-            width: widget.size,
-            height: widget.size,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.brandEuy,
-            ),
-          ),
-        ],
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: AppColors.brandEuy,
+        border: Border.all(
+          color: AppColors.brandEuy.withValues(alpha: 0.35),
+          width: 1.5,
+        ),
       ),
     );
   }

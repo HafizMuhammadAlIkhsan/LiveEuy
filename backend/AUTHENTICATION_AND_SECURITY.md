@@ -1,10 +1,10 @@
-# LiveEuy — Arsitektur Autentikasi, Refresh Token, & Keamanan Klien
+# LiveEuy: Arsitektur Autentikasi, Refresh Token, dan Keamanan Klien
 
 Dokumen ini merupakan panduan teknis resmi bagi **Tim Backend (Spring Boot)**, **Tim Frontend Web (React)**, dan **Tim Mobile (Flutter)** mengenai desain autentikasi terpadu, manajemen sesi, Refresh Token Rotation, dan strategi penyimpanan token yang aman.
 
 ---
 
-## 📌 Ringkasan Eksekutif & Filosofi Desain
+## Ringkasan Eksekutif & Filosofi Desain
 
 Sistem autentikasi LiveEuy menerapkan standar keamanan modern berbasis **JWT (JSON Web Token)** dengan arsitektur **Dual-Token**:
 1. **Access Token (Short-lived, 15 Menit)**:
@@ -18,7 +18,7 @@ Sistem autentikasi LiveEuy menerapkan standar keamanan modern berbasis **JWT (JS
 
 ---
 
-## 🛡️ Strategi Penyimpanan Token Klien: Web vs Mobile
+## Strategi Penyimpanan Token Klien: Web vs Mobile
 
 | Parameter | Frontend Web (React 18 + Vite) | Mobile Client (Flutter Android & iOS) |
 |---|---|---|
@@ -37,7 +37,7 @@ Sistem autentikasi LiveEuy menerapkan standar keamanan modern berbasis **JWT (JS
 
 ---
 
-## 🔄 Diagram Alur Sesi & Silent Refresh
+## Diagram Alur Sesi & Silent Refresh
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
@@ -83,7 +83,7 @@ Sistem autentikasi LiveEuy menerapkan standar keamanan modern berbasis **JWT (JS
 
 ---
 
-## 🗄️ Endpoints Spesifikasi Backend (`/api/v1/auth`)
+## Endpoints Spesifikasi Backend (`/api/v1/auth`)
 
 ### 1. Registrasi Akun (`POST /api/v1/auth/register`)
 Mendaftarkan akun baru ke platform LiveEuy.
@@ -227,7 +227,7 @@ Endpoint ini mendukung **Dual-Mode**:
 
 ---
 
-## 💻 Referensi Implementasi Klien Mobile (Flutter)
+## Referensi Implementasi Klien Mobile (Flutter)
 
 Berikut adalah implementasi standar produksi untuk Flutter menggunakan `flutter_secure_storage` dan integrasi *silent refresh* pada `ApiClient`:
 
@@ -319,7 +319,7 @@ Future<http.Response> sendWithAutoRefresh(
 
 ---
 
-## 🔒 Konfigurasi CORS & Keamanan Cookie di Backend
+## Konfigurasi CORS & Keamanan Cookie di Backend
 
 Di Spring Boot (`CorsConfig.java`), header `allowCredentials` **wajib diatur ke `true`** agar browser mengizinkan pertukaran cookie lintas domain:
 
@@ -344,7 +344,7 @@ public class CorsConfig {
 
 ---
 
-## 📋 Pengujian via cURL
+## Pengujian via cURL
 
 ### 1. Login
 ```bash
