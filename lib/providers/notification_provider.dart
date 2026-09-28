@@ -53,11 +53,9 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   ];
 
   NotificationNotifier({
-    LocalStorageService? storageService,
-    DeepLinkService? deepLinkService,
-  })  : _storageService = storageService,
-        _deepLinkService = deepLinkService,
-        super(const NotificationState(
+    this._storageService,
+    this._deepLinkService,
+  })  : super(const NotificationState(
           items: _defaultItems,
           hasUnread: true,
         )) {
@@ -65,15 +63,16 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   }
 
   void _loadFromStorage() {
-    if (_storageService == null) return;
+    final storage = _storageService;
+    if (storage == null) return;
     try {
-      final saved = _storageService.getNotifications();
+      final saved = storage.getNotifications();
       if (saved.isNotEmpty) {
         final anyUnread = saved.any((item) => !item.isRead);
         state = NotificationState(items: saved, hasUnread: anyUnread);
       } else {
         // Save initial default items to storage
-        _storageService.saveNotifications(_defaultItems);
+        storage.saveNotifications(_defaultItems);
       }
     } catch (_) {}
   }
@@ -106,8 +105,9 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
 
   bool openNotification(NotificationItem item) {
     markAsRead(item.id);
-    if (_deepLinkService != null) {
-      return _deepLinkService.handleDeepLink(item.effectiveDeepLink);
+    final deepLink = _deepLinkService;
+    if (deepLink != null) {
+      return deepLink.handleDeepLink(item.effectiveDeepLink);
     }
     return false;
   }

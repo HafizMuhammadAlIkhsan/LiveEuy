@@ -193,7 +193,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         setState(() => _isLoading = false);
         _showToast(
           'Masuk Gagal',
-          dioErr.message ?? 'Email atau kata sandi tidak sesuai',
+          dioErr.message,
           icon: Icons.error_outline_rounded,
         );
       }
@@ -232,35 +232,40 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       _rememberMe,
                       forceTakeover: true,
                     );
-                if (mounted) {
+                if (dialogCtx.mounted) {
                   Navigator.of(dialogCtx).pop();
-                  if (success) {
-                    _showToast(
-                      'Sesi Web Dikeluarkan',
-                      'Akun Anda kini aktif di perangkat Mobile ini.',
-                      icon: Icons.phonelink_lock_rounded,
-                    );
-                    Navigator.pop(context);
-                  } else {
-                    _showToast(
-                      'Gagal Mengambil Alih Sesi',
-                      'Terjadi kesalahan saat mencabut sesi Web.',
-                      icon: Icons.error_outline_rounded,
-                    );
-                  }
+                }
+                if (!mounted) return;
+                if (success) {
+                  _showToast(
+                    'Sesi Web Dikeluarkan',
+                    'Akun Anda kini aktif di perangkat Mobile ini.',
+                    icon: Icons.phonelink_lock_rounded,
+                  );
+                  Navigator.pop(context);
+                } else {
+                  _showToast(
+                    'Gagal Mengambil Alih Sesi',
+                    'Terjadi kesalahan saat mencabut sesi Web.',
+                    icon: Icons.error_outline_rounded,
+                  );
                 }
               } on DioException catch (dioErr) {
-                if (mounted) {
+                if (dialogCtx.mounted) {
                   Navigator.of(dialogCtx).pop();
+                }
+                if (mounted) {
                   _showToast(
                     'Gagal Masuk',
-                    dioErr.message ?? 'Kredensial tidak valid',
+                    dioErr.message,
                     icon: Icons.error_outline_rounded,
                   );
                 }
               } catch (_) {
-                if (mounted) {
+                if (dialogCtx.mounted) {
                   Navigator.of(dialogCtx).pop();
+                }
+                if (mounted) {
                   _showToast(
                     'Gagal Mengambil Alih Sesi',
                     'Terjadi kesalahan saat mencabut sesi Web.',
@@ -312,7 +317,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         setState(() => _isLoading = false);
         _showToast(
           'Pendaftaran Gagal',
-          dioErr.message ?? 'Gagal mendaftarkan akun. Periksa data Anda.',
+          dioErr.message,
           icon: Icons.error_outline_rounded,
         );
       }

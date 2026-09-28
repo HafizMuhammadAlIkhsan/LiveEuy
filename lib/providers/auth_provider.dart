@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/network/api_client.dart';
-import '../core/network/api_config.dart';
 import '../core/storage/local_storage_service.dart';
 import '../models/auth_response_model.dart';
 import '../models/device_session_model.dart';

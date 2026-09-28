@@ -11,21 +11,22 @@ class NotificationService {
   final DeepLinkService _deepLinkService;
 
   NotificationService({
-    LocalStorageService? storageService,
-    required DeepLinkService deepLinkService,
-  })  : _storageService = storageService,
-        _deepLinkService = deepLinkService;
+    this._storageService,
+    required this._deepLinkService,
+  });
 
   /// Memuat notifikasi tersimpan dari penyimpanan lokal (Offline-First)
   List<NotificationItem> loadSavedNotifications() {
-    if (_storageService == null) return [];
-    return _storageService.getNotifications();
+    final storage = _storageService;
+    if (storage == null) return [];
+    return storage.getNotifications();
   }
 
   /// Menyimpan daftar notifikasi ke penyimpanan lokal
   Future<void> persistNotifications(List<NotificationItem> items) async {
-    if (_storageService == null) return;
-    await _storageService.saveNotifications(items);
+    final storage = _storageService;
+    if (storage == null) return;
+    await storage.saveNotifications(items);
   }
 
   /// Handler saat item notifikasi diklik pengguna (Navigasi via Deep Link)
