@@ -9,7 +9,10 @@ const ROUTE_TITLES: Record<string, string> = {
   '/series': 'Serial TV & Drama Orisinal - LiveEuy',
   '/trending': 'Paling Populer & Trending - LiveEuy',
   '/watchlist': 'Daftar Tontonan Saya - LiveEuy',
-  '/admin': 'Studio Admin Console - LiveEuy'
+  '/admin': 'Studio Admin Console - LiveEuy',
+  '/404': '404 - Halaman Tidak Ditemukan - LiveEuy',
+  '/403': '403 - Akses Terlarang - LiveEuy',
+  '/500': '500 - Gangguan Server - LiveEuy'
 };
 
 export const getPageTitle = (

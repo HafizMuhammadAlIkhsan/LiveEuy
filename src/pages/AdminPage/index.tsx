@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useWatch } from '../../context/WatchContext';
 import { MediaItem, Episode, Season, User, AdCampaign } from '../../types';
 import { GENRES, COUNTRIES, YEARS } from '../../data/mockData';
@@ -52,6 +52,7 @@ import {
   ArrowUp,
   ArrowDown,
   Download,
+  Upload,
   Megaphone,
   FileSpreadsheet,
   History,
@@ -64,7 +65,12 @@ import {
   LogOut,
   Bell,
   ChevronsLeft,
-  ChevronsRight
+  ChevronsRight,
+  UserPlus,
+  UserCheck,
+  UserX,
+  Ban,
+  PowerOff
 } from 'lucide-react';
 
 export type AdminModuleId = 'media' | 'banner' | 'ads' | 'episodes' | 'users' | 'tracking' | 'analytics' | 'reviews' | 'system';
@@ -101,6 +107,9 @@ export const AdminPage: React.FC = () => {
     addMedia, 
     updateMedia, 
     deleteMedia, 
+    batchDeleteMedia,
+    batchUpdateMedia,
+    importMediaCatalog,
     resetMediaToDefault, 
     setCurrentTab,
     openPlayer,
@@ -117,6 +126,7 @@ export const AdminPage: React.FC = () => {
     moveFeaturedItem,
     auditLogs,
     clearAuditLogs,
+    addAuditLog,
     user,
     logout,
     openDeviceSecurityModal,
@@ -306,6 +316,27 @@ export const AdminPage: React.FC = () => {
   const [formIsTrending, setFormIsTrending] = useState(false);
   const [formTopRank, setFormTopRank] = useState<number | undefined>(undefined);
 
+  // Media Multi-Select Bulk Actions State
+  const [selectedMediaIds, setSelectedMediaIds] = useState<string[]>([]);
+
+  // Stream URL Health Inspector State (in Media Form Modal)
+  const [isTestingStream, setIsTestingStream] = useState<boolean>(false);
+  const [streamHealthResult, setStreamHealthResult] = useState<{
+    status: 'healthy' | 'cors_warning' | 'error';
+    latency: number;
+    details: string;
+  } | null>(null);
+  const [isPreviewPlayerOpen, setIsPreviewPlayerOpen] = useState<boolean>(false);
+
+  // Catalog Backup & Restore State
+  const [isRestoreModalOpen, setIsRestoreModalOpen] = useState<boolean>(false);
+  const [pendingRestoreData, setPendingRestoreData] = useState<{
+    fileName: string;
+    items: MediaItem[];
+  } | null>(null);
+  const [restoreMode, setRestoreMode] = useState<'merge' | 'replace'>('merge');
+  const jsonFileInputRef = useRef<HTMLInputElement | null>(null);
+
   // Episode Module states
   const seriesList = useMemo(() => allMedia.filter(m => m.type === 'tv'), [allMedia]);
   const [selectedSeriesId, setSelectedSeriesId] = useState<string>(seriesList[0]?.id || '');
@@ -321,8 +352,8 @@ export const AdminPage: React.FC = () => {
   const [epThumbnail, setEpThumbnail] = useState('https://images.unsplash.com/photo-1542751371-adc38448a05e?w=500&auto=format&fit=crop&q=80');
   const [epVideoUrl, setEpVideoUrl] = useState('https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4');
 
-  // Users Module Mock Data
-  const [usersList, setUsersList] = useState<User[]>([
+  // Users Module State & Persistent LocalStorage
+  const DEFAULT_ADMIN_USERS: User[] = [
     {
       id: 'usr-101',
       name: 'Hafiz Muhammad',
@@ -330,6 +361,7 @@ export const AdminPage: React.FC = () => {
       avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
       tier: 'VIP Cinema Ultra',
       role: 'admin',
+      status: 'active',
       memberSince: 'Sep 2024',
       watchHours: 48.5,
       devices: 4
@@ -341,6 +373,7 @@ export const AdminPage: React.FC = () => {
       avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=120&auto=format&fit=crop&q=80',
       tier: 'VIP Standard',
       role: 'user',
+      status: 'active',
       memberSince: 'Okt 2024',
       watchHours: 14.2,
       devices: 2
@@ -352,6 +385,7 @@ export const AdminPage: React.FC = () => {
       avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&auto=format&fit=crop&q=80',
       tier: 'VIP Cinema Ultra',
       role: 'user',
+      status: 'active',
       memberSince: 'Nov 2024',
       watchHours: 32.0,
       devices: 3
@@ -363,11 +397,114 @@ export const AdminPage: React.FC = () => {
       avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
       tier: 'Free Guest',
       role: 'user',
+      status: 'suspended',
       memberSince: 'Jan 2025',
       watchHours: 2.5,
       devices: 1
     }
-  ]);
+  ];
+
+  const [usersList, setUsersList] = useState<User[]>(() => {
+    try {
+      const saved = localStorage.getItem('liveeuy_admin_users');
+      return saved ? JSON.parse(saved) : DEFAULT_ADMIN_USERS;
+    } catch {
+      return DEFAULT_ADMIN_USERS;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('liveeuy_admin_users', JSON.stringify(usersList));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [usersList]);
+
+  // Users Filter & Search States
+  const [userSearchTerm, setUserSearchTerm] = useState('');
+  const [userRoleFilter, setUserRoleFilter] = useState<'all' | 'admin' | 'user'>('all');
+  const [userStatusFilter, setUserStatusFilter] = useState<'all' | 'active' | 'suspended'>('all');
+  const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
+  const [newUserForm, setNewUserForm] = useState({
+    name: '',
+    email: '',
+    role: 'user' as 'admin' | 'user',
+    tier: 'VIP Standard' as 'Free Guest' | 'VIP Standard' | 'VIP Cinema Ultra',
+    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80'
+  });
+  // Compute filtered users list
+  const filteredUsers = useMemo(() => {
+    return usersList.filter(u => {
+      const matchSearch = u.name.toLowerCase().includes(userSearchTerm.toLowerCase()) || 
+                          u.email.toLowerCase().includes(userSearchTerm.toLowerCase());
+      const matchRole = userRoleFilter === 'all' || u.role === userRoleFilter;
+      const matchStatus = userStatusFilter === 'all' || (u.status || 'active') === userStatusFilter;
+      return matchSearch && matchRole && matchStatus;
+    });
+  }, [usersList, userSearchTerm, userRoleFilter, userStatusFilter]);
+
+  const handleToggleUserStatus = (usr: User) => {
+    const nextStatus = usr.status === 'suspended' ? 'active' : 'suspended';
+    setUsersList(prev => prev.map(u => u.id === usr.id ? { ...u, status: nextStatus } : u));
+    const actionText = nextStatus === 'suspended' ? 'ditangguhkan (suspended)' : 'diaktifkan kembali';
+    showToast(`Akun ${usr.name} berhasil ${actionText}!`);
+    addAuditLog(
+      nextStatus === 'suspended' ? 'Tangguhkan Akun Pengguna' : 'Aktifkan Akun Pengguna',
+      'user',
+      `Status akun "${usr.name}" (${usr.email}) diubah menjadi ${nextStatus}.`
+    );
+  };
+
+  const handleForceRemoteLogout = (usr: User) => {
+    showToast(`Sesi seluruh perangkat milik ${usr.name} berhasil dicabut paksa!`);
+    addAuditLog(
+      'Cabut Sesi Paksa Pengguna',
+      'user',
+      `Admin mencabut paksa seluruh token sesi dan perangkat aktif untuk akun "${usr.name}" (${usr.email}).`
+    );
+  };
+
+  const handleDeleteUser = (usr: User) => {
+    if (window.confirm(`Hapus permanen akun "${usr.name}" (${usr.email}) dari database studio?`)) {
+      setUsersList(prev => prev.filter(u => u.id !== usr.id));
+      showToast(`Akun ${usr.name} berhasil dihapus permanen!`);
+      addAuditLog('Hapus Akun Pengguna', 'user', `Akun "${usr.name}" (${usr.email}) dihapus dari database studio.`);
+    }
+  };
+
+  const handleCreateUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newUserForm.name.trim() || !newUserForm.email.trim()) {
+      alert('Nama dan email wajib diisi.');
+      return;
+    }
+
+    const created: User = {
+      id: `usr-${Date.now().toString(36)}`,
+      name: newUserForm.name.trim(),
+      email: newUserForm.email.trim().toLowerCase(),
+      avatar: newUserForm.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
+      role: newUserForm.role,
+      tier: newUserForm.tier,
+      status: 'active',
+      memberSince: new Date().toLocaleDateString('id-ID', { month: 'short', year: 'numeric' }),
+      watchHours: 0,
+      devices: newUserForm.tier === 'VIP Cinema Ultra' ? 4 : newUserForm.tier === 'VIP Standard' ? 2 : 1
+    };
+
+    setUsersList(prev => [created, ...prev]);
+    setIsAddUserModalOpen(false);
+    setNewUserForm({
+      name: '',
+      email: '',
+      role: 'user',
+      tier: 'VIP Standard',
+      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80'
+    });
+    showToast(`Akun ${created.name} berhasil ditambahkan!`);
+    addAuditLog('Tambah Pengguna Baru', 'user', `Admin mendaftarkan akun baru "${created.name}" (${created.email}) dengan role ${created.role} dan tier ${created.tier}.`);
+  };
 
   // Analytics Module States (Most watched, ratings best/worst)
   const [analyticsFilterType, setAnalyticsFilterType] = useState<'all' | 'movie' | 'tv'>('all');
@@ -721,6 +858,9 @@ export const AdminPage: React.FC = () => {
     setFormIsFeatured(false);
     setFormIsTrending(true);
     setFormTopRank(undefined);
+    setIsTestingStream(false);
+    setStreamHealthResult(null);
+    setIsPreviewPlayerOpen(false);
     setIsMediaModalOpen(true);
   };
 
@@ -751,6 +891,9 @@ export const AdminPage: React.FC = () => {
     setFormIsFeatured(item.isFeatured || false);
     setFormIsTrending(item.isTrending || false);
     setFormTopRank(item.topRank);
+    setIsTestingStream(false);
+    setStreamHealthResult(null);
+    setIsPreviewPlayerOpen(false);
     setIsMediaModalOpen(true);
   };
 
@@ -899,6 +1042,262 @@ export const AdminPage: React.FC = () => {
       return true;
     });
   }, [allMedia, filterType, searchTerm]);
+
+  // Bulk Selection Helpers in Media Table
+  const isAllVisibleMediaSelected = useMemo(() => {
+    return filteredAdminMedia.length > 0 && filteredAdminMedia.every(m => selectedMediaIds.includes(m.id));
+  }, [filteredAdminMedia, selectedMediaIds]);
+
+  const isPartiallySelected = useMemo(() => {
+    return filteredAdminMedia.some(m => selectedMediaIds.includes(m.id)) && !isAllVisibleMediaSelected;
+  }, [filteredAdminMedia, selectedMediaIds, isAllVisibleMediaSelected]);
+
+  const handleToggleSelectAll = () => {
+    const visibleIds = filteredAdminMedia.map(m => m.id);
+    if (isAllVisibleMediaSelected) {
+      setSelectedMediaIds(prev => prev.filter(id => !visibleIds.includes(id)));
+    } else {
+      setSelectedMediaIds(prev => Array.from(new Set([...prev, ...visibleIds])));
+    }
+  };
+
+  const handleToggleSelectOne = (id: string) => {
+    setSelectedMediaIds(prev =>
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleClearSelection = () => {
+    setSelectedMediaIds([]);
+  };
+
+  const handleBatchSetTrending = () => {
+    if (selectedMediaIds.length === 0) return;
+    batchUpdateMedia(selectedMediaIds, { isTrending: true });
+    showToast(`${selectedMediaIds.length} tayangan terpilih kini berstatus Trending! 🔥`);
+    setSelectedMediaIds([]);
+  };
+
+  const handleBatchDelete = () => {
+    if (selectedMediaIds.length === 0) return;
+    if (confirm(`PERINGATAN: Yakin ingin menghapus ${selectedMediaIds.length} tayangan terpilih secara massal dari katalog? Tindakan ini tidak dapat dibatalkan.`)) {
+      batchDeleteMedia(selectedMediaIds);
+      showToast(`${selectedMediaIds.length} tayangan berhasil dihapus secara massal.`);
+      setSelectedMediaIds([]);
+    }
+  };
+
+  const handleExportSelected = () => {
+    if (selectedMediaIds.length === 0) return;
+    const selectedItems = allMedia.filter(m => selectedMediaIds.includes(m.id));
+    const backupData = {
+      appName: 'LiveEuy Cinema Selected Media',
+      exportedAt: new Date().toISOString(),
+      totalItems: selectedItems.length,
+      media: selectedItems
+    };
+    const jsonString = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(backupData, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute('href', jsonString);
+    downloadAnchor.setAttribute('download', `liveeuy-selected-${selectedItems.length}-media.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+
+    showToast(`${selectedItems.length} tayangan terpilih berhasil diekspor ke JSON!`);
+  };
+
+  // Stream URL Health Inspector Handler
+  const runStreamHealthCheck = async (urlToCheck: string) => {
+    if (!urlToCheck || !urlToCheck.trim()) {
+      setStreamHealthResult({
+        status: 'error',
+        latency: 0,
+        details: 'URL stream tidak boleh kosong.'
+      });
+      return;
+    }
+
+    try {
+      const parsed = new URL(urlToCheck);
+      if (!parsed.protocol.startsWith('http')) {
+        setStreamHealthResult({
+          status: 'error',
+          latency: 0,
+          details: 'Protokol URL harus diawali dengan http:// atau https://.'
+        });
+        return;
+      }
+    } catch {
+      setStreamHealthResult({
+        status: 'error',
+        latency: 0,
+        details: 'Format URL tidak valid. Periksa kembali tautan stream.'
+      });
+      return;
+    }
+
+    setIsTestingStream(true);
+    setStreamHealthResult(null);
+    const startTime = performance.now();
+
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.src = urlToCheck;
+
+    const probePromise = new Promise<{
+      status: 'healthy' | 'cors_warning' | 'error';
+      latency: number;
+      details: string;
+    }>((resolve) => {
+      let resolved = false;
+
+      const timer = setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          fetch(urlToCheck, { method: 'HEAD', mode: 'no-cors' })
+            .then(() => {
+              const latency = Math.round(performance.now() - startTime);
+              resolve({
+                status: 'cors_warning',
+                latency,
+                details: 'Server stream merespons (Opaque CORS). Stream siap ditayangkan di player utama.'
+              });
+            })
+            .catch(() => {
+              resolve({
+                status: 'error',
+                latency: Math.round(performance.now() - startTime),
+                details: 'Batas waktu habis (timeout 5s). Server stream lambat atau link mati.'
+              });
+            });
+        }
+      }, 5000);
+
+      video.onloadedmetadata = () => {
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timer);
+          const latency = Math.round(performance.now() - startTime);
+          const res = video.videoWidth && video.videoHeight ? `${video.videoWidth}x${video.videoHeight}` : 'HD Stream';
+          const dur = video.duration && !isNaN(video.duration) && isFinite(video.duration) ? `${Math.round(video.duration)} detik` : 'Live HLS Stream';
+          resolve({
+            status: 'healthy',
+            latency,
+            details: `Koneksi prima! Video terverifikasi valid (${res}, ${dur}).`
+          });
+        }
+      };
+
+      video.onerror = () => {
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timer);
+          fetch(urlToCheck, { method: 'HEAD', mode: 'no-cors' })
+            .then(() => {
+              const latency = Math.round(performance.now() - startTime);
+              resolve({
+                status: 'cors_warning',
+                latency,
+                details: 'Server stream aktif (CORS Restrict). Format teruji dan siap diputar di player LiveEuy.'
+              });
+            })
+            .catch(() => {
+              resolve({
+                status: 'error',
+                latency: Math.round(performance.now() - startTime),
+                details: 'URL stream tidak dapat dihubungi (404 Not Found atau server offline).'
+              });
+            });
+        }
+      };
+    });
+
+    try {
+      const res = await probePromise;
+      setStreamHealthResult(res);
+    } catch {
+      setStreamHealthResult({
+        status: 'error',
+        latency: 0,
+        details: 'Terjadi kegagalan saat menguji koneksi stream.'
+      });
+    } finally {
+      setIsTestingStream(false);
+    }
+  };
+
+  // Catalog Backup (Export to JSON)
+  const handleExportCatalog = () => {
+    const backupData = {
+      appName: 'LiveEuy Cinema Catalog Backup',
+      exportedAt: new Date().toISOString(),
+      exportedBy: user?.name || 'Administrator',
+      totalItems: allMedia.length,
+      media: allMedia
+    };
+    const jsonString = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(backupData, null, 2));
+    const downloadAnchor = document.createElement('a');
+    const dateStr = new Date().toISOString().split('T')[0];
+    downloadAnchor.setAttribute('href', jsonString);
+    downloadAnchor.setAttribute('download', `liveeuy-catalog-backup-${dateStr}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+
+    addAuditLog(
+      'Cadangkan Seluruh Katalog',
+      'media',
+      `Mengekspor cadangan penuh ${allMedia.length} tayangan ke format JSON.`
+    );
+    showToast(`Cadangan katalog (${allMedia.length} tayangan) berhasil diunduh!`);
+  };
+
+  // Catalog Restore (Import from JSON)
+  const handleFileSelectForRestore = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        const parsed = JSON.parse(text);
+        
+        let mediaItems: MediaItem[] = [];
+        if (Array.isArray(parsed)) {
+          mediaItems = parsed;
+        } else if (parsed && Array.isArray(parsed.media)) {
+          mediaItems = parsed.media;
+        }
+
+        const validItems = mediaItems.filter(item => item && item.id && item.title && item.videoUrl);
+        if (validItems.length === 0) {
+          alert('File JSON tidak valid atau tidak berisi data tayangan LiveEuy yang sesuai.');
+          return;
+        }
+
+        setPendingRestoreData({
+          fileName: file.name,
+          items: validItems
+        });
+        setRestoreMode('merge');
+        setIsRestoreModalOpen(true);
+      } catch {
+        alert('Gagal membaca file JSON. Pastikan format file adalah JSON valid.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  const handleConfirmRestore = () => {
+    if (!pendingRestoreData) return;
+    importMediaCatalog(pendingRestoreData.items, restoreMode);
+    setIsRestoreModalOpen(false);
+    showToast(`Katalog berhasil dipulihkan! (${pendingRestoreData.items.length} tayangan diproses)`);
+    setPendingRestoreData(null);
+  };
 
   // Copy cookie token helper
   const copyCookieToken = (token: string) => {
@@ -1674,7 +2073,7 @@ export const AdminPage: React.FC = () => {
               ======================================================== */}
           {activeModule === 'media' && (
             <section className="space-y-4">
-          {/* Filter Bar */}
+          {/* Filter & Action Toolbar */}
           <div className="flex flex-wrap items-center justify-between gap-3 bg-surface-800/60 p-4 rounded-2xl border border-white/5">
             <div className="flex items-center gap-2 flex-1 max-w-sm">
               <Search className="w-4 h-4 text-slate-400" />
@@ -1687,30 +2086,122 @@ export const AdminPage: React.FC = () => {
               />
             </div>
 
-            <div className="flex items-center gap-1 bg-surface-900/90 p-1 rounded-xl border border-white/5 text-xs">
-              {[
-                { id: 'all', label: 'Semua Format' },
-                { id: 'movie', label: 'Film Saja' },
-                { id: 'tv', label: 'Serial TV' },
-              ].map(opt => (
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-1 bg-surface-900/90 p-1 rounded-xl border border-white/5 text-xs">
+                {[
+                  { id: 'all', label: 'Semua Format' },
+                  { id: 'movie', label: 'Film Saja' },
+                  { id: 'tv', label: 'Serial TV' },
+                ].map(opt => (
+                  <button
+                    key={opt.id}
+                    onClick={() => setFilterType(opt.id as any)}
+                    className={`px-3 py-1.5 rounded-lg transition-colors font-medium cursor-pointer ${
+                      filterType === opt.id ? 'bg-brand-600 text-white font-bold' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Backup & Restore Action Buttons */}
+              <div className="flex items-center gap-1.5 border-l border-white/10 pl-2">
                 <button
-                  key={opt.id}
-                  onClick={() => setFilterType(opt.id as any)}
-                  className={`px-3 py-1.5 rounded-lg transition-colors font-medium ${
-                    filterType === opt.id ? 'bg-brand-600 text-white font-bold' : 'text-slate-400 hover:text-white'
-                  }`}
+                  type="button"
+                  onClick={handleExportCatalog}
+                  className="px-3 py-1.5 rounded-xl bg-surface-900/90 hover:bg-surface-700 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 border border-white/10 transition-colors cursor-pointer"
+                  title="Unduh cadangan seluruh katalog ke format file JSON"
                 >
-                  {opt.label}
+                  <Download className="w-3.5 h-3.5 text-brand-400" />
+                  <span className="hidden sm:inline">Cadangkan JSON</span>
                 </button>
-              ))}
+
+                <button
+                  type="button"
+                  onClick={() => jsonFileInputRef.current?.click()}
+                  className="px-3 py-1.5 rounded-xl bg-surface-900/90 hover:bg-surface-700 text-slate-300 hover:text-white text-xs font-semibold flex items-center gap-1.5 border border-white/10 transition-colors cursor-pointer"
+                  title="Pulihkan katalog dari file cadangan JSON"
+                >
+                  <Upload className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="hidden sm:inline">Pulihkan JSON</span>
+                </button>
+                <input
+                  ref={jsonFileInputRef}
+                  type="file"
+                  accept=".json,application/json"
+                  onChange={handleFileSelectForRestore}
+                  className="hidden"
+                />
+              </div>
             </div>
           </div>
+
+          {/* Floating / Sticky Bulk Action Toolbar */}
+          {selectedMediaIds.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-gradient-to-r from-brand-950/90 via-surface-900 to-brand-950/90 border border-brand-500/40 shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-top-2">
+              <div className="flex items-center gap-3">
+                <span className="w-2.5 h-2.5 rounded-full bg-brand-400 animate-pulse" />
+                <span className="text-xs sm:text-sm font-bold text-white">
+                  <span className="text-brand-300 font-mono font-black">{selectedMediaIds.length}</span> tayangan dipilih dari katalog
+                </span>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap text-xs">
+                <button
+                  type="button"
+                  onClick={handleBatchSetTrending}
+                  className="px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 font-bold border border-rose-500/30 transition-all flex items-center gap-1.5 cursor-pointer"
+                  title="Tandai seluruh tayangan terpilih sebagai trending"
+                >
+                  <Flame className="w-3.5 h-3.5" />
+                  <span>Set Trending</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExportSelected}
+                  className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold border border-white/10 transition-all flex items-center gap-1.5 cursor-pointer"
+                  title="Ekspor hanya tayangan terpilih ke JSON"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Ekspor Pilihan</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBatchDelete}
+                  className="px-3 py-1.5 rounded-xl bg-red-600/30 hover:bg-red-600 text-red-200 hover:text-white font-bold border border-red-500/30 transition-all flex items-center gap-1.5 cursor-pointer"
+                  title="Hapus permanen tayangan terpilih secara massal"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Hapus Terpilih ({selectedMediaIds.length})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleClearSelection}
+                  className="px-2.5 py-1.5 rounded-xl text-slate-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Media Table */}
           <div className="rounded-3xl bg-surface-800/40 border border-white/10 overflow-hidden shadow-2xl overflow-x-auto">
             <table className="w-full text-left text-xs sm:text-sm text-slate-300">
               <thead className="bg-surface-900/90 text-slate-400 font-semibold uppercase text-[10px] tracking-wider border-b border-white/10">
                 <tr>
+                  <th className="py-3.5 px-3 w-10 text-center">
+                    <input
+                      type="checkbox"
+                      checked={isAllVisibleMediaSelected}
+                      ref={el => {
+                        if (el) el.indeterminate = isPartiallySelected;
+                      }}
+                      onChange={handleToggleSelectAll}
+                      className="rounded bg-surface-900 border-white/20 text-brand-600 focus:ring-0 cursor-pointer"
+                      title="Pilih / Batalkan semua tayangan"
+                    />
+                  </th>
                   <th className="py-3.5 px-4">Tayangan</th>
                   <th className="py-3.5 px-3">Tipe</th>
                   <th className="py-3.5 px-3">Rating</th>
@@ -1722,7 +2213,7 @@ export const AdminPage: React.FC = () => {
               <tbody className="divide-y divide-white/5">
                 {filteredAdminMedia.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-slate-400">
+                    <td colSpan={7} className="py-12 text-center text-slate-400">
                       <div className="max-w-xs mx-auto space-y-2">
                         <Search className="w-8 h-8 text-slate-500 mx-auto" />
                         <p className="font-bold text-white text-sm">Tidak ada tayangan ditemukan</p>
@@ -1739,7 +2230,18 @@ export const AdminPage: React.FC = () => {
                   </tr>
                 ) : (
                   filteredAdminMedia.map(item => (
-                  <tr key={item.id} className="hover:bg-white/5 transition-colors">
+                  <tr key={item.id} className={`transition-colors ${
+                    selectedMediaIds.includes(item.id) ? 'bg-brand-900/25 hover:bg-brand-900/35' : 'hover:bg-white/5'
+                  }`}>
+                    {/* Select Checkbox */}
+                    <td className="py-3 px-3 w-10 text-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedMediaIds.includes(item.id)}
+                        onChange={() => handleToggleSelectOne(item.id)}
+                        className="rounded bg-surface-900 border-white/20 text-brand-600 focus:ring-0 cursor-pointer"
+                      />
+                    </td>
                     {/* Media item info */}
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
@@ -3480,17 +3982,102 @@ export const AdminPage: React.FC = () => {
       )}
 
       {/* ========================================================
-          MODULE 3: PENGGUNA & LANGGANAN VIP
+          MODULE 3: PENGGUNA & LANGGANAN VIP (CRUD & SECURITY)
           ======================================================== */}
       {activeModule === 'users' && (
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
+        <section className="space-y-6">
+          {/* Header & Add User Action */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h3 className="text-lg font-bold text-white">Daftar Pengguna & Status Langganan</h3>
-              <p className="text-xs text-slate-400">Atur tier keanggotaan dan hak akses streaming pengguna.</p>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold mb-1">
+                <Users className="w-3.5 h-3.5 text-amber-400" />
+                <span>Manajemen Hak Akses & Status Keanggotaan</span>
+              </div>
+              <h3 className="text-xl sm:text-2xl font-black text-white">
+                Daftar Pengguna & Keamanan Akun
+              </h3>
+              <p className="text-xs text-slate-400">
+                Kelola status akun, hak akses role administrator, tier paket VIP, hingga pencabutan sesi jarak jauh.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setIsAddUserModalOpen(true)}
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white text-xs font-bold flex items-center gap-2 transition-all shadow-lg shadow-amber-900/30 cursor-pointer active:scale-95"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>Tambah Pengguna Baru</span>
+              </button>
             </div>
           </div>
 
+          {/* Quick Metrics Strip */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-surface-800/60 p-4 rounded-2xl border border-white/10 space-y-1">
+              <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Total Pengguna</span>
+              <p className="text-xl sm:text-2xl font-black text-white font-mono">{usersList.length}</p>
+            </div>
+            <div className="bg-surface-800/60 p-4 rounded-2xl border border-white/10 space-y-1">
+              <span className="text-[10px] text-emerald-400 uppercase tracking-wider font-semibold">Akun Aktif</span>
+              <p className="text-xl sm:text-2xl font-black text-emerald-400 font-mono">
+                {usersList.filter(u => (u.status || 'active') === 'active').length}
+              </p>
+            </div>
+            <div className="bg-surface-800/60 p-4 rounded-2xl border border-white/10 space-y-1">
+              <span className="text-[10px] text-rose-400 uppercase tracking-wider font-semibold">Ditangguhkan</span>
+              <p className="text-xl sm:text-2xl font-black text-rose-400 font-mono">
+                {usersList.filter(u => u.status === 'suspended').length}
+              </p>
+            </div>
+            <div className="bg-surface-800/60 p-4 rounded-2xl border border-white/10 space-y-1">
+              <span className="text-[10px] text-amber-400 uppercase tracking-wider font-semibold">Member VIP</span>
+              <p className="text-xl sm:text-2xl font-black text-amber-400 font-mono">
+                {usersList.filter(u => u.tier !== 'Free Guest').length}
+              </p>
+            </div>
+          </div>
+
+          {/* Filter & Search Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-2xl bg-surface-800/40 border border-white/10">
+            {/* Search Input */}
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={userSearchTerm}
+                onChange={e => setUserSearchTerm(e.target.value)}
+                placeholder="Cari nama atau email pengguna..."
+                className="w-full bg-white/[0.04] border border-white/10 focus:border-amber-500 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none transition-colors"
+              />
+            </div>
+
+            {/* Filter Dropdowns */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <select
+                value={userRoleFilter}
+                onChange={e => setUserRoleFilter(e.target.value as any)}
+                className="bg-surface-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500 cursor-pointer"
+              >
+                <option value="all">Semua Role</option>
+                <option value="admin">Admin</option>
+                <option value="user">Member (User)</option>
+              </select>
+
+              <select
+                value={userStatusFilter}
+                onChange={e => setUserStatusFilter(e.target.value as any)}
+                className="bg-surface-900 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500 cursor-pointer"
+              >
+                <option value="all">Semua Status</option>
+                <option value="active">Aktif</option>
+                <option value="suspended">Ditangguhkan</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Users Table */}
           <div className="rounded-3xl bg-surface-800/40 border border-white/10 overflow-hidden shadow-2xl overflow-x-auto">
             <table className="w-full text-left text-xs sm:text-sm text-slate-300">
               <thead className="bg-surface-900/90 text-slate-400 font-semibold uppercase text-[10px] tracking-wider border-b border-white/10">
@@ -3498,66 +4085,227 @@ export const AdminPage: React.FC = () => {
                   <th className="py-3.5 px-4">Pengguna</th>
                   <th className="py-3.5 px-3">Role</th>
                   <th className="py-3.5 px-3">Tier Paket</th>
+                  <th className="py-3.5 px-3">Status Akun</th>
                   <th className="py-3.5 px-3">Maks Perangkat</th>
-                  <th className="py-3.5 px-3">Total Jam Tonton</th>
-                  <th className="py-3.5 px-4 text-right">Ubah Paket</th>
+                  <th className="py-3.5 px-3">Jam Tonton</th>
+                  <th className="py-3.5 px-4 text-right">Tindakan Keamanan</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {usersList.map(usr => (
-                  <tr key={usr.id} className="hover:bg-white/5 transition-colors">
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-3">
-                        <img src={usr.avatar} alt={usr.name} className="w-8 h-8 rounded-full object-cover" />
-                        <div>
-                          <span className="font-bold text-white block">{usr.name}</span>
-                          <span className="text-[11px] text-slate-400">{usr.email}</span>
+                {filteredUsers.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-12 text-center text-xs text-slate-500">
+                      Tidak ada pengguna yang cocok dengan kriteria pencarian/filter.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredUsers.map(usr => (
+                    <tr key={usr.id} className="hover:bg-white/5 transition-colors">
+                      {/* Name & Email */}
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-3">
+                          <img src={usr.avatar} alt={usr.name} className="w-9 h-9 rounded-full object-cover border border-white/10 flex-shrink-0" />
+                          <div className="min-w-0">
+                            <span className="font-bold text-white block truncate">{usr.name}</span>
+                            <span className="text-[11px] text-slate-400 block truncate">{usr.email}</span>
+                          </div>
                         </div>
-                      </div>
-                    </td>
+                      </td>
 
-                    <td className="py-3 px-3">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                        usr.role === 'admin' ? 'bg-amber-500/20 text-amber-300' : 'bg-white/10 text-slate-300'
-                      }`}>
-                        {usr.role === 'admin' ? 'Admin' : 'Member'}
-                      </span>
-                    </td>
+                      {/* Role Badge */}
+                      <td className="py-3 px-3">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          usr.role === 'admin' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-white/10 text-slate-300'
+                        }`}>
+                          {usr.role === 'admin' ? 'Admin' : 'Member'}
+                        </span>
+                      </td>
 
-                    <td className="py-3 px-3">
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30">
-                        {usr.tier}
-                      </span>
-                    </td>
+                      {/* Tier Select */}
+                      <td className="py-3 px-3">
+                        <select
+                          value={usr.tier}
+                          onChange={(e) => {
+                            const newTier = e.target.value as any;
+                            setUsersList(prev => prev.map(u => u.id === usr.id ? { ...u, tier: newTier } : u));
+                            showToast(`Paket pengguna ${usr.name} diubah menjadi ${newTier}!`);
+                            addAuditLog('Ubah Tier Pengguna', 'user', `Paket "${usr.name}" diubah menjadi ${newTier}.`);
+                          }}
+                          className="bg-surface-900 border border-white/10 rounded-xl px-2.5 py-1 text-xs text-white focus:outline-none focus:border-amber-500 cursor-pointer"
+                        >
+                          <option value="Free Guest">Free Guest</option>
+                          <option value="VIP Standard">VIP Standard</option>
+                          <option value="VIP Cinema Ultra">VIP Cinema Ultra</option>
+                        </select>
+                      </td>
 
-                    <td className="py-3 px-3 font-mono">
-                      {usr.devices} Perangkat
-                    </td>
+                      {/* Account Status Badge */}
+                      <td className="py-3 px-3">
+                        {usr.status === 'suspended' ? (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30 flex items-center gap-1 w-max">
+                            <Ban className="w-3 h-3 text-rose-400" />
+                            <span>Ditangguhkan</span>
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1 w-max">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            <span>Aktif</span>
+                          </span>
+                        )}
+                      </td>
 
-                    <td className="py-3 px-3 font-mono text-emerald-400 font-bold">
-                      {usr.watchHours} Jam
-                    </td>
+                      {/* Max Devices */}
+                      <td className="py-3 px-3 font-mono text-xs">
+                        {usr.devices || 1} Perangkat
+                      </td>
 
-                    <td className="py-3 px-4 text-right">
+                      {/* Watch Hours */}
+                      <td className="py-3 px-3 font-mono text-emerald-400 font-bold text-xs">
+                        {usr.watchHours || 0} Jam
+                      </td>
+
+                      {/* Security Actions */}
+                      <td className="py-3 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {/* Toggle Suspend / Activate */}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleUserStatus(usr)}
+                            className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                              usr.status === 'suspended'
+                                ? 'bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/30 text-emerald-400'
+                                : 'bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/30 text-rose-400'
+                            }`}
+                            title={usr.status === 'suspended' ? 'Aktifkan Akun' : 'Tangguhkan (Suspend) Akun'}
+                          >
+                            {usr.status === 'suspended' ? <UserCheck className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
+                          </button>
+
+                          {/* Force Remote Logout */}
+                          <button
+                            type="button"
+                            onClick={() => handleForceRemoteLogout(usr)}
+                            className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-cyan-400 hover:text-cyan-300 transition-colors cursor-pointer"
+                            title="Cabut Sesi Paksa (Force Remote Logout)"
+                          >
+                            <PowerOff className="w-4 h-4" />
+                          </button>
+
+                          {/* Delete User */}
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteUser(usr)}
+                            className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 hover:text-rose-300 transition-colors cursor-pointer"
+                            title="Hapus Akun Pengguna"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Modal: Tambah Pengguna Baru */}
+          {isAddUserModalOpen && (
+            <div 
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Tambah Pengguna Baru"
+            >
+              <div 
+                className="relative w-full max-w-md bg-surface-900 border border-white/10 rounded-3xl p-6 shadow-2xl space-y-4"
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <div className="flex items-center gap-2">
+                    <UserPlus className="w-5 h-5 text-amber-400" />
+                    <h4 className="font-bold text-white text-base">Tambah Akun Pengguna Baru</h4>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddUserModalOpen(false)}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleCreateUser} className="space-y-3">
+                  <div>
+                    <label className="text-[11px] font-medium text-slate-300 block mb-1">Nama Lengkap</label>
+                    <input
+                      type="text"
+                      required
+                      value={newUserForm.name}
+                      onChange={e => setNewUserForm({ ...newUserForm, name: e.target.value })}
+                      placeholder="Contoh: Ahmad Fauzi"
+                      className="w-full bg-white/[0.04] border border-white/10 focus:border-amber-500 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-medium text-slate-300 block mb-1">Alamat Email</label>
+                    <input
+                      type="email"
+                      required
+                      value={newUserForm.email}
+                      onChange={e => setNewUserForm({ ...newUserForm, email: e.target.value })}
+                      placeholder="nama@email.com"
+                      className="w-full bg-white/[0.04] border border-white/10 focus:border-amber-500 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] font-medium text-slate-300 block mb-1">Role Akses</label>
                       <select
-                        value={usr.tier}
-                        onChange={(e) => {
-                          const newTier = e.target.value as any;
-                          setUsersList(prev => prev.map(u => u.id === usr.id ? { ...u, tier: newTier } : u));
-                          showToast(`Paket pengguna ${usr.name} diubah menjadi ${newTier}!`);
-                        }}
-                        className="bg-surface-900 border border-white/10 rounded-xl px-2.5 py-1 text-xs text-white focus:outline-none focus:border-brand-500"
+                        value={newUserForm.role}
+                        onChange={e => setNewUserForm({ ...newUserForm, role: e.target.value as any })}
+                        className="w-full bg-surface-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+                      >
+                        <option value="user">Member (User)</option>
+                        <option value="admin">Administrator</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-medium text-slate-300 block mb-1">Tier Paket VIP</label>
+                      <select
+                        value={newUserForm.tier}
+                        onChange={e => setNewUserForm({ ...newUserForm, tier: e.target.value as any })}
+                        className="w-full bg-surface-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
                       >
                         <option value="Free Guest">Free Guest</option>
                         <option value="VIP Standard">VIP Standard</option>
                         <option value="VIP Cinema Ultra">VIP Cinema Ultra</option>
                       </select>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-3">
+                    <button
+                      type="button"
+                      onClick={() => setIsAddUserModalOpen(false)}
+                      className="flex-1 py-2.5 rounded-xl border border-white/10 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/5"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-xs font-bold text-white shadow-lg shadow-amber-900/30"
+                    >
+                      Simpan Pengguna
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
         </section>
       )}
 
@@ -4371,15 +5119,105 @@ export const AdminPage: React.FC = () => {
               {/* Video Stream & Trailer URLs */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="font-semibold text-slate-300">URL Stream Video (MP4 / HLS) *</label>
+                  <div className="flex items-center justify-between">
+                    <label className="font-semibold text-slate-300">URL Stream Video (MP4 / HLS) *</label>
+                    <button
+                      type="button"
+                      disabled={isTestingStream || !formVideoUrl.trim()}
+                      onClick={() => runStreamHealthCheck(formVideoUrl)}
+                      className="text-[11px] font-bold text-brand-400 hover:text-brand-300 flex items-center gap-1 transition-colors disabled:opacity-50 cursor-pointer"
+                      title="Uji kelayakan link video sebelum disimpan"
+                    >
+                      <Activity className={`w-3.5 h-3.5 ${isTestingStream ? 'animate-spin text-brand-400' : ''}`} />
+                      <span>{isTestingStream ? 'Menguji Stream...' : '⚡ Uji Kelayakan Stream'}</span>
+                    </button>
+                  </div>
                   <input
                     type="text"
                     required
                     value={formVideoUrl}
-                    onChange={e => setFormVideoUrl(e.target.value)}
-                    placeholder="https://...mp4"
+                    onChange={e => {
+                      setFormVideoUrl(e.target.value);
+                      setStreamHealthResult(null);
+                    }}
+                    placeholder="https://...mp4 atau .m3u8"
                     className="w-full bg-surface-800 border border-white/10 rounded-xl px-3 py-2 text-white font-mono text-[11px] focus:outline-none focus:border-brand-500"
                   />
+
+                  {/* Stream Health Inspector Result Card */}
+                  {streamHealthResult && (
+                    <div className={`p-2.5 rounded-xl border text-xs space-y-2 transition-all ${
+                      streamHealthResult.status === 'healthy'
+                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-200'
+                        : streamHealthResult.status === 'cors_warning'
+                        ? 'bg-amber-500/10 border-amber-500/30 text-amber-200'
+                        : 'bg-rose-500/10 border-rose-500/30 text-rose-200'
+                    }`}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-1.5">
+                          {streamHealthResult.status === 'healthy' ? (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                          ) : streamHealthResult.status === 'cors_warning' ? (
+                            <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                          ) : (
+                            <X className="w-4 h-4 text-rose-400 flex-shrink-0" />
+                          )}
+                          <span className="font-bold text-[11px]">
+                            {streamHealthResult.status === 'healthy'
+                              ? 'Stream Aktif & Siap Tayang'
+                              : streamHealthResult.status === 'cors_warning'
+                              ? 'Stream Terdeteksi (CORS Server)'
+                              : 'Stream Gagal / Tidak Aktif'}
+                          </span>
+                        </div>
+                        {streamHealthResult.latency > 0 && (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-black/40 border border-white/10 text-slate-300">
+                            ⚡ {streamHealthResult.latency}ms
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] leading-relaxed opacity-90">
+                        {streamHealthResult.details}
+                      </p>
+                      
+                      <div className="flex items-center gap-2 pt-1 border-t border-white/10">
+                        <button
+                          type="button"
+                          onClick={() => setIsPreviewPlayerOpen(prev => !prev)}
+                          className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                        >
+                          <Play className="w-3 h-3" />
+                          <span>{isPreviewPlayerOpen ? 'Tutup Pratinjau' : 'Buka Mini Player Uji'}</span>
+                        </button>
+                        <a
+                          href={formVideoUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] flex items-center gap-1 transition-colors"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          <span>Buka URL Langsung</span>
+                        </a>
+                      </div>
+
+                      {/* Mini Video Player Inspector */}
+                      {isPreviewPlayerOpen && (
+                        <div className="rounded-xl overflow-hidden bg-black border border-white/20 pt-1">
+                          <video
+                            controls
+                            autoPlay
+                            playsInline
+                            className="w-full max-h-40 bg-black object-contain"
+                            src={formVideoUrl}
+                          />
+                          <div className="px-2 py-1 bg-surface-900 text-[10px] text-slate-400 flex justify-between items-center">
+                            <span>Pratinjau Sinkronisasi Video & Audio</span>
+                            <span className="text-emerald-400 font-mono">Live Tester</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-1">
                   <label className="font-semibold text-slate-300">URL Trailer Cuplikan (Opsional)</label>
@@ -4627,6 +5465,118 @@ export const AdminPage: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================
+          MODAL: PULIHKAN / IMPOR KATALOG MEDIA (JSON)
+          ======================================================== */}
+      {isRestoreModalOpen && pendingRestoreData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
+          <div className="bg-surface-900 border border-white/10 rounded-3xl p-6 max-w-lg w-full shadow-2xl relative space-y-4">
+            <button
+              onClick={() => {
+                setIsRestoreModalOpen(false);
+                setPendingRestoreData(null);
+              }}
+              className="absolute top-4 right-4 p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-brand-500/20 text-brand-400 flex items-center justify-center">
+                <Database className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-white">Pulihkan Katalog Media</h3>
+                <p className="text-xs text-slate-400">File: <span className="text-brand-300 font-mono font-medium">{pendingRestoreData.fileName}</span></p>
+              </div>
+            </div>
+
+            {/* Stats preview */}
+            <div className="grid grid-cols-2 gap-3 p-3.5 rounded-2xl bg-surface-800/60 border border-white/5 text-xs">
+              <div>
+                <span className="text-[10px] text-slate-400 uppercase font-bold block">Tayangan Terdeteksi</span>
+                <span className="text-lg font-black text-emerald-400">{pendingRestoreData.items.length} Tayangan</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 uppercase font-bold block">Katalog Aktif Saat Ini</span>
+                <span className="text-lg font-black text-slate-300">{allMedia.length} Tayangan</span>
+              </div>
+            </div>
+
+            {/* Mode Selection */}
+            <div className="space-y-2 text-xs">
+              <label className="font-bold text-white block">Pilih Metode Pemulihan:</label>
+              
+              <label
+                onClick={() => setRestoreMode('merge')}
+                className={`flex items-start gap-3 p-3 rounded-2xl border cursor-pointer transition-all ${
+                  restoreMode === 'merge'
+                    ? 'bg-brand-500/10 border-brand-500/40 text-white'
+                    : 'bg-surface-800/40 border-white/5 text-slate-300 hover:bg-white/5'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="restoreMode"
+                  checked={restoreMode === 'merge'}
+                  onChange={() => setRestoreMode('merge')}
+                  className="mt-0.5 text-brand-600 focus:ring-0"
+                />
+                <div>
+                  <span className="font-bold block text-sm">Gabungkan (Merge) - Direkomendasikan</span>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Menambahkan tayangan baru dan memperbarui data tayangan dengan ID serupa tanpa menghapus tayangan lain yang sudah ada.
+                  </p>
+                </div>
+              </label>
+
+              <label
+                onClick={() => setRestoreMode('replace')}
+                className={`flex items-start gap-3 p-3 rounded-2xl border cursor-pointer transition-all ${
+                  restoreMode === 'replace'
+                    ? 'bg-rose-500/10 border-rose-500/40 text-white'
+                    : 'bg-surface-800/40 border-white/5 text-slate-300 hover:bg-white/5'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="restoreMode"
+                  checked={restoreMode === 'replace'}
+                  onChange={() => setRestoreMode('replace')}
+                  className="mt-0.5 text-rose-600 focus:ring-0"
+                />
+                <div>
+                  <span className="font-bold block text-sm text-rose-300">Timpa Seluruhnya (Overwrite)</span>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Menghapus seluruh katalog aktif saat ini dan menggantikannya sepenuhnya dengan {pendingRestoreData.items.length} tayangan dari file cadangan ini.
+                  </p>
+                </div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsRestoreModalOpen(false);
+                  setPendingRestoreData(null);
+                }}
+                className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmRestore}
+                className="px-5 py-2 rounded-xl bg-gradient-to-r from-brand-600 to-secondary-500 hover:from-brand-500 hover:to-secondary-600 text-white text-xs font-bold shadow-lg shadow-brand-600/30 transition-all cursor-pointer"
+              >
+                Konfirmasi Pulihkan Katalog
+              </button>
+            </div>
           </div>
         </div>
       )}

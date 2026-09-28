@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useWatch } from '../../context/WatchContext';
 import { MediaCard } from '../../components/MediaCard';
+import { BillboardAd } from '../../components/BillboardAd';
 import { GENRES } from '../../data/mockData';
 import { MediaItem } from '../../types';
 import { 
@@ -314,6 +315,9 @@ export const MoviesPage: React.FC = () => {
           </div>
         </section>
       )}
+
+      {/* Dual Billboard Ads under Marquee */}
+      <BillboardAd fluid placementIndex={1} />
 
       {/* ========================================================
           2. STUDIO & CINEMATIC UNIVERSE SPOTLIGHT TABS
@@ -773,6 +777,9 @@ export const MoviesPage: React.FC = () => {
           </button>
         </div>
       )}
+
+      {/* Dual Billboard Ads under Movies Catalog */}
+      <BillboardAd fluid placementIndex={2} />
 
       {/* ========================================================
           5. CURATOR'S SPECIAL SHOWCASE: THEATRICAL ACCOLADES

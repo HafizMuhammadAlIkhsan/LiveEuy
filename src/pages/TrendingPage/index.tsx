@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useWatch } from '../../context/WatchContext';
+import { BillboardAd } from '../../components/BillboardAd';
 import { MediaItem } from '../../types';
 import { 
   Flame, 
@@ -217,6 +218,9 @@ export const TrendingPage: React.FC = () => {
         </div>
       </section>
 
+      {/* Dual Billboard Ads under Top 3 Podium */}
+      <BillboardAd fluid placementIndex={1} />
+
       {/* ========================================================
           3. VIRAL HASHTAGS & SOCIAL TOPICS STRIP
           ======================================================== */}
@@ -351,6 +355,9 @@ export const TrendingPage: React.FC = () => {
           })}
         </div>
       </section>
+
+      {/* Dual Billboard Ads under Trending Ranked List */}
+      <BillboardAd fluid placementIndex={2} />
 
       {/* ========================================================
           5. COMMUNITY BUZZ HIGHLIGHTS

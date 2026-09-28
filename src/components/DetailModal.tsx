@@ -14,6 +14,7 @@ import { useWatch } from '../context/WatchContext';
 import { Review } from '../types';
 import { apiService } from '../services/api';
 import { useModalA11y } from '../hooks/useModalA11y';
+import { BillboardAd } from './BillboardAd';
 
 export const DetailModal: React.FC = () => {
   const { 
@@ -201,6 +202,11 @@ export const DetailModal: React.FC = () => {
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Dual Billboard Ads inside Movie Detail Modal */}
+        <div className="px-6 py-2 bg-surface-950/80 border-b border-white/5">
+          <BillboardAd fluid placementIndex={3} />
         </div>
 
         {/* Tab Navigation */}

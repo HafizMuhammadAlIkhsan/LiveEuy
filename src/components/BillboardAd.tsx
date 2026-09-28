@@ -5,9 +5,10 @@ import { AdCampaign } from '../types';
 interface BillboardAdProps {
   placementIndex?: number;
   className?: string;
+  fluid?: boolean;
 }
 
-export const BillboardAd: React.FC<BillboardAdProps> = ({ placementIndex = 0, className = '' }) => {
+export const BillboardAd: React.FC<BillboardAdProps> = ({ placementIndex = 0, className = '', fluid = false }) => {
   const { ads, recordAdImpression, recordAdClick } = useWatch();
 
   // Find active billboard feed ads synchronized with Admin Page
@@ -44,7 +45,7 @@ export const BillboardAd: React.FC<BillboardAdProps> = ({ placementIndex = 0, cl
   };
 
   return (
-    <div className={`cinema-layout-container my-2 sm:my-3 lg:my-3.5 ${className}`}>
+    <div className={`${fluid ? 'w-full' : 'cinema-layout-container'} my-2 sm:my-3 lg:my-3.5 ${className}`}>
       {/* Dual Horizontal Banners Side-by-Side: Slim rectangular height matching IDLIX */}
       <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:gap-4 items-center w-full">
         {/* Left Banner */}

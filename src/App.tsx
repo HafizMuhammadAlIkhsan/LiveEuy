@@ -12,6 +12,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { NetworkStatusToast } from './components/NetworkStatusToast';
 import { CatalogGridSkeleton } from './components/SkeletonLoader';
 import { useDocumentTitle } from './hooks/useDocumentTitle';
+import { AdminRouteGuard } from './components/AdminRouteGuard';
 
 // Lazy-loaded pages for code splitting & optimal bundle size
 const MoviesPage = React.lazy(() => import('./pages/MoviesPage').then(m => ({ default: m.MoviesPage })));
@@ -20,6 +21,9 @@ const TrendingPage = React.lazy(() => import('./pages/TrendingPage').then(m => (
 const WatchlistPage = React.lazy(() => import('./pages/WatchlistPage').then(m => ({ default: m.WatchlistPage })));
 const SearchPage = React.lazy(() => import('./pages/SearchPage').then(m => ({ default: m.SearchPage })));
 const AdminPage = React.lazy(() => import('./pages/AdminPage'));
+const NotFoundPage = React.lazy(() => import('./pages/ErrorPages').then(m => ({ default: m.NotFoundPage })));
+const ForbiddenPage = React.lazy(() => import('./pages/ErrorPages').then(m => ({ default: m.ForbiddenPage })));
+const ServerErrorPage = React.lazy(() => import('./pages/ErrorPages').then(m => ({ default: m.ServerErrorPage })));
 
 // Lazy-loaded heavy modals
 const VideoPlayerModal = React.lazy(() => import('./components/VideoPlayerModal').then(m => ({ default: m.VideoPlayerModal })));
@@ -72,8 +76,18 @@ const MainContent: React.FC = () => {
               <Route path="/trending" element={<TrendingPage />} />
               <Route path="/watchlist" element={<WatchlistPage />} />
               <Route path="/search" element={<SearchPage />} />
-              <Route path="/admin" element={<AdminPage />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
+              <Route 
+                path="/admin" 
+                element={
+                  <AdminRouteGuard>
+                    <AdminPage />
+                  </AdminRouteGuard>
+                } 
+              />
+              <Route path="/403" element={<ForbiddenPage />} />
+              <Route path="/500" element={<ServerErrorPage />} />
+              <Route path="/404" element={<NotFoundPage />} />
+              <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Suspense>
         </ErrorBoundary>

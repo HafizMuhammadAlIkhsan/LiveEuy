@@ -146,6 +146,20 @@ Di web berupa modal; di mobile direkomendasikan sebagai **halaman detail full-sc
 
 ---
 
+### 5.7 🛡️ Penanganan Status Akun (Suspended) & Force Remote Logout
+
+Untuk menjaga keselarasan dengan fitur keamanan di Web Admin Console:
+- **Akun Ditangguhkan (Suspended)**:
+  - Jika akun pengguna ditangguhkan oleh Administrator di CMS, respons API mengembalikan status HTTP 403 Forbidden dengan `error_code: "ACCOUNT_SUSPENDED"`.
+  - Aplikasi Flutter wajib menangkap error ini via `Dio/Http Interceptor`.
+  - Token lokal di `flutter_secure_storage` dihapus seketika, dan modal penangguhan akun ditampilkan kepada pengguna sebelum dialihkan ke halaman Login.
+- **Force Remote Logout**:
+  - Jika sesi dicabut paksa oleh Admin dari panel kendali, request API berikutnya mengembalikan HTTP 401 Unauthorized dengan `error_code: "SESSION_REVOKED"`.
+  - Aplikasi mobile segera membersihkan sesi lokal dan menampilkan SnackBar pemberitahuan lalu mengarahkan ke halaman login.
+- *Rujukan teknis lengkap dan cuplikan kode interceptor tersedia di:* [ADMIN_INTEGRATION_GUIDE.md](file:///C:/Users/user/liveeuy/ADMIN_INTEGRATION_GUIDE.md).
+
+---
+
 ## 6. Non-Functional Requirements
 
 | Kategori | Requirement |

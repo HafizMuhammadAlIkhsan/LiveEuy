@@ -75,6 +75,7 @@ export interface User {
   avatar: string;
   tier: 'Free Guest' | 'VIP Standard' | 'VIP Cinema Ultra';
   role?: 'admin' | 'user';
+  status?: 'active' | 'suspended';
   memberSince?: string;
   watchHours?: number;
   devices?: number;

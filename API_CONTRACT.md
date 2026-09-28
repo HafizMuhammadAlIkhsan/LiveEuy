@@ -311,6 +311,75 @@ Mengirimkan ulasan dan penilaian bintang baru dari penonton.
 
 ---
 
+### 5. 👑 Endpoint Khusus Admin CMS & Manajemen Katalog (`/api/v1/admin`)
+> 💡 *Panduan komprehensif implementasi Spring Boot 3, Go Auth service, dan Flutter Interceptor tersedia di dokumen terpisah: [ADMIN_INTEGRATION_GUIDE.md](file:///C:/Users/user/liveeuy/ADMIN_INTEGRATION_GUIDE.md).*
+
+#### a. `POST /api/v1/admin/media/batch-delete`
+Menghapus banyak tayangan sekaligus dari katalog media secara massal.
+* **Otorisasi**: `Authorization: Bearer <AdminAccessToken>` (Wajib Role: `admin`)
+* **Request Body**:
+```json
+{
+  "ids": ["film-101", "film-102"]
+}
+```
+* **Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Berhasil menghapus 2 tayangan dari katalog",
+  "data": {
+    "deletedCount": 2,
+    "deletedIds": ["film-101", "film-102"]
+  }
+}
+```
+
+#### b. `PATCH /api/v1/admin/media/batch-update`
+Memperbarui atribut (misalnya menandai trending massal) pada tayangan terpilih.
+* **Otorisasi**: `Authorization: Bearer <AdminAccessToken>` (Wajib Role: `admin`)
+* **Request Body**:
+```json
+{
+  "ids": ["film-101", "film-102"],
+  "updates": {
+    "isTrending": true
+  }
+}
+```
+
+#### c. `GET /api/v1/admin/catalog/export`
+Mengekspor seluruh katalog media aktif ke file cadangan JSON standar.
+* **Otorisasi**: `Authorization: Bearer <AdminAccessToken>`
+
+#### d. `POST /api/v1/admin/catalog/import`
+Memulihkan katalog media dari file cadangan JSON dengan mode `merge` atau `replace`.
+* **Otorisasi**: `Authorization: Bearer <AdminAccessToken>`
+* **Request Body**:
+```json
+{
+  "mode": "merge",
+  "media": [ ... ]
+}
+```
+
+#### e. `PATCH /api/v1/admin/users/{userId}/status`
+Menangguhkan (*suspend*) atau mengaktifkan kembali akun pengguna.
+* **Otorisasi**: `Authorization: Bearer <AdminAccessToken>`
+* **Request Body**:
+```json
+{
+  "status": "suspended",
+  "reason": "Pelanggaran hak cipta"
+}
+```
+
+#### f. `POST /api/v1/admin/users/{userId}/revoke-sessions`
+Mencabut paksa seluruh sesi login aktif pengguna dari jarak jauh (*Force Remote Logout*).
+* **Otorisasi**: `Authorization: Bearer <AdminAccessToken>`
+
+---
+
 ## 📱 Panduan Implementasi untuk Tim Mobile
 
 ### 1. Kotlin / Jetpack Compose (Android)
@@ -378,4 +447,23 @@ class MediaItem {
         ageRating = json['ageRating'],
         videoUrl = json['videoUrl'];
 }
+
+class User {
+  final String id;
+  final String name;
+  final String email;
+  final String tier;
+  final String role; // 'admin' | 'user'
+  final String status; // 'active' | 'suspended'
+
+  User.fromJson(Map<String, dynamic> json)
+      : id = json['id'],
+        name = json['name'],
+        email = json['email'],
+        tier = json['tier'] ?? 'VIP Standard',
+        role = json['role'] ?? 'user',
+        status = json['status'] ?? 'active';
+}
 ```
+
+> 📖 **Catatan Penting untuk Mobile**: Ketika menerima respons HTTP 403 dengan `error_code: "ACCOUNT_SUSPENDED"` atau HTTP 401 `SESSION_REVOKED` (akibat remote logout oleh admin), interceptor Dio/Http wajib menghapus token di secure storage dan mengarahkan pengguna kembali ke layar Login. Rincian implementasi lengkap tersedia di [ADMIN_INTEGRATION_GUIDE.md](file:///C:/Users/user/liveeuy/ADMIN_INTEGRATION_GUIDE.md).

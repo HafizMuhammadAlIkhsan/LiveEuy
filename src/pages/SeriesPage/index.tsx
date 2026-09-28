@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useWatch } from '../../context/WatchContext';
 import { MediaCard } from '../../components/MediaCard';
+import { BillboardAd } from '../../components/BillboardAd';
 import { GENRES } from '../../data/mockData';
 import { MediaItem, Season, Episode } from '../../types';
 import { 
@@ -299,6 +300,9 @@ export const SeriesPage: React.FC = () => {
           </div>
         </section>
       )}
+
+      {/* Dual Billboard Ads under Spotlight Series */}
+      <BillboardAd fluid placementIndex={1} />
 
       {/* ========================================================
           2. WEEKLY EPISODE RELEASE SCHEDULE
@@ -871,6 +875,9 @@ export const SeriesPage: React.FC = () => {
           </button>
         </div>
       )}
+
+      {/* Dual Billboard Ads under Series Catalog */}
+      <BillboardAd fluid placementIndex={2} />
 
     </div>
   );

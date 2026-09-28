@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useWatch } from '../../context/WatchContext';
 import { MediaCard } from '../../components/MediaCard';
+import { BillboardAd } from '../../components/BillboardAd';
 import { 
   Bookmark, 
   Play, 
@@ -226,6 +227,9 @@ export const WatchlistPage: React.FC = () => {
         })}
       </div>
 
+      {/* Dual Billboard Ads under Tabs */}
+      <BillboardAd fluid placementIndex={1} />
+
       {/* ========================================================
           3. CONTINUE WATCHING TAB VIEW
           ======================================================== */}
@@ -342,6 +346,9 @@ export const WatchlistPage: React.FC = () => {
           )}
         </section>
       )}
+
+      {/* Dual Billboard Ads under Watchlist */}
+      <BillboardAd fluid placementIndex={2} />
 
       {/* ========================================================
           5. SMART RECOMMENDATIONS FALLBACK CAROUSEL

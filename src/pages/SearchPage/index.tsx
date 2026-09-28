@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useWatch } from '../../context/WatchContext';
 import { MediaCard } from '../../components/MediaCard';
+import { BillboardAd } from '../../components/BillboardAd';
 import { GENRES } from '../../data/mockData';
 import { 
   Search, 
@@ -274,6 +275,9 @@ export const SearchPage: React.FC = () => {
         </div>
       </section>
 
+      {/* Dual Billboard Ads above Search Results */}
+      <BillboardAd fluid placementIndex={1} />
+
       {/* ========================================================
           4. RESULTS GRID
           ======================================================== */}
@@ -321,6 +325,9 @@ export const SearchPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Dual Billboard Ads below Search Catalog */}
+      <BillboardAd fluid placementIndex={2} />
 
     </div>
   );

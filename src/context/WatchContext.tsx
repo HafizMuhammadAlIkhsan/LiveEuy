@@ -36,6 +36,9 @@ interface WatchContextType {
   addMedia: (item: MediaItem) => void;
   updateMedia: (id: string, updated: Partial<MediaItem>) => void;
   deleteMedia: (id: string) => void;
+  batchDeleteMedia: (ids: string[]) => void;
+  batchUpdateMedia: (ids: string[], updated: Partial<MediaItem>) => void;
+  importMediaCatalog: (items: MediaItem[], mode: 'replace' | 'merge') => void;
   resetMediaToDefault: () => void;
   // Broadcast Announcement Banner
   broadcastAnnouncement: BroadcastAnnouncement;
@@ -386,6 +389,56 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     apiService.deleteMedia(id).catch(err => {
       console.warn('Sync backend database error on deleteMedia:', err);
     });
+  };
+
+  const batchDeleteMedia = (ids: string[]) => {
+    if (!ids || ids.length === 0) return;
+    const idSet = new Set(ids);
+    setMediaList(prev => prev.filter(m => !idSet.has(m.id)));
+    addAuditLog('Hapus Massal Tayangan', 'media', `Menghapus ${ids.length} tayangan secara massal dari katalog.`);
+    ids.forEach(id => {
+      apiService.deleteMedia(id).catch(err => {
+        console.warn('Sync backend database error on batchDeleteMedia:', err);
+      });
+    });
+  };
+
+  const batchUpdateMedia = (ids: string[], updated: Partial<MediaItem>) => {
+    if (!ids || ids.length === 0) return;
+    const idSet = new Set(ids);
+    setMediaList(prev => prev.map(m => idSet.has(m.id) ? { ...m, ...updated } : m));
+    addAuditLog('Perbarui Massal Tayangan', 'media', `Memperbarui status pada ${ids.length} tayangan terpilih.`);
+    ids.forEach(id => {
+      apiService.updateMedia(id, updated).catch(err => {
+        console.warn('Sync backend database error on batchUpdateMedia:', err);
+      });
+    });
+  };
+
+  const importMediaCatalog = (items: MediaItem[], mode: 'replace' | 'merge') => {
+    if (!items || items.length === 0) return;
+    if (mode === 'replace') {
+      setMediaList(items);
+      try {
+        localStorage.setItem('liveeuy_custom_media', JSON.stringify(items));
+      } catch (e) {
+        console.error(e);
+      }
+      addAuditLog('Pulihkan Katalog (Overwrite)', 'media', `Mengganti seluruh katalog dengan cadangan (${items.length} tayangan).`);
+    } else {
+      setMediaList(prev => {
+        const itemMap = new Map(prev.map(item => [item.id, item]));
+        items.forEach(item => itemMap.set(item.id, item));
+        const merged = Array.from(itemMap.values());
+        try {
+          localStorage.setItem('liveeuy_custom_media', JSON.stringify(merged));
+        } catch (e) {
+          console.error(e);
+        }
+        return merged;
+      });
+      addAuditLog('Gabungkan Katalog (Merge)', 'media', `Mengimpor dan menggabungkan ${items.length} tayangan ke dalam katalog aktif.`);
+    }
   };
 
   const resetMediaToDefault = () => {
@@ -944,6 +997,9 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         addMedia,
         updateMedia,
         deleteMedia,
+        batchDeleteMedia,
+        batchUpdateMedia,
+        importMediaCatalog,
         resetMediaToDefault,
         broadcastAnnouncement,
         updateBroadcastAnnouncement,

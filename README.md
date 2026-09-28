@@ -64,6 +64,14 @@
   - Pengaktifan fitur *Auto Skip Intro* dan pembersihan cache aplikasi.
   - Manajemen sesi login aman dan logout dari semua perangkat.
 
+### 7. 🛡️ Admin Studio CMS & Pusat Kontrol Keamanan (RBAC, Bulk Operations & Stream Inspector)
+* **Role-Based Access Control (RBAC)**: Proteksi rute `/admin` via `<AdminRouteGuard />` yang memblokir akses tamu dan member biasa dengan tampilan 403 Forbidden sinematik.
+* **User Security Management Suite**: Kontrol akun pengguna lengkap — penangguhan akun (*suspend/activate*), pemutusan sesi jarak jauh (*force remote logout*), pencarian, dan audit log otomatis.
+* **Stream URL Health Inspector**: Uji kelayakan tautan video real-time (`.m3u8` HLS / `.mp4`) langsung dari modal CMS lengkap dengan *in-modal mini player tester*.
+* **Media Bulk Actions Suite**: Multi-select tayangan dengan aksi massal (*batch delete*, *batch set trending*, ekspor parsial).
+* **Catalog Backup & Restore (JSON)**: Cadangkan seluruh database katalog ke file JSON satu klik dan pulihkan dengan opsi *Merge* atau *Overwrite*.
+* 📖 **Panduan Integrasi Tim Backend & Mobile**: Tersedia di [`ADMIN_INTEGRATION_GUIDE.md`](./ADMIN_INTEGRATION_GUIDE.md).
+
 ---
 
 ## 🛠️ Arsitektur Teknologi
