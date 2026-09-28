@@ -24,25 +24,47 @@ func NewRouter(cfg *config.Config, userRepo repository.UserRepository, jwtMgr do
 	authHandler := h.NewAuthHandler(authSvc)
 	oauthHandler := h.NewOAuthHandler(oauthSvc)
 
+	// API v1 Auth Group (Standard Contract)
+	authV1 := r.Group("/api/v1/auth")
+	{
+		// Public Endpoints
+		authV1.POST("/register", authHandler.Register)
+		authV1.POST("/login", authHandler.Login)
+		authV1.POST("/demo-login", authHandler.DemoLogin)
+		authV1.POST("/refresh", authHandler.RefreshToken)
+		authV1.POST("/logout", authHandler.Logout)
+		authV1.POST("/forgot-password", authHandler.ForgotPassword)
+		authV1.POST("/reset-password", authHandler.ResetPassword)
+		authV1.GET("/google/login", oauthHandler.GoogleLogin)
+		authV1.GET("/google/callback", oauthHandler.GoogleCallback)
+
+		// Protected Endpoints
+		protectedAuth := authV1.Group("")
+		protectedAuth.Use(middleware.AuthRequired(jwtMgr))
+		{
+			protectedAuth.GET("/me", authHandler.Me)
+			protectedAuth.PUT("/profile", authHandler.UpdateProfile)
+			protectedAuth.PUT("/change-password", authHandler.ChangePassword)
+			protectedAuth.POST("/logout-all", authHandler.LogoutAll)
+		}
+	}
+
+	// Legacy routes for backward compatibility
 	r.POST("/register", authHandler.Register)
 	r.POST("/login", authHandler.Login)
 	r.POST("/refresh-token", authHandler.RefreshToken)
+	r.POST("/logout", authHandler.Logout)
 
-	//
-	api := r.Group("/api/v1/auth")
+	legacyAPI := r.Group("/api")
+	legacyAPI.Use(middleware.AuthRequired(jwtMgr))
 	{
-		api.GET("/google/login", oauthHandler.GoogleLogin)
-		api.GET("/google/callback", oauthHandler.GoogleCallback)
+		legacyAPI.GET("/me", authHandler.Me)
+		legacyAPI.PUT("/me/name", authHandler.UpdateName)
+		legacyAPI.PUT("/me/password", authHandler.UpdatePassword)
+		legacyAPI.POST("/logout-all", authHandler.LogoutAll)
+		legacyAPI.GET("/ping", authHandler.Ping)
+		legacyAPI.GET("/health", authHandler.HealthCheck)
 	}
-
-	auth := r.Group("/api")
-	auth.Use(middleware.AuthRequired(jwtMgr))
-	auth.GET("/me", authHandler.Me)
-	auth.GET("/ping", authHandler.Ping)
-	auth.GET("/health", authHandler.HealthCheck)
-	auth.PUT("/me/password", authHandler.UpdatePassword)
-	auth.PUT("/me/name", authHandler.UpdateName)
 
 	return r
 }
-

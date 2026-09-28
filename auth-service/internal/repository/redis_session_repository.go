@@ -82,7 +82,12 @@ func (r *RedisSessionRepository) Revoke(ctx context.Context, tokenStr string) er
 		return nil
 	}
 
-	return r.rdb.Set(ctx, redisRefreshTokenKey(tokenStr), data, ttl).Err()
+	pipe := r.rdb.TxPipeline()
+	pipe.Set(ctx, redisRefreshTokenKey(tokenStr), data, ttl)
+	pipe.SRem(ctx, redisUserTokensKey(session.UserID), tokenStr)
+
+	_, err = pipe.Exec(ctx)
+	return err
 }
 
 func (r *RedisSessionRepository) RevokeAllUserTokens(ctx context.Context, userID string) error {

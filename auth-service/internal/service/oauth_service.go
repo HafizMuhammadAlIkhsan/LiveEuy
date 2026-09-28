@@ -50,7 +50,7 @@ func (s *OAuthService) HandleGoogleCallback(ctx context.Context, code string) (s
 		user = newUser
 	}
 
-	accessToken, err := s.jwtUtil.GenerateAccessToken(user.ID)
+	accessToken, err := s.jwtUtil.GenerateAccessToken(user)
 	if err != nil {
 		return "", "", fmt.Errorf("gagal generate JWT token: %w", err)
 	}

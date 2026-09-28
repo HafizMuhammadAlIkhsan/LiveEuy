@@ -58,6 +58,34 @@ func SetupMigrations(migrator *Migrator) {
 			return db.Exec("ALTER TABLE users DROP COLUMN IF EXISTS phone").Error
 		},
 	)
+
+	// Migration 004 - Add contract fields (role, tier, avatar, provider, watch_hours, devices)
+	migrator.RegisterMigration(
+		"004",
+		"add_contract_fields_to_users",
+		func(db *gorm.DB) error {
+			sql := `
+				ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50) NOT NULL DEFAULT 'user';
+				ALTER TABLE users ADD COLUMN IF NOT EXISTS tier VARCHAR(50) NOT NULL DEFAULT 'VIP Standard';
+				ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar VARCHAR(500) DEFAULT '';
+				ALTER TABLE users ADD COLUMN IF NOT EXISTS provider VARCHAR(50) DEFAULT 'local';
+				ALTER TABLE users ADD COLUMN IF NOT EXISTS watch_hours DOUBLE PRECISION DEFAULT 0.0;
+				ALTER TABLE users ADD COLUMN IF NOT EXISTS devices INT DEFAULT 2;
+			`
+			return db.Exec(sql).Error
+		},
+		func(db *gorm.DB) error {
+			sql := `
+				ALTER TABLE users DROP COLUMN IF EXISTS role;
+				ALTER TABLE users DROP COLUMN IF EXISTS tier;
+				ALTER TABLE users DROP COLUMN IF EXISTS avatar;
+				ALTER TABLE users DROP COLUMN IF EXISTS provider;
+				ALTER TABLE users DROP COLUMN IF EXISTS watch_hours;
+				ALTER TABLE users DROP COLUMN IF EXISTS devices;
+			`
+			return db.Exec(sql).Error
+		},
+	)
 }
 
 // RunMigrations executes all pending migrations

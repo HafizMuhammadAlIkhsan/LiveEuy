@@ -1,21 +1,53 @@
 basePath: /
 definitions:
-  handler.AuthResponseData:
+  handler.APIErrorResponse:
     properties:
-      access_token:
-        example: eyJhbGciOi...
+      code:
+        example: AUTH_401_01
+        type: string
+      details:
+        items:
+          $ref: '#/definitions/handler.ErrorDetail'
+        type: array
+      error:
+        example: UNAUTHORIZED
         type: string
       message:
-        example: operation successful
+        example: Email atau kata sandi tidak cocok.
         type: string
-      refresh_token:
-        example: d0a5f9...
+      success:
+        example: false
+        type: boolean
+      timestamp:
+        example: "2026-09-25T09:30:00Z"
+        type: string
+    type: object
+  handler.APIResponse:
+    properties:
+      data: {}
+      message:
+        example: Operasi berhasil
         type: string
       success:
         example: true
         type: boolean
+    type: object
+  handler.AuthContractData:
+    properties:
+      accessToken:
+        example: eyJhbGciOi...
+        type: string
+      expiresIn:
+        example: 900
+        type: integer
+      refreshToken:
+        example: rfk-94a28f73...
+        type: string
+      tokenType:
+        example: Bearer
+        type: string
       user:
-        $ref: '#/definitions/handler.UserResponse'
+        $ref: '#/definitions/handler.UserContractResponse'
     type: object
   handler.BaseResponseData:
     properties:
@@ -32,6 +64,30 @@ definitions:
         example: true
         type: boolean
     type: object
+  handler.ErrorDetail:
+    properties:
+      field:
+        example: password
+        type: string
+      message:
+        example: Kata sandi salah
+        type: string
+    type: object
+  handler.RefreshContractData:
+    properties:
+      accessToken:
+        example: eyJhbGciOi...
+        type: string
+      expiresIn:
+        example: 900
+        type: integer
+      refreshToken:
+        example: rfk-new-rotated...
+        type: string
+      tokenType:
+        example: Bearer
+        type: string
+    type: object
   handler.RefreshTokenResponseData:
     properties:
       access_token:
@@ -44,78 +100,132 @@ definitions:
         example: true
         type: boolean
     type: object
-  handler.UserProfileResponseData:
+  handler.UserContractResponse:
     properties:
-      success:
-        example: true
-        type: boolean
-      user:
-        $ref: '#/definitions/handler.UserResponse'
-    type: object
-  handler.UserResponse:
-    properties:
-      created_at:
+      avatar:
         type: string
+      createdAt:
+        type: string
+      devices:
+        type: integer
       email:
+        type: string
+      id:
+        type: string
+      memberSince:
         type: string
       name:
         type: string
-      picture:
+      role:
         type: string
+      tier:
+        type: string
+      watchHours:
+        type: number
+    type: object
+  handler.changePasswordReq:
+    properties:
+      currentPassword:
+        example: LiveEuy#2026
+        type: string
+      newPassword:
+        example: LiveEuyUltra#2027
+        minLength: 6
+        type: string
+    required:
+    - currentPassword
+    - newPassword
+    type: object
+  handler.demoLoginReq:
+    properties:
+      persona:
+        example: hafiz
+        type: string
+    required:
+    - persona
+    type: object
+  handler.forgotPasswordReq:
+    properties:
+      email:
+        example: arga@example.com
+        type: string
+    required:
+    - email
     type: object
   handler.loginReq:
     properties:
       email:
-        example: john@example.com
+        example: hafiz@liveeuy.id
         type: string
       password:
-        example: secret123
+        example: LiveEuy#2026
         type: string
+      rememberMe:
+        example: true
+        type: boolean
     required:
     - email
     - password
     type: object
+  handler.logoutReq:
+    properties:
+      refresh_token:
+        example: rfk-94a28f73b610c41d99e52e
+        type: string
+      refreshToken:
+        example: rfk-94a28f73b610c41d99e52e
+        type: string
+    type: object
+  handler.profileUpdateReq:
+    properties:
+      avatar:
+        example: https://images.unsplash.com/photo-custom.jpg
+        type: string
+      name:
+        example: Hafiz Muhammad Al Ikhsan
+        type: string
+    type: object
   handler.refreshTokenReq:
     properties:
       refresh_token:
-        example: d0a5f9...
+        example: rfk-94a28f73b610c41d99e52e
         type: string
-    required:
-    - refresh_token
+      refreshToken:
+        example: rfk-94a28f73b610c41d99e52e
+        type: string
     type: object
   handler.registerReq:
     properties:
       email:
-        example: john@example.com
+        example: arga@example.com
         type: string
       name:
-        example: John Doe
+        example: Arga Pratama
         type: string
       password:
-        example: secret123
+        example: PasswordSuper#2026
         minLength: 6
+        type: string
+      tier:
+        example: VIP Standard
         type: string
     required:
     - email
     - name
     - password
     type: object
-  handler.updateNameReq:
+  handler.resetPasswordReq:
     properties:
-      new_name:
-        example: John Smith
-        type: string
-    required:
-    - new_name
-    type: object
-  handler.updatePasswordReq:
-    properties:
-      new_password:
-        example: newsecret123
+      newPassword:
+        example: NewSecurePassword#2026
         minLength: 6
         type: string
+      token:
+        example: rst-tok-84729104857201
+        type: string
     required:
-    - new_password
+    - newPassword
+    - token
     type: object
 host: localhost:8080
 info:
@@ -140,110 +250,9 @@ paths:
           description: Healthy
           schema:
             $ref: '#/definitions/handler.BaseResponseData'
-      security:
-      - BearerAuth: []
       summary: Health check
       tags:
       - System
-  /api/me:
-    get:
-      description: Retrieve current authenticated user profile
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: User Profile
-          schema:
-            $ref: '#/definitions/handler.UserProfileResponseData'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/handler.BaseResponseData'
-        "404":
-          description: User not found
-          schema:
-            $ref: '#/definitions/handler.BaseResponseData'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/handler.BaseResponseData'
-      security:
-      - BearerAuth: []
-      summary: Get user profile
-      tags:
-      - User
-  /api/me/name:
-    put:
-      consumes:
-      - application/json
-      description: Update the authenticated user's name
-      parameters:
-      - description: Update Name Request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/handler.updateNameReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Name updated successfully
-          schema:
-            $ref: '#/definitions/handler.BaseResponseData'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/handler.BaseResponseData'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/handler.BaseResponseData'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/handler.BaseResponseData'
-      security:
-      - BearerAuth: []
-      summary: Update user name
-      tags:
-      - User
-  /api/me/password:
-    put:
-      consumes:
-      - application/json
-      description: Update the authenticated user's password
-      parameters:
-      - description: Update Password Request
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/handler.updatePasswordReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Password updated successfully
-          schema:
-            $ref: '#/definitions/handler.BaseResponseData'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/handler.BaseResponseData'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/handler.BaseResponseData'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/handler.BaseResponseData'
-      security:
-      - BearerAuth: []
-      summary: Update user password
-      tags:
-      - User
   /api/ping:
     get:
       description: Ping test endpoint
@@ -254,11 +263,99 @@ paths:
           description: Pong
           schema:
             $ref: '#/definitions/handler.BaseResponseData'
-      security:
-      - BearerAuth: []
       summary: Ping check
       tags:
       - System
+  /api/v1/auth/change-password:
+    put:
+      consumes:
+      - application/json
+      description: Change password with validation against current password
+      parameters:
+      - description: Change Password Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.changePasswordReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Kata sandi berhasil diubah
+          schema:
+            $ref: '#/definitions/handler.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.APIErrorResponse'
+        "401":
+          description: Kata sandi saat ini salah
+          schema:
+            $ref: '#/definitions/handler.APIErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Change user password
+      tags:
+      - Authentication
+  /api/v1/auth/demo-login:
+    post:
+      consumes:
+      - application/json
+      description: Fast login for development, testing, and UI persona testing (hafiz
+        / budi)
+      parameters:
+      - description: Demo Login Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.demoLoginReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Berhasil masuk via Demo Account
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/handler.AuthContractData'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.APIErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/handler.APIErrorResponse'
+      summary: Demo persona login
+      tags:
+      - Authentication
+  /api/v1/auth/forgot-password:
+    post:
+      consumes:
+      - application/json
+      description: Request password reset email
+      parameters:
+      - description: Forgot Password Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.forgotPasswordReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Email pemulihan terkirim
+          schema:
+            $ref: '#/definitions/handler.APIResponse'
+      summary: Forgot password
+      tags:
+      - Authentication
   /api/v1/auth/google/callback:
     get:
       description: Handles OAuth callback from Google, authenticates the user and
@@ -311,7 +408,7 @@ paths:
       summary: Initiate Google OAuth login
       tags:
       - OAuth
-  /login:
+  /api/v1/auth/login:
     post:
       consumes:
       - application/json
@@ -327,59 +424,170 @@ paths:
       - application/json
       responses:
         "200":
-          description: Logged in successfully
+          description: Berhasil masuk ke LiveEuy
           schema:
-            $ref: '#/definitions/handler.AuthResponseData'
+            allOf:
+            - $ref: '#/definitions/handler.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/handler.AuthContractData'
+              type: object
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/handler.BaseResponseData'
+            $ref: '#/definitions/handler.APIErrorResponse'
         "401":
-          description: Invalid credentials
+          description: Email atau kata sandi tidak cocok
           schema:
-            $ref: '#/definitions/handler.BaseResponseData'
+            $ref: '#/definitions/handler.APIErrorResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/handler.BaseResponseData'
+            $ref: '#/definitions/handler.APIErrorResponse'
       summary: User login
       tags:
       - Authentication
-  /refresh-token:
+  /api/v1/auth/logout:
     post:
       consumes:
       - application/json
-      description: Rotate refresh token and generate new access token
+      description: Invalidate the specified refresh token session and clear auth cookie
       parameters:
-      - description: Refresh Token Request
+      - description: Logout Request (Optional if using Cookie)
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/handler.logoutReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Sesi berhasil diakhiri
+          schema:
+            $ref: '#/definitions/handler.APIResponse'
+      summary: User logout (single device)
+      tags:
+      - Authentication
+  /api/v1/auth/logout-all:
+    post:
+      description: Invalidate all active refresh tokens for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Sesi di seluruh perangkat berhasil diakhiri
+          schema:
+            $ref: '#/definitions/handler.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handler.APIErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Logout all devices
+      tags:
+      - Authentication
+  /api/v1/auth/me:
+    get:
+      description: Retrieve current authenticated user profile
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Profil berhasil dimuat
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/handler.UserContractResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handler.APIErrorResponse'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/handler.APIErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user profile
+      tags:
+      - Authentication
+  /api/v1/auth/profile:
+    put:
+      consumes:
+      - application/json
+      description: Update authenticated user's name and avatar
+      parameters:
+      - description: Profile Update Request
         in: body
         name: request
         required: true
+        schema:
+          $ref: '#/definitions/handler.profileUpdateReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Profil berhasil diperbarui
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/handler.UserContractResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.APIErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handler.APIErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update user profile
+      tags:
+      - Authentication
+  /api/v1/auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Rotate refresh token and generate new access token (from Cookie
+        or JSON body)
+      parameters:
+      - description: Refresh Token Request (Optional if using Cookie)
+        in: body
+        name: request
         schema:
           $ref: '#/definitions/handler.refreshTokenReq'
       produces:
       - application/json
       responses:
         "200":
-          description: Token refreshed successfully
+          description: Token akses berhasil diperbarui
           schema:
-            $ref: '#/definitions/handler.RefreshTokenResponseData'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/handler.BaseResponseData'
+            allOf:
+            - $ref: '#/definitions/handler.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/handler.RefreshContractData'
+              type: object
         "401":
-          description: Invalid or expired token
+          description: Refresh token tidak valid atau telah dicabut
           schema:
-            $ref: '#/definitions/handler.BaseResponseData'
+            $ref: '#/definitions/handler.APIErrorResponse'
       summary: Refresh access token
       tags:
       - Authentication
-  /register:
+  /api/v1/auth/register:
     post:
       consumes:
       - application/json
-      description: Register a new user with name, email, and password
+      description: Register a new user with name, email, password, and tier
       parameters:
       - description: Register Request
         in: body
@@ -391,22 +599,49 @@ paths:
       - application/json
       responses:
         "201":
-          description: Registered successfully
+          description: Pendaftaran akun berhasil
           schema:
-            $ref: '#/definitions/handler.AuthResponseData'
+            allOf:
+            - $ref: '#/definitions/handler.APIResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/handler.AuthContractData'
+              type: object
         "400":
           description: Bad Request / Validation Error
           schema:
-            $ref: '#/definitions/handler.BaseResponseData'
+            $ref: '#/definitions/handler.APIErrorResponse'
         "409":
-          description: User already exists
+          description: Email sudah terdaftar di sistem
           schema:
-            $ref: '#/definitions/handler.BaseResponseData'
+            $ref: '#/definitions/handler.APIErrorResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: '#/definitions/handler.BaseResponseData'
+            $ref: '#/definitions/handler.APIErrorResponse'
       summary: Register a new user
+      tags:
+      - Authentication
+  /api/v1/auth/reset-password:
+    post:
+      consumes:
+      - application/json
+      description: Reset password using received token
+      parameters:
+      - description: Reset Password Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.resetPasswordReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Kata sandi berhasil direset
+          schema:
+            $ref: '#/definitions/handler.APIResponse'
+      summary: Reset password
       tags:
       - Authentication
 securityDefinitions:
