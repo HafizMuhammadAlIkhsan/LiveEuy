@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/DXR3IN/auth-service/internal/domain"
@@ -28,6 +29,10 @@ func redisUserTokensKey(userID string) string {
 }
 
 func (r *RedisSessionRepository) Save(ctx context.Context, session *domain.RefreshTokenSession) error {
+	if session.CreatedAt.IsZero() {
+		session.CreatedAt = time.Now()
+	}
+
 	data, err := json.Marshal(session)
 	if err != nil {
 		return err
@@ -121,6 +126,61 @@ func (r *RedisSessionRepository) RevokeAllUserTokens(ctx context.Context, userID
 	_, err = pipe.Exec(ctx)
 	if err != nil {
 		return fmt.Errorf("gagal mengeksekusi pencabutan massal: %w", err)
+	}
+
+	return nil
+}
+
+func (r *RedisSessionRepository) GetActiveSessions(ctx context.Context, userID string) ([]*domain.RefreshTokenSession, error) {
+	userKey := redisUserTokensKey(userID)
+	tokens, err := r.rdb.SMembers(ctx, userKey).Result()
+	if err != nil {
+		return nil, fmt.Errorf("gagal mengambil daftar token aktif: %w", err)
+	}
+
+	var activeSessions []*domain.RefreshTokenSession
+	now := time.Now()
+
+	for _, tokenStr := range tokens {
+		session, err := r.Get(ctx, tokenStr)
+		if err != nil || session == nil || session.IsRevoked || now.After(session.ExpiresAt) {
+			// Bersihkan token basi / revoked dari set user
+			_ = r.rdb.SRem(ctx, userKey, tokenStr).Err()
+			continue
+		}
+		activeSessions = append(activeSessions, session)
+	}
+
+	// Sortir sesi dari yang paling lama dibuat (FIFO)
+	sort.Slice(activeSessions, func(i, j int) bool {
+		if activeSessions[i].CreatedAt.IsZero() {
+			return true
+		}
+		if activeSessions[j].CreatedAt.IsZero() {
+			return false
+		}
+		return activeSessions[i].CreatedAt.Before(activeSessions[j].CreatedAt)
+	})
+
+	return activeSessions, nil
+}
+
+func (r *RedisSessionRepository) EnforceMaxDevices(ctx context.Context, userID string, maxDevices int) error {
+	if maxDevices <= 0 {
+		return nil
+	}
+
+	activeSessions, err := r.GetActiveSessions(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	// Jika kuota aktif sudah mencapai / melebihi maxDevices, evict sesi tertua (FIFO)
+	if len(activeSessions) >= maxDevices {
+		numToEvict := len(activeSessions) - maxDevices + 1
+		for i := 0; i < numToEvict && i < len(activeSessions); i++ {
+			_ = r.Revoke(ctx, activeSessions[i].Token)
+		}
 	}
 
 	return nil

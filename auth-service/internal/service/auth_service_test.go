@@ -98,6 +98,8 @@ type mockSessionRepository struct {
 	getFunc                 func(ctx context.Context, token string) (*domain.RefreshTokenSession, error)
 	revokeFunc              func(ctx context.Context, token string) error
 	revokeAllUserTokensFunc func(ctx context.Context, userID string) error
+	getActiveSessionsFunc   func(ctx context.Context, userID string) ([]*domain.RefreshTokenSession, error)
+	enforceMaxDevicesFunc   func(ctx context.Context, userID string, maxDevices int) error
 }
 
 func (m *mockSessionRepository) Save(ctx context.Context, session *domain.RefreshTokenSession) error {
@@ -124,6 +126,20 @@ func (m *mockSessionRepository) Revoke(ctx context.Context, token string) error 
 func (m *mockSessionRepository) RevokeAllUserTokens(ctx context.Context, userID string) error {
 	if m.revokeAllUserTokensFunc != nil {
 		return m.revokeAllUserTokensFunc(ctx, userID)
+	}
+	return nil
+}
+
+func (m *mockSessionRepository) GetActiveSessions(ctx context.Context, userID string) ([]*domain.RefreshTokenSession, error) {
+	if m.getActiveSessionsFunc != nil {
+		return m.getActiveSessionsFunc(ctx, userID)
+	}
+	return nil, nil
+}
+
+func (m *mockSessionRepository) EnforceMaxDevices(ctx context.Context, userID string, maxDevices int) error {
+	if m.enforceMaxDevicesFunc != nil {
+		return m.enforceMaxDevicesFunc(ctx, userID, maxDevices)
 	}
 	return nil
 }
@@ -180,10 +196,19 @@ func TestAuthService_RegisterAndLogin(t *testing.T) {
 	ctx := context.Background()
 	hashedPwd, _ := utils.HashPassword("secret123")
 
-	t.Run("success register", func(t *testing.T) {
+	t.Run("success register with device enforcement", func(t *testing.T) {
+		enforced := false
 		userRepo := &mockUserRepository{}
 		jwtMgr := &mockTokenManager{}
-		sessionRepo := &mockSessionRepository{}
+		sessionRepo := &mockSessionRepository{
+			enforceMaxDevicesFunc: func(ctx context.Context, userID string, maxDevices int) error {
+				enforced = true
+				if maxDevices != 4 {
+					t.Fatalf("expected maxDevices 4 for VIP Cinema Ultra, got %d", maxDevices)
+				}
+				return nil
+			},
+		}
 
 		svc := NewAuthService(userRepo, jwtMgr, sessionRepo)
 		res, err := svc.Register(ctx, "John", "john@example.com", "secret123", "VIP Cinema Ultra", "agent")
@@ -193,9 +218,13 @@ func TestAuthService_RegisterAndLogin(t *testing.T) {
 		if res.User.Tier != "VIP Cinema Ultra" {
 			t.Fatalf("expected tier VIP Cinema Ultra, got %s", res.User.Tier)
 		}
+		if !enforced {
+			t.Fatalf("expected EnforceMaxDevices to be called")
+		}
 	})
 
-	t.Run("success login", func(t *testing.T) {
+	t.Run("success login with FIFO eviction", func(t *testing.T) {
+		enforced := false
 		userRepo := &mockUserRepository{
 			findByEmailFunc: func(email string) (*domain.User, error) {
 				return &domain.User{
@@ -205,11 +234,20 @@ func TestAuthService_RegisterAndLogin(t *testing.T) {
 					Password: hashedPwd,
 					Role:     "user",
 					Tier:     "VIP Standard",
+					Devices:  2,
 				}, nil
 			},
 		}
 		jwtMgr := &mockTokenManager{}
-		sessionRepo := &mockSessionRepository{}
+		sessionRepo := &mockSessionRepository{
+			enforceMaxDevicesFunc: func(ctx context.Context, userID string, maxDevices int) error {
+				enforced = true
+				if maxDevices != 2 {
+					t.Fatalf("expected maxDevices 2, got %d", maxDevices)
+				}
+				return nil
+			},
+		}
 
 		svc := NewAuthService(userRepo, jwtMgr, sessionRepo)
 		res, err := svc.Login(ctx, "john@example.com", "secret123", "agent")
@@ -218,6 +256,9 @@ func TestAuthService_RegisterAndLogin(t *testing.T) {
 		}
 		if res.AccessToken == "" || res.RefreshToken == "" {
 			t.Fatalf("expected tokens returned")
+		}
+		if !enforced {
+			t.Fatalf("expected EnforceMaxDevices to be called during login")
 		}
 	})
 }

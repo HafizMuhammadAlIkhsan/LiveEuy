@@ -50,11 +50,13 @@ func generateRefreshToken(userID string) (*models.RefreshTokenSession, error) {
 	}
 
 	tokenStr := hex.EncodeToString(b)
+	now := time.Now()
 
 	session := &models.RefreshTokenSession{
 		Token:     tokenStr,
 		UserID:    userID,
-		ExpiresAt: time.Now().Add(refreshTokenDuration),
+		CreatedAt: now,
+		ExpiresAt: now.Add(refreshTokenDuration),
 		IsRevoked: false,
 	}
 
@@ -79,6 +81,13 @@ func (s *AuthService) Register(ctx context.Context, name, email, password, tier 
 		tier = "VIP Standard"
 	}
 
+	devices := 2
+	if tier == "Free Guest" {
+		devices = 1
+	} else if tier == "VIP Cinema Ultra" {
+		devices = 4
+	}
+
 	newUser := &models.User{
 		Name:       name,
 		Email:      email,
@@ -88,7 +97,7 @@ func (s *AuthService) Register(ctx context.Context, name, email, password, tier 
 		Tier:       tier,
 		Provider:   "local",
 		WatchHours: 0.0,
-		Devices:    2,
+		Devices:    devices,
 	}
 	if err := s.repo.Create(newUser); err != nil {
 		return nil, err
@@ -103,6 +112,8 @@ func (s *AuthService) Register(ctx context.Context, name, email, password, tier 
 		return nil, err
 	}
 	refreshToken.DeviceName = deviceName
+
+	_ = s.sessionRepo.EnforceMaxDevices(ctx, newUser.ID, devices)
 
 	if err := s.sessionRepo.Save(ctx, refreshToken); err != nil {
 		return nil, err
@@ -134,6 +145,12 @@ func (s *AuthService) Login(ctx context.Context, email, password string, deviceN
 		return nil, err
 	}
 	refreshToken.DeviceName = deviceName
+
+	maxDevices := u.Devices
+	if maxDevices <= 0 {
+		maxDevices = 2
+	}
+	_ = s.sessionRepo.EnforceMaxDevices(ctx, u.ID, maxDevices)
 
 	if err := s.sessionRepo.Save(ctx, refreshToken); err != nil {
 		return nil, err
@@ -212,6 +229,8 @@ func (s *AuthService) DemoLogin(ctx context.Context, persona string, deviceName 
 		return nil, err
 	}
 	refreshToken.DeviceName = deviceName
+
+	_ = s.sessionRepo.EnforceMaxDevices(ctx, user.ID, devices)
 
 	if err := s.sessionRepo.Save(ctx, refreshToken); err != nil {
 		return nil, err
