@@ -19,15 +19,22 @@ func NewRouter(cfg *config.Config, userRepo repository.UserRepository, jwtMgr do
 	// Swagger documentation route
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
+	// Standard OIDC / OAuth2 JWKS Discovery endpoint at root
+	r.GET("/.well-known/jwks.json", func(c *ginpkg.Context) {
+		h.NewAuthHandler(nil, jwtMgr).JWKS(c)
+	})
+
 	authSvc := service.NewAuthService(userRepo, jwtMgr, sessionRepo)
 	oauthSvc := service.NewOAuthService(oauthProvider, userRepo, jwtMgr, sessionRepo)
-	authHandler := h.NewAuthHandler(authSvc)
+	authHandler := h.NewAuthHandler(authSvc, jwtMgr)
 	oauthHandler := h.NewOAuthHandler(oauthSvc)
 
 	// API v1 Auth Group (Standard Contract)
 	authV1 := r.Group("/api/v1/auth")
 	{
-		// Public Endpoints
+		// Public Endpoints & JWKS Discovery
+		authV1.GET("/jwks.json", authHandler.JWKS)
+		authV1.GET("/public-key.pem", authHandler.PublicKeyPEM)
 		authV1.POST("/register", authHandler.Register)
 		authV1.POST("/login", authHandler.Login)
 		authV1.POST("/demo-login", authHandler.DemoLogin)

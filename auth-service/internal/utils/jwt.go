@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"crypto/rsa"
 	"errors"
 	"fmt"
 	"time"
@@ -10,15 +11,29 @@ import (
 )
 
 type JWTManager struct {
-	secret string
-	ttl    time.Duration
+	privateKey *rsa.PrivateKey
+	publicKey  *rsa.PublicKey
+	keyID      string
+	ttl        time.Duration
 }
 
-func NewJWTManager(secret string, ttlMins int) *JWTManager {
-	return &JWTManager{secret: secret, ttl: time.Minute * time.Duration(ttlMins)}
+func NewJWTManager(privateKey *rsa.PrivateKey, publicKey *rsa.PublicKey, keyID string, ttlMins int) *JWTManager {
+	if keyID == "" {
+		keyID = "liveeuy-auth-key-1"
+	}
+	return &JWTManager{
+		privateKey: privateKey,
+		publicKey:  publicKey,
+		keyID:      keyID,
+		ttl:        time.Minute * time.Duration(ttlMins),
+	}
 }
 
 func (j *JWTManager) GenerateAccessToken(user *domain.User) (string, error) {
+	if j.privateKey == nil {
+		return "", errors.New("RSA private key is not configured for signing")
+	}
+
 	now := time.Now()
 	role := user.Role
 	if role == "" {
@@ -42,16 +57,23 @@ func (j *JWTManager) GenerateAccessToken(user *domain.User) (string, error) {
 		Role:  role,
 		Tier:  tier,
 	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(j.secret))
+
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+	token.Header["kid"] = j.keyID
+
+	return token.SignedString(j.privateKey)
 }
 
 func (j *JWTManager) Verify(tokenStr string) (*domain.JWTClaims, error) {
+	if j.publicKey == nil {
+		return nil, errors.New("RSA public key is not configured for verification")
+	}
+
 	token, err := jwt.ParseWithClaims(tokenStr, &domain.JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("unexpected signing method")
+		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v (expected RS256)", token.Header["alg"])
 		}
-		return []byte(j.secret), nil
+		return j.publicKey, nil
 	})
 	if err != nil {
 		return nil, err
@@ -63,3 +85,25 @@ func (j *JWTManager) Verify(tokenStr string) (*domain.JWTClaims, error) {
 	return nil, errors.New("invalid token")
 }
 
+func (j *JWTManager) GetJWKS() map[string]interface{} {
+	if j.publicKey == nil {
+		return map[string]interface{}{
+			"keys": []interface{}{},
+		}
+	}
+	jwk := RSAPublicKeyToJWK(j.publicKey, j.keyID)
+	return map[string]interface{}{
+		"keys": []interface{}{jwk},
+	}
+}
+
+func (j *JWTManager) GetPublicKeyPEM() string {
+	if j.publicKey == nil {
+		return ""
+	}
+	pemBytes, err := EncodeRSAPublicKeyToPEM(j.publicKey)
+	if err != nil {
+		return ""
+	}
+	return string(pemBytes)
+}

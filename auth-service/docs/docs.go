@@ -23,6 +23,27 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/.well-known/jwks.json": {
+            "get": {
+                "description": "Exposes RSA public keys in RFC 7517 format for downstream microservices",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "System"
+                ],
+                "summary": "JSON Web Key Set (Public Keys)",
+                "responses": {
+                    "200": {
+                        "description": "JSON Web Key Set",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/api/health": {
             "get": {
                 "description": "Service health status",
@@ -518,6 +539,26 @@ const docTemplate = `{
                         "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/handler.APIErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/public-key.pem": {
+            "get": {
+                "description": "Exposes RSA public key in standard PEM format",
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "System"
+                ],
+                "summary": "RSA Public Key in PEM format",
+                "responses": {
+                    "200": {
+                        "description": "RSA Public Key PEM",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }

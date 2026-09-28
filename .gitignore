@@ -1,4 +1,14 @@
 .env
+.env.*
+!.env.example
+
+# RSA Keys & Certificates (DO NOT COMMIT)
+certs/
+*.pem
+*.key
+*.crt
+*.pub
+
 # Logs
 logs
 *.log

@@ -240,6 +240,20 @@ info:
   title: Auth Service API
   version: "1.0"
 paths:
+  /.well-known/jwks.json:
+    get:
+      description: Exposes RSA public keys in RFC 7517 format for downstream microservices
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: JSON Web Key Set
+          schema:
+            additionalProperties: true
+            type: object
+      summary: JSON Web Key Set (Public Keys)
+      tags:
+      - System
   /api/health:
     get:
       description: Service health status
@@ -552,6 +566,19 @@ paths:
       summary: Update user profile
       tags:
       - Authentication
+  /api/v1/auth/public-key.pem:
+    get:
+      description: Exposes RSA public key in standard PEM format
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: RSA Public Key PEM
+          schema:
+            type: string
+      summary: RSA Public Key in PEM format
+      tags:
+      - System
   /api/v1/auth/refresh:
     post:
       consumes:

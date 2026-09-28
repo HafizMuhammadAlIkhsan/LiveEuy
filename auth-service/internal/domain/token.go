@@ -13,4 +13,6 @@ type JWTClaims struct {
 type TokenManager interface {
 	GenerateAccessToken(user *User) (string, error)
 	Verify(tokenStr string) (*JWTClaims, error)
+	GetJWKS() map[string]interface{}
+	GetPublicKeyPEM() string
 }

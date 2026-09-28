@@ -93,6 +93,14 @@ func (m *mockTokenManager) Verify(tokenStr string) (*domain.JWTClaims, error) {
 	}, nil
 }
 
+func (m *mockTokenManager) GetJWKS() map[string]interface{} {
+	return map[string]interface{}{"keys": []interface{}{}}
+}
+
+func (m *mockTokenManager) GetPublicKeyPEM() string {
+	return "mock-public-key-pem"
+}
+
 type mockSessionRepository struct {
 	saveFunc                func(ctx context.Context, session *domain.RefreshTokenSession) error
 	getFunc                 func(ctx context.Context, token string) (*domain.RefreshTokenSession, error)

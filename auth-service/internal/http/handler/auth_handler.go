@@ -5,16 +5,18 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/DXR3IN/auth-service/internal/domain"
 	"github.com/DXR3IN/auth-service/internal/service"
 	"github.com/gin-gonic/gin"
 )
 
 type AuthHandler struct {
-	svc *service.AuthService
+	svc    *service.AuthService
+	jwtMgr domain.TokenManager
 }
 
-func NewAuthHandler(svc *service.AuthService) *AuthHandler {
-	return &AuthHandler{svc: svc}
+func NewAuthHandler(svc *service.AuthService, jwtMgr domain.TokenManager) *AuthHandler {
+	return &AuthHandler{svc: svc, jwtMgr: jwtMgr}
 }
 
 func sendSuccess(c *gin.Context, httpStatus int, message string, data interface{}) {
@@ -468,4 +470,37 @@ func (h *AuthHandler) HealthCheck(c *gin.Context) {
 // @Router /api/ping [get]
 func (h *AuthHandler) Ping(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "pong"})
+}
+
+// JWKS godoc
+// @Summary JSON Web Key Set (Public Keys)
+// @Description Exposes RSA public keys in RFC 7517 format for downstream microservices
+// @Tags System
+// @Produce json
+// @Success 200 {object} map[string]interface{} "JSON Web Key Set"
+// @Router /.well-known/jwks.json [get]
+func (h *AuthHandler) JWKS(c *gin.Context) {
+	if h.jwtMgr == nil {
+		c.JSON(http.StatusOK, gin.H{"keys": []interface{}{}})
+		return
+	}
+	c.Header("Cache-Control", "public, max-age=3600")
+	c.JSON(http.StatusOK, h.jwtMgr.GetJWKS())
+}
+
+// PublicKeyPEM godoc
+// @Summary RSA Public Key in PEM format
+// @Description Exposes RSA public key in standard PEM format
+// @Tags System
+// @Produce text/plain
+// @Success 200 {string} string "RSA Public Key PEM"
+// @Router /api/v1/auth/public-key.pem [get]
+func (h *AuthHandler) PublicKeyPEM(c *gin.Context) {
+	if h.jwtMgr == nil {
+		c.String(http.StatusNotFound, "")
+		return
+	}
+	c.Header("Cache-Control", "public, max-age=3600")
+	c.Header("Content-Type", "application/x-pem-file; charset=utf-8")
+	c.String(http.StatusOK, h.jwtMgr.GetPublicKeyPEM())
 }
