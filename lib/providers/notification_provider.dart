@@ -30,10 +30,9 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   static const List<NotificationItem> _defaultItems = [
     NotificationItem(
       id: 'notif_1',
-      title: 'Episode Baru Rilis!',
-      message:
-          'Cyberpunk: Neo Nusantara Musim 2 Episode 1 sekarang sudah tayang dalam format Full HD Original.',
-      time: '15 menit lalu',
+      title: 'Cyberpunk: Neo Nusantara',
+      message: 'Musim 2 Ep. 1 sudah tayang.',
+      time: '15 mnt lalu',
       iconType: 'sparkles',
       targetMediaId: 'm_hero',
       deepLinkUrl: 'liveeuy://media/m_hero',
@@ -41,9 +40,8 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     ),
     NotificationItem(
       id: 'notif_2',
-      title: 'Rekomendasi Minggu Ini',
-      message:
-          'Film horor terlaris "Bayang di Balik Kabut" menempati Top 3 di Indonesia.',
+      title: 'Bayang di Balik Kabut',
+      message: 'Masuk Top 3 minggu ini.',
       time: '2 jam lalu',
       iconType: 'flame',
       targetMediaId: 'm3',

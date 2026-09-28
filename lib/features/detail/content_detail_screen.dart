@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/data/mock_data.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/movie_model.dart';
+import '../../models/episode_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/media_provider.dart';
 import '../auth/login_screen.dart';
@@ -32,6 +33,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
 
   bool _isSynopsisExpanded = false;
   bool _isDownloadingAll = false;
+  bool _isEpisodeAscending = true;
   int _userSelectedRating = 0;
   final Set<String> _downloadedEpisodes = {'gk_ep1'};
   final Set<String> _downloadingEpisodes = {};
@@ -304,31 +306,39 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.tertiaryContainer.withValues(alpha: 0.35),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.local_fire_department_rounded,
-                              color: AppColors.tertiary,
-                              size: 15,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Trending #1 di Indonesia',
-                              style: GoogleFonts.outfit(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.tertiaryContainer.withValues(alpha: 0.35),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.local_fire_department_rounded,
                                 color: AppColors.tertiary,
+                                size: 15,
                               ),
-                            ),
-                          ],
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  'Trending #1 di Indonesia',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.tertiary,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
+                      const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
@@ -377,34 +387,37 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
                   const SizedBox(height: 8),
 
                   // Metadata Row: 2023 • 1 Musim (5 Episode) • 16+ • 4K UHD • Dolby Vision
-                  Row(
-                    children: [
-                      Text(
-                        '${widget.movie.releaseYear}',
-                        style: GoogleFonts.outfit(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.onSurface,
-                        ),
-                      ),
-                      _buildDotSeparator(),
-                      Text(
-                        widget.movie.durationOrSeasons,
-                        style: GoogleFonts.inter(fontSize: 12, color: AppColors.onSurfaceVariant),
-                      ),
-                      _buildDotSeparator(),
-                      _buildTagBadge(widget.movie.ageRating),
-                      if (widget.movie.resolutionBadges.isNotEmpty) ...[
-                        const SizedBox(width: 6),
-                        _buildTagBadge(
-                          widget.movie.resolutionBadges.firstWhere(
-                            (b) => !b.toLowerCase().contains('atmos'),
-                            orElse: () => widget.movie.resolutionBadges.first,
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        Text(
+                          '${widget.movie.releaseYear}',
+                          style: GoogleFonts.outfit(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.onSurface,
                           ),
-                          isHighlight: true,
                         ),
+                        _buildDotSeparator(),
+                        Text(
+                          widget.movie.durationOrSeasons,
+                          style: GoogleFonts.inter(fontSize: 12, color: AppColors.onSurfaceVariant),
+                        ),
+                        _buildDotSeparator(),
+                        _buildTagBadge(widget.movie.ageRating),
+                        if (widget.movie.resolutionBadges.isNotEmpty) ...[
+                          const SizedBox(width: 6),
+                          _buildTagBadge(
+                            widget.movie.resolutionBadges.firstWhere(
+                              (b) => !b.toLowerCase().contains('atmos'),
+                              orElse: () => widget.movie.resolutionBadges.first,
+                            ),
+                            isHighlight: true,
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                   const SizedBox(height: 14),
 
@@ -817,9 +830,68 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
     );
   }
 
+  void _showSeasonSelector(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Material(
+        color: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceContainerHigh,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            border: Border.all(color: AppColors.glassBorder),
+          ),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Pilih Musim',
+                  style: GoogleFonts.outfit(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Material(
+                  color: Colors.transparent,
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.check_circle_rounded, color: AppColors.primary),
+                    title: Text(
+                      'Musim 1',
+                      style: GoogleFonts.outfit(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.onSurface,
+                      ),
+                    ),
+                    subtitle: Text(
+                      '5 Episode • Rilis 2023',
+                      style: GoogleFonts.inter(fontSize: 12, color: AppColors.outline),
+                    ),
+                    onTap: () => Navigator.pop(ctx),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   // 2. Tab: Episode & Musim (Default Active)
   Widget _buildEpisodesTab() {
     final episodes = MockData.gadiskretekEpisodes;
+    final sortedEpisodes = _isEpisodeAscending
+        ? (List<Episode>.from(episodes)..sort((a, b) => a.episodeNumber.compareTo(b.episodeNumber)))
+        : (List<Episode>.from(episodes)..sort((a, b) => b.episodeNumber.compareTo(a.episodeNumber)));
 
     return Padding(
       padding: const EdgeInsets.all(16.0),
@@ -828,34 +900,73 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceContainerHigh,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Text(
-                      'Musim 1 (5 Episode)',
-                      style: GoogleFonts.outfit(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.onSurface,
+              InkWell(
+                onTap: () => _showSeasonSelector(context),
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainerHigh,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Musim 1 (5 Episode)',
+                        style: GoogleFonts.outfit(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.onSurface,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 4),
-                    const Icon(Icons.arrow_drop_down_rounded, color: AppColors.onSurfaceVariant),
-                  ],
+                      const SizedBox(width: 4),
+                      const Icon(Icons.arrow_drop_down_rounded, color: AppColors.onSurfaceVariant),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  'Semua episode tersedia',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(fontSize: 11, color: AppColors.outline),
+              InkWell(
+                key: const Key('episode_sort_button'),
+                onTap: () {
+                  setState(() {
+                    _isEpisodeAscending = !_isEpisodeAscending;
+                  });
+                  _showToast(
+                    _isEpisodeAscending ? 'Urutan: Episode 1 → 5' : 'Urutan: Episode 5 → 1',
+                    icon: Icons.swap_vert_rounded,
+                  );
+                },
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainerHigh,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: AppColors.outline.withValues(alpha: 0.25),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.swap_vert_rounded,
+                        size: 15,
+                        color: AppColors.primary,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        _isEpisodeAscending ? 'Ep 1-5' : 'Ep 5-1',
+                        style: GoogleFonts.outfit(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.onSurface,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -863,7 +974,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
           const SizedBox(height: 14),
 
           // Episodes List
-          ...episodes.map((ep) {
+          ...sortedEpisodes.map((ep) {
             final isDownloaded = _downloadedEpisodes.contains(ep.id);
             final isDownloading = _downloadingEpisodes.contains(ep.id);
 

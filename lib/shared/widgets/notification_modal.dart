@@ -121,13 +121,12 @@ void showNotificationSheet(
                                       children: [
                                         Flexible(
                                           child: Text(
-                                            'NOTIFIKASI TERBARU',
+                                            'Notifikasi',
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                             style: GoogleFonts.outfit(
                                               fontSize: 16,
                                               fontWeight: FontWeight.w700,
-                                              letterSpacing: 0.5,
                                               color: AppColors.onSurface,
                                             ),
                                           ),
@@ -153,7 +152,9 @@ void showNotificationSheet(
                                       ],
                                     ),
                                     Text(
-                                      'Pemberitahuan episode dan rilis tayangan',
+                                      notifState.hasUnread
+                                          ? '${notifState.items.where((i) => !i.isRead).length} belum dibaca'
+                                          : 'Semua sudah dibaca',
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: GoogleFonts.inter(
@@ -171,19 +172,31 @@ void showNotificationSheet(
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            GestureDetector(
-                              onTap: () {
-                                ref.read(notificationProvider.notifier).markAllAsRead();
-                              },
+                            InkWell(
+                              onTap: notifState.hasUnread
+                                  ? () => ref.read(notificationProvider.notifier).markAllAsRead()
+                                  : null,
+                              borderRadius: BorderRadius.circular(8),
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                                child: Text(
-                                  'Tandai dibaca',
-                                  style: GoogleFonts.outfit(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: notifState.hasUnread ? AppColors.primary : AppColors.outline,
-                                  ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.done_all_rounded,
+                                      size: 14,
+                                      color: notifState.hasUnread ? AppColors.primary : AppColors.outline,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Baca semua',
+                                      style: GoogleFonts.outfit(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: notifState.hasUnread ? AppColors.primary : AppColors.outline,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
@@ -220,7 +233,7 @@ void showNotificationSheet(
                               ),
                               const SizedBox(height: 12),
                               Text(
-                                'Tidak ada notifikasi saat ini.',
+                                'Belum ada notifikasi',
                                 style: GoogleFonts.outfit(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,

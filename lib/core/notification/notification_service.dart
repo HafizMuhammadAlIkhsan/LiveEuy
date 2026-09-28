@@ -156,8 +156,8 @@ class NotificationService {
   }) {
     return NotificationItem(
       id: 'notif_${DateTime.now().millisecondsSinceEpoch}',
-      title: 'Episode Baru: $seriesTitle',
-      message: '$episodeTitle sekarang sudah tayang dalam kualitas Full HD.',
+      title: '$seriesTitle: $episodeTitle',
+      message: 'Episode baru sudah tayang.',
       time: 'Baru saja',
       iconType: 'sparkles',
       targetMediaId: mediaId,
@@ -176,8 +176,8 @@ class NotificationService {
     final percentStr = (progressPercent * 100).toInt();
     return NotificationItem(
       id: 'notif_${DateTime.now().millisecondsSinceEpoch}',
-      title: 'Lanjutkan Menonton: $movieTitle',
-      message: 'Anda baru menonton $percentStr%. Klik di sini untuk melanjutkan.',
+      title: 'Lanjutkan: $movieTitle',
+      message: 'Tersisa ${100 - percentStr}% lagi.',
       time: 'Baru saja',
       iconType: 'flame',
       targetMediaId: mediaId,
@@ -195,8 +195,8 @@ class NotificationService {
   }) {
     return NotificationItem(
       id: 'notif_${DateTime.now().millisecondsSinceEpoch}',
-      title: 'Sedang Hangat di LiveEuy',
-      message: '$title ($genre) masuk jajaran tayangan paling diminati penonton.',
+      title: 'Trending: $title',
+      message: 'Kategori $genre banyak ditonton.',
       time: 'Baru saja',
       iconType: 'flame',
       targetMediaId: mediaId,

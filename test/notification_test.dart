@@ -12,8 +12,8 @@ void main() {
 
       expect(state.items.length, 2);
       expect(state.hasUnread, true);
-      expect(state.items.any((item) => item.title == 'Episode Baru Rilis!'), true);
-      expect(state.items.any((item) => item.title == 'Rekomendasi Minggu Ini'), true);
+      expect(state.items.any((item) => item.title == 'Cyberpunk: Neo Nusantara'), true);
+      expect(state.items.any((item) => item.title == 'Bayang di Balik Kabut'), true);
     });
 
     test('markAllAsRead clears unread flags across all notifications', () {
@@ -64,14 +64,14 @@ void main() {
       await tester.tap(notifBtn);
       await tester.pumpAndSettle();
 
-      // Verify bottom sheet appears with header and items from dev-frontend
-      expect(find.text('NOTIFIKASI TERBARU'), findsOneWidget);
-      expect(find.text('Tandai dibaca'), findsOneWidget);
-      expect(find.text('Episode Baru Rilis!'), findsOneWidget);
-      expect(find.text('Rekomendasi Minggu Ini'), findsOneWidget);
+      // Verify bottom sheet appears with clean header and items
+      expect(find.text('Notifikasi'), findsOneWidget);
+      expect(find.text('Baca semua'), findsOneWidget);
+      expect(find.text('Cyberpunk: Neo Nusantara'), findsOneWidget);
+      expect(find.text('Bayang di Balik Kabut'), findsOneWidget);
 
-      // Tap 'Tandai dibaca'
-      await tester.tap(find.text('Tandai dibaca'));
+      // Tap 'Baca semua'
+      await tester.tap(find.text('Baca semua'));
       await tester.pumpAndSettle();
     });
   });
