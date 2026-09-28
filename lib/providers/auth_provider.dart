@@ -12,6 +12,7 @@ class UserProfile {
   final String avatarUrl;
   final bool isLoggedIn;
   final bool isVip;
+  final String membershipTier;
   final bool rememberMe;
   final String deviceType;
   final String currentDeviceName;
@@ -23,6 +24,7 @@ class UserProfile {
     required this.avatarUrl,
     required this.isLoggedIn,
     this.isVip = false,
+    this.membershipTier = 'REGULAR',
     this.rememberMe = true,
     this.deviceType = 'Mobile',
     this.currentDeviceName = 'Smartphone (Android)',
@@ -35,6 +37,7 @@ class UserProfile {
     String? avatarUrl,
     bool? isLoggedIn,
     bool? isVip,
+    String? membershipTier,
     bool? rememberMe,
     String? deviceType,
     String? currentDeviceName,
@@ -46,6 +49,7 @@ class UserProfile {
       avatarUrl: avatarUrl ?? this.avatarUrl,
       isLoggedIn: isLoggedIn ?? this.isLoggedIn,
       isVip: isVip ?? this.isVip,
+      membershipTier: membershipTier ?? this.membershipTier,
       rememberMe: rememberMe ?? this.rememberMe,
       deviceType: deviceType ?? this.deviceType,
       currentDeviceName: currentDeviceName ?? this.currentDeviceName,
@@ -62,13 +66,16 @@ class UserProfile {
           .map((m) => DeviceSession.fromJson(m))
           .toList();
     }
+    final isVipVal = json['isVip'] as bool? ?? false;
     return UserProfile(
       name: json['name'] as String? ?? 'User',
       email: json['email'] as String? ?? '',
       avatarUrl: json['avatarUrl'] as String? ??
           'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80',
       isLoggedIn: json['isLoggedIn'] as bool? ?? false,
-      isVip: json['isVip'] as bool? ?? false,
+      isVip: isVipVal,
+      membershipTier: json['membershipTier'] as String? ??
+          (isVipVal ? 'VIP Cinema Ultra' : 'REGULAR'),
       rememberMe: json['rememberMe'] as bool? ?? true,
       deviceType: json['deviceType'] as String? ?? 'Mobile',
       currentDeviceName: json['currentDeviceName'] as String? ?? 'Smartphone (Android)',
@@ -83,6 +90,7 @@ class UserProfile {
       'avatarUrl': avatarUrl,
       'isLoggedIn': isLoggedIn,
       'isVip': isVip,
+      'membershipTier': membershipTier,
       'rememberMe': rememberMe,
       'deviceType': deviceType,
       'currentDeviceName': currentDeviceName,
@@ -104,6 +112,7 @@ class AuthNotifier extends StateNotifier<UserProfile> {
               'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80',
           isLoggedIn: false,
           isVip: false,
+          membershipTier: 'REGULAR',
           deviceType: 'Mobile',
           currentDeviceName: 'Smartphone (Android)',
           activeSessions: [],
@@ -343,12 +352,17 @@ class AuthNotifier extends StateNotifier<UserProfile> {
       sessions = generateDefaultSessions(currentDeviceName: deviceName);
     }
 
+    final userTier = (authData?.user?.membershipTier != null && authData!.user!.membershipTier.isNotEmpty)
+        ? authData.user!.membershipTier
+        : (isVipUser ? 'VIP Cinema Ultra' : 'REGULAR');
+
     final profile = UserProfile(
       name: userName,
       email: userEmail,
       avatarUrl: userAvatar,
       isLoggedIn: true,
       isVip: isVipUser,
+      membershipTier: userTier,
       rememberMe: rememberMe,
       deviceType: 'Mobile',
       currentDeviceName: deviceName,
@@ -427,6 +441,10 @@ class AuthNotifier extends StateNotifier<UserProfile> {
       ),
     ];
 
+    final userTier = (authData?.user?.membershipTier != null && authData!.user!.membershipTier.isNotEmpty)
+        ? authData.user!.membershipTier
+        : 'REGULAR';
+
     final profile = UserProfile(
       name: (authData?.user?.name != null && authData!.user!.name.isNotEmpty) ? authData.user!.name : name,
       email: (authData?.user?.email != null && authData!.user!.email.isNotEmpty) ? authData.user!.email : email,
@@ -435,6 +453,7 @@ class AuthNotifier extends StateNotifier<UserProfile> {
           : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80',
       isLoggedIn: true,
       isVip: authData?.user?.isVip ?? false,
+      membershipTier: userTier,
       rememberMe: true,
       deviceType: 'Mobile',
       currentDeviceName: deviceName,
@@ -462,8 +481,8 @@ class AuthNotifier extends StateNotifier<UserProfile> {
     return true;
   }
 
-  void upgradeToVip() {
-    state = state.copyWith(isVip: true);
+  void upgradeToVip([String tier = 'VIP Cinema Ultra']) {
+    state = state.copyWith(isVip: true, membershipTier: tier);
     if (state.rememberMe && _storageService != null) {
       _storageService.saveUserSession(state.toJson());
     }

@@ -12,13 +12,16 @@ import '../../shared/widgets/notification_modal.dart';
 import '../../shared/widgets/streamflix_logo.dart';
 import '../detail/content_detail_screen.dart';
 import '../player/video_player_screen.dart';
+import 'widgets/hero_showcase_banner.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   final Function(int) onNavigateTab;
+  final bool isActive;
 
   const HomeScreen({
     super.key,
     required this.onNavigateTab,
+    this.isActive = true,
   });
 
   @override
@@ -43,8 +46,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   late final ScrollController _scrollController;
   String _selectedCategory = 'Semua';
   String? _selectedGenre;
-  int _currentHeroIndex = 0;
-  bool _isHeroMuted = true;
+  bool _isHeroInView = true;
+  bool _isRoutePushed = false;
 
   final List<String> _categories = ['Semua', 'Film', 'Serial TV', 'Kategori'];
 
@@ -103,10 +106,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void initState() {
     super.initState();
     _scrollController = ScrollController();
+    _scrollController.addListener(_handleScroll);
+  }
+
+  void _handleScroll() {
+    final inView = _scrollController.offset < 400;
+    if (inView != _isHeroInView) {
+      setState(() {
+        _isHeroInView = inView;
+      });
+    }
   }
 
   @override
   void dispose() {
+    _scrollController.removeListener(_handleScroll);
     _scrollController.dispose();
     super.dispose();
   }
@@ -259,13 +273,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return items;
   }
 
-  void _openDetail(Movie movie) {
-    Navigator.push(
+  void _openDetail(Movie movie) async {
+    setState(() => _isRoutePushed = true);
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => ContentDetailScreen(movie: movie),
       ),
     );
+    if (mounted) {
+      setState(() => _isRoutePushed = false);
+    }
   }
 
   void _openNotificationMedia(String mediaId) {
@@ -282,8 +300,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
-  void _playVideo(Movie movie, {double? startProgress}) {
-    Navigator.push(
+  void _playVideo(Movie movie, {double? startProgress}) async {
+    setState(() => _isRoutePushed = true);
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => VideoPlayerScreen(
@@ -292,6 +311,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
       ),
     );
+    if (mounted) {
+      setState(() => _isRoutePushed = false);
+    }
   }
 
   void _showCategoryFilterSheet() {
@@ -444,7 +466,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               } else {
                                 _selectedGenre = genreDef.name;
                               }
-                              _currentHeroIndex = 0;
                             });
                           },
                         ),
@@ -812,7 +833,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               setState(() {
                 _selectedCategory = 'Semua';
                 _selectedGenre = null;
-                _currentHeroIndex = 0;
               });
             },
             child: Container(
@@ -889,7 +909,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               setState(() {
                 _selectedCategory = 'Semua';
                 _selectedGenre = null;
-                _currentHeroIndex = 0;
               });
             },
             icon: const Icon(Icons.refresh_rounded, size: 18, color: Colors.white),
@@ -948,7 +967,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           _selectedGenre = null;
                         }
                       }
-                      _currentHeroIndex = 0;
                     });
                   }
                 },
@@ -998,7 +1016,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             onTap: () {
                               setState(() {
                                 _selectedGenre = null;
-                                _currentHeroIndex = 0;
                               });
                             },
                             child: Container(
@@ -1033,414 +1050,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildHeroShowcase(List<Movie> heroMovies) {
-    if (heroMovies.isEmpty) return const SizedBox.shrink();
-    final clampedIndex = _currentHeroIndex.clamp(0, heroMovies.length - 1);
-    final heroMovie = heroMovies[clampedIndex];
-    final media = ref.watch(mediaProvider);
-    final isHeroBookmarked = media.watchlistIds.contains(heroMovie.id);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: GestureDetector(
-        onHorizontalDragEnd: (details) {
-          if (heroMovies.length <= 1) return;
-          if (details.primaryVelocity! < -100) {
-            // swipe left -> next
-            setState(() {
-              _currentHeroIndex = (_currentHeroIndex + 1) % heroMovies.length;
-            });
-          } else if (details.primaryVelocity! > 100) {
-            // swipe right -> prev
-            setState(() {
-              _currentHeroIndex =
-                  (_currentHeroIndex - 1 + heroMovies.length) % heroMovies.length;
-            });
-          }
-        },
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.85),
-                blurRadius: 40,
-                offset: const Offset(0, 16),
-              ),
-            ],
+    return HeroShowcaseBanner(
+      heroMovies: heroMovies,
+      isActive: widget.isActive && _isHeroInView && !_isRoutePushed,
+      onPlay: (movie) => _playVideo(movie),
+      onDetail: (movie) => _openDetail(movie),
+      onToggleWatchlist: (movie) {
+        final isBookmarked =
+            ref.read(mediaProvider).watchlistIds.contains(movie.id);
+        ref.read(mediaProvider.notifier).toggleWatchlist(movie.id);
+        final willBeBookmarked = !isBookmarked;
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(willBeBookmarked
+                ? 'Ditambahkan ke Koleksi Saya'
+                : 'Dihapus dari Koleksi Saya'),
+            duration: const Duration(seconds: 2),
+            backgroundColor: AppColors.surfaceContainerHigh,
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: Stack(
-              children: [
-                // Hero Poster / Backdrop Image
-                AspectRatio(
-                  aspectRatio: 4 / 5,
-                  child: CachedNetworkImage(
-                    imageUrl: heroMovie.backdropUrl,
-                    fit: BoxFit.cover,
-                    alignment: Alignment.topCenter,
-                    placeholder: (context, url) =>
-                        Container(color: AppColors.surfaceContainerLow),
-                    errorWidget: (context, url, err) =>
-                        Container(color: AppColors.surfaceContainerLow),
-                  ),
-                ),
-
-                // Gradient Scrim Overlays
-                Positioned.fill(
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.bottomCenter,
-                        end: Alignment.topCenter,
-                        colors: [
-                          AppColors.surfaceContainerLowest,
-                          Color(0x990D0D17),
-                          Colors.transparent,
-                        ],
-                        stops: [0.0, 0.45, 0.85],
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned.fill(
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                        colors: [
-                          Color(0xCC0D0D17),
-                          Colors.transparent,
-                        ],
-                        stops: [0.0, 0.6],
-                      ),
-                    ),
-                  ),
-                ),
-
-                // Top Left Badge: Top 1 Hari Ini or Format badge
-                Positioned(
-                  top: 14,
-                  left: 14,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryContainer.withValues(alpha: 0.9),
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primaryContainer.withValues(alpha: 0.5),
-                          blurRadius: 12,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.local_fire_department_rounded,
-                          color: Colors.white,
-                          size: 14,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          heroMovie.top10Rank != null
-                              ? 'TOP ${heroMovie.top10Rank} HARI INI'
-                              : 'TOP 1 HARI INI',
-                          style: GoogleFonts.outfit(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                            letterSpacing: 0.8,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                // Top Right Sound Button
-                Positioned(
-                  top: 14,
-                  right: 14,
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _isHeroMuted = !_isHeroMuted;
-                      });
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(_isHeroMuted
-                              ? 'Suara latar dibisukan'
-                              : 'Suara latar diaktifkan'),
-                          duration: const Duration(seconds: 1),
-                          backgroundColor: AppColors.surfaceContainerHigh,
-                        ),
-                      );
-                    },
-                    child: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceContainerHighest.withValues(alpha: 0.65),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        _isHeroMuted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
-                        color: Colors.white,
-                        size: 18,
-                      ),
-                    ),
-                  ),
-                ),
-
-                // Bottom Overlay Details & Actions
-                Positioned(
-                  bottom: 16,
-                  left: 16,
-                  right: 16,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Carousel Indicator Dots (if multiple)
-                      if (heroMovies.length > 1) ...[
-                        Row(
-                          children: List.generate(heroMovies.length, (idx) {
-                            final isActive = idx == clampedIndex;
-                            return AnimatedContainer(
-                              duration: const Duration(milliseconds: 250),
-                              margin: const EdgeInsets.only(right: 5),
-                              width: isActive ? 20 : 6,
-                              height: 5,
-                              decoration: BoxDecoration(
-                                color: isActive
-                                    ? AppColors.primaryContainer
-                                    : Colors.white.withValues(alpha: 0.35),
-                                borderRadius: BorderRadius.circular(3),
-                              ),
-                            );
-                          }),
-                        ),
-                        const SizedBox(height: 10),
-                      ],
-
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        physics: const NeverScrollableScrollPhysics(),
-                        child: Row(
-                          children: [
-                            Text(
-                              '${heroMovie.matchScore.toInt()}% Cocok',
-                              style: GoogleFonts.outfit(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: const Color(0xFF46D369),
-                              ),
-                            ),
-                            _buildDotSeparator(),
-                            Text(
-                              '${heroMovie.releaseYear}',
-                              style: GoogleFonts.outfit(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white70,
-                              ),
-                            ),
-                            _buildDotSeparator(),
-                            _buildHeroMetaPill(heroMovie.ageRating),
-                            if (heroMovie.resolutionBadges.isNotEmpty) ...[
-                              const SizedBox(width: 6),
-                              _buildHeroMetaPill(
-                                heroMovie.resolutionBadges.firstWhere(
-                                  (b) => !b.toLowerCase().contains('atmos'),
-                                  orElse: () => '4K UHD',
-                                ),
-                              ),
-                            ],
-                            _buildDotSeparator(),
-                            Text(
-                              heroMovie.durationOrSeasons,
-                              style: GoogleFonts.outfit(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white70,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-
-                      // Title
-                      Text(
-                        heroMovie.title,
-                        style: GoogleFonts.outfit(
-                          fontSize: 26,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                          letterSpacing: -0.5,
-                          height: 1.15,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-
-                      // Synopsis
-                      Text(
-                        heroMovie.synopsis,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: Colors.white.withValues(alpha: 0.8),
-                          height: 1.4,
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-
-                      // Hero Action Buttons (Putar, Koleksi Saya, Info)
-                      Row(
-                        children: [
-                          // Putar
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: () => _playVideo(heroMovie),
-                              icon: const Icon(
-                                Icons.play_arrow_rounded,
-                                color: Colors.white,
-                                size: 22,
-                              ),
-                              label: Text(
-                                'Putar',
-                                style: GoogleFonts.outfit(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primaryContainer,
-                                elevation: 3,
-                                shadowColor: AppColors.primaryContainer.withValues(alpha: 0.35),
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-
-                          // Koleksi Saya
-                          OutlinedButton.icon(
-                            onPressed: () {
-                              ref
-                                  .read(mediaProvider.notifier)
-                                  .toggleWatchlist(heroMovie.id);
-                              final willBeBookmarked = !isHeroBookmarked;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(willBeBookmarked
-                                      ? 'Ditambahkan ke Koleksi Saya'
-                                      : 'Dihapus dari Koleksi Saya'),
-                                  duration: const Duration(seconds: 2),
-                                  backgroundColor: AppColors.surfaceContainerHigh,
-                                ),
-                              );
-                            },
-                            icon: Icon(
-                              isHeroBookmarked ? Icons.check_rounded : Icons.add_rounded,
-                              color: isHeroBookmarked ? AppColors.tertiary : Colors.white,
-                              size: 18,
-                            ),
-                            label: Text(
-                              'Koleksi Saya',
-                              style: GoogleFonts.outfit(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: isHeroBookmarked ? AppColors.tertiary : Colors.white,
-                              ),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              backgroundColor: AppColors.surfaceContainerHigh.withValues(alpha: 0.9),
-                              side: BorderSide(
-                                color: AppColors.outlineVariant.withValues(alpha: 0.35),
-                                width: 1.0,
-                              ),
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-
-                          // Info Detail Button
-                          GestureDetector(
-                            onTap: () => _openDetail(heroMovie),
-                            child: Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                color: AppColors.surfaceContainerHigh.withValues(alpha: 0.85),
-                                border: Border.all(
-                                  color: AppColors.outlineVariant.withValues(alpha: 0.35),
-                                  width: 1.0,
-                                ),
-                              ),
-                              child: const Icon(
-                                Icons.info_outline_rounded,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDotSeparator() {
-    return Container(
-      width: 3.5,
-      height: 3.5,
-      margin: const EdgeInsets.symmetric(horizontal: 7),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.45),
-        shape: BoxShape.circle,
-      ),
-    );
-  }
-
-  Widget _buildHeroMetaPill(String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.18),
-          width: 0.8,
-        ),
-      ),
-      child: Text(
-        label,
-        style: GoogleFonts.outfit(
-          fontSize: 10,
-          fontWeight: FontWeight.w600,
-          color: Colors.white.withValues(alpha: 0.9),
-          letterSpacing: 0.4,
-        ),
-      ),
+        );
+      },
+      isBookmarked: (movie) =>
+          ref.watch(mediaProvider).watchlistIds.contains(movie.id),
     );
   }
 
