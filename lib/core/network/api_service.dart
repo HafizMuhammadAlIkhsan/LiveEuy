@@ -1,4 +1,5 @@
 import 'api_client.dart';
+import '../../models/auth_response_model.dart';
 import '../../models/movie_model.dart';
 import '../../models/review_model.dart';
 import '../../models/watch_progress_model.dart';
@@ -207,5 +208,83 @@ class ApiService {
     );
     return response.data ?? settings;
   }
+
+  // ==========================================
+  // 6. Autentikasi Pengguna & Keamanan Sesi
+  // ==========================================
+
+  /// Melakukan login pengguna ke sistem (`POST /api/v1/auth/login`)
+  Future<AuthData?> login({
+    required String email,
+    required String password,
+    bool rememberMe = true,
+  }) async {
+    final response = await _client.post<AuthData>(
+      ApiConfig.loginPath,
+      body: {
+        'email': email,
+        'password': password,
+        'rememberMe': rememberMe,
+      },
+      fromJson: (data) => AuthData.fromJson(data as Map<String, dynamic>),
+    );
+    return response.data;
+  }
+
+  /// Mendaftarkan pengguna baru (`POST /api/v1/auth/register`)
+  Future<AuthData?> register({
+    required String name,
+    required String email,
+    required String password,
+  }) async {
+    final response = await _client.post<AuthData>(
+      ApiConfig.registerPath,
+      body: {
+        'name': name,
+        'email': email,
+        'password': password,
+      },
+      fromJson: (data) => AuthData.fromJson(data as Map<String, dynamic>),
+    );
+    return response.data;
+  }
+
+  /// Memperbarui token akses dengan refresh token rotasi (`POST /api/v1/auth/refresh`)
+  Future<AuthData?> refreshToken(String refreshToken) async {
+    final response = await _client.post<AuthData>(
+      ApiConfig.refreshPath,
+      body: {'refreshToken': refreshToken},
+      fromJson: (data) => AuthData.fromJson(data as Map<String, dynamic>),
+    );
+    return response.data;
+  }
+
+  /// Mengambil data profil pengguna yang sedang login (`GET /api/v1/auth/me`)
+  Future<UserData?> getCurrentUser({String? accessToken}) async {
+    final headers = <String, String>{};
+    if (accessToken != null && accessToken.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $accessToken';
+    }
+    final response = await _client.get<UserData>(
+      ApiConfig.mePath,
+      headers: headers.isNotEmpty ? headers : null,
+      fromJson: (data) => UserData.fromJson(data as Map<String, dynamic>),
+    );
+    return response.data;
+  }
+
+  /// Mengakhiri sesi login pengguna saat ini (`POST /api/v1/auth/logout`)
+  Future<bool> logout({String? accessToken}) async {
+    final headers = <String, String>{};
+    if (accessToken != null && accessToken.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $accessToken';
+    }
+    final response = await _client.post<dynamic>(
+      ApiConfig.logoutPath,
+      headers: headers.isNotEmpty ? headers : null,
+    );
+    return response.success;
+  }
 }
+
 

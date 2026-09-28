@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/network/api_client.dart';
+import '../core/network/api_config.dart';
 import '../core/storage/local_storage_service.dart';
+import '../models/auth_response_model.dart';
 import '../models/device_session_model.dart';
 
 class UserProfile {
@@ -174,17 +176,177 @@ class AuthNotifier extends StateNotifier<UserProfile> {
     }
   }
 
-  Future<bool> login(String email, String password, bool rememberMe) async {
-    await Future.delayed(const Duration(milliseconds: 600));
-    final isVipUser = email.toLowerCase().contains('hafiz') || email.toLowerCase().contains('vip');
+  /// Registry sesi Web aktif per email (mensimulasikan sesi aktif dari client dev-frontend)
+  final Map<String, List<DeviceSession>> _activeWebSessionsRegistry = {
+    'alex@streamflix.id': [
+      const DeviceSession(
+        sessionId: 'sess-web-jkt-01',
+        deviceName: 'Google Chrome (Windows 11)',
+        deviceType: DeviceType.desktop,
+        os: 'Windows 11 Pro',
+        browserOrApp: 'Google Chrome v128',
+        ipAddress: '180.252.164.218',
+        location: 'Jakarta, Indonesia',
+        lastActive: '15 menit yang lalu',
+        isCurrentDevice: false,
+      ),
+    ],
+  };
+
+  /// Mendaftarkan sesi Web aktif untuk pengujian atau simulasi login lintas platform
+  void registerWebSession(String email, [DeviceSession? session]) {
+    final key = email.trim().toLowerCase();
+    final defaultSession = session ??
+        const DeviceSession(
+          sessionId: 'sess-web-jkt-01',
+          deviceName: 'Google Chrome (Windows 11)',
+          deviceType: DeviceType.desktop,
+          os: 'Windows 11 Pro',
+          browserOrApp: 'Google Chrome v128',
+          ipAddress: '180.252.164.218',
+          location: 'Jakarta, Indonesia',
+          lastActive: '15 menit yang lalu',
+          isCurrentDevice: false,
+        );
+
+    final list = _activeWebSessionsRegistry[key] ?? [];
+    if (!list.any((s) => s.sessionId == defaultSession.sessionId)) {
+      _activeWebSessionsRegistry[key] = [...list, defaultSession];
+    }
+  }
+
+  /// Menghapus sesi Web untuk email tertentu (misalnya setelah takeover di Mobile)
+  void clearWebSessions(String email) {
+    _activeWebSessionsRegistry.remove(email.trim().toLowerCase());
+  }
+
+  /// Memeriksa apakah ada konflik sesi login antara Web dan Mobile untuk akun yang bersangkutan
+  Future<DeviceCheckResult> checkDeviceConflict(String email) async {
+    final key = email.trim().toLowerCase();
+
+    // 1. Cek endpoint backend /auth/device-check jika backend online
+    try {
+      final res = await _apiClient.get(ApiConfig.deviceCheckPath(email));
+      if (res.data != null && res.data is Map<String, dynamic>) {
+        return DeviceCheckResult.fromJson(res.data as Map<String, dynamic>);
+      }
+    } catch (_) {
+      // Backend offline atau mock fallback
+    }
+
+    // 2. Cek apakah ada sesi web aktif di state UserProfile saat ini
+    if (state.isLoggedIn && state.email.trim().toLowerCase() == key) {
+      final activeWebs = state.activeSessions.where((s) => s.isWebOrDesktop).toList();
+      if (activeWebs.isNotEmpty) {
+        return DeviceCheckResult.conflict(
+          session: activeWebs.first,
+          activeWebCount: activeWebs.length,
+        );
+      }
+    }
+
+    // 3. Cek registry sesi web aktif
+    final registeredWebs = _activeWebSessionsRegistry[key];
+    if (registeredWebs != null && registeredWebs.isNotEmpty) {
+      return DeviceCheckResult.conflict(
+        session: registeredWebs.first,
+        activeWebCount: registeredWebs.length,
+      );
+    }
+
+    return DeviceCheckResult.noConflict();
+  }
+
+  Future<bool> login(
+    String email,
+    String password,
+    bool rememberMe, {
+    bool forceTakeover = false,
+  }) async {
+    // Verifikasi konflik perangkat: tidak boleh login mobile jika web aktif tanpa persetujuan takeover
+    final conflict = await checkDeviceConflict(email);
+    if (conflict.hasWebConflict && !forceTakeover) {
+      if (kDebugMode) {
+        debugPrint('[AuthNotifier] Login mobile ditolak karena sesi Web masih aktif.');
+      }
+      return false;
+    }
+
+    AuthData? authData;
+    try {
+      final res = await _apiClient.post<AuthData>(
+        ApiConfig.loginPath,
+        body: {
+          'email': email,
+          'password': password,
+          'rememberMe': rememberMe,
+        },
+        fromJson: (data) => AuthData.fromJson(data as Map<String, dynamic>),
+      );
+      authData = res.data;
+    } on DioException catch (dioErr) {
+      final hasRealBackendError = dioErr.response?.data is Map &&
+          (dioErr.response!.data as Map).isNotEmpty;
+      if (dioErr.statusCode == 401 ||
+          ((dioErr.statusCode == 400 || dioErr is BadRequestException) && hasRealBackendError)) {
+        rethrow;
+      }
+      if (kDebugMode) {
+        debugPrint('[AuthNotifier] Backend offline (${dioErr.message}), beralih ke mode offline.');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[AuthNotifier] Login network error: $e, beralih ke mode offline.');
+      }
+    }
+
+    final isVipUser = authData?.user?.isVip ??
+        (email.toLowerCase().contains('hafiz') || email.toLowerCase().contains('vip'));
+    final userName = (authData?.user?.name != null && authData!.user!.name.isNotEmpty)
+        ? authData.user!.name
+        : (email.contains('@') ? email.split('@')[0].toUpperCase() : email);
+    final userAvatar = (authData?.user?.avatarUrl != null && authData!.user!.avatarUrl.isNotEmpty)
+        ? authData.user!.avatarUrl
+        : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80';
+    final userEmail = (authData?.user?.email != null && authData!.user!.email.isNotEmpty)
+        ? authData.user!.email
+        : email;
+
     final deviceName = 'Smartphone (Android)';
-    final sessions = generateDefaultSessions(currentDeviceName: deviceName);
+
+    List<DeviceSession> sessions;
+    if (forceTakeover) {
+      // Cabut sesi web karena pengguna memilih takeover ke perangkat Mobile
+      clearWebSessions(email);
+      sessions = [
+        DeviceSession(
+          sessionId: 'sess-mob-current',
+          deviceName: deviceName,
+          deviceType: DeviceType.mobile,
+          os: 'Android 14',
+          browserOrApp: 'LiveEuy Mobile App v2.4',
+          ipAddress: '182.253.14.82',
+          location: 'Jakarta Selatan, Indonesia',
+          lastActive: 'Aktif Sekarang',
+          isCurrentDevice: true,
+        ),
+      ];
+
+      // Beritahu backend untuk mencabut sesi web di database
+      try {
+        await _apiClient.post(
+          ApiConfig.logoutAllPath,
+          body: {'includeCurrent': false, 'reason': 'mobile_device_takeover'},
+        );
+      } catch (_) {}
+    } else {
+      sessions = generateDefaultSessions(currentDeviceName: deviceName);
+    }
 
     final profile = UserProfile(
-      name: email.contains('@') ? email.split('@')[0].toUpperCase() : email,
-      email: email,
-      avatarUrl:
-          'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80',
+      name: userName,
+      email: userEmail,
+      avatarUrl: userAvatar,
       isLoggedIn: true,
       isVip: isVipUser,
       rememberMe: rememberMe,
@@ -195,12 +357,19 @@ class AuthNotifier extends StateNotifier<UserProfile> {
 
     state = profile;
 
+    final accessToken = (authData?.accessToken != null && authData!.accessToken.isNotEmpty)
+        ? authData.accessToken
+        : 'liveeuy_jwt_token_${DateTime.now().millisecondsSinceEpoch}';
+    final refreshToken = (authData?.refreshToken != null && authData!.refreshToken.isNotEmpty)
+        ? authData.refreshToken
+        : 'liveeuy_refresh_token_${DateTime.now().millisecondsSinceEpoch}';
+
     if (_storageService != null) {
       await _storageService.setRememberMe(rememberMe);
       if (rememberMe) {
         await _storageService.saveAuthTokens(
-          accessToken: 'liveeuy_jwt_token_${DateTime.now().millisecondsSinceEpoch}',
-          refreshToken: 'liveeuy_refresh_token_${DateTime.now().millisecondsSinceEpoch}',
+          accessToken: accessToken,
+          refreshToken: refreshToken,
         );
         await _storageService.saveUserSession(profile.toJson());
       } else {
@@ -212,7 +381,37 @@ class AuthNotifier extends StateNotifier<UserProfile> {
   }
 
   Future<bool> register(String name, String email, String password) async {
-    await Future.delayed(const Duration(milliseconds: 700));
+    AuthData? authData;
+    try {
+      final res = await _apiClient.post<AuthData>(
+        ApiConfig.registerPath,
+        body: {
+          'name': name,
+          'email': email,
+          'password': password,
+        },
+        fromJson: (data) => AuthData.fromJson(data as Map<String, dynamic>),
+      );
+      authData = res.data;
+    } on DioException catch (dioErr) {
+      final hasRealBackendError = dioErr.response?.data is Map &&
+          (dioErr.response!.data as Map).isNotEmpty;
+      if (((dioErr.statusCode == 400 ||
+              dioErr.statusCode == 409 ||
+              dioErr is BadRequestException ||
+              dioErr is ConflictException) &&
+          hasRealBackendError)) {
+        rethrow;
+      }
+      if (kDebugMode) {
+        debugPrint('[AuthNotifier] Backend offline (${dioErr.message}), beralih ke mode offline.');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[AuthNotifier] Register network error: $e, beralih ke mode offline.');
+      }
+    }
+
     final deviceName = 'Smartphone (Android)';
     final sessions = [
       DeviceSession(
@@ -229,12 +428,13 @@ class AuthNotifier extends StateNotifier<UserProfile> {
     ];
 
     final profile = UserProfile(
-      name: name,
-      email: email,
-      avatarUrl:
-          'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80',
+      name: (authData?.user?.name != null && authData!.user!.name.isNotEmpty) ? authData.user!.name : name,
+      email: (authData?.user?.email != null && authData!.user!.email.isNotEmpty) ? authData.user!.email : email,
+      avatarUrl: (authData?.user?.avatarUrl != null && authData!.user!.avatarUrl.isNotEmpty)
+          ? authData.user!.avatarUrl
+          : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80',
       isLoggedIn: true,
-      isVip: false,
+      isVip: authData?.user?.isVip ?? false,
       rememberMe: true,
       deviceType: 'Mobile',
       currentDeviceName: deviceName,
@@ -243,11 +443,18 @@ class AuthNotifier extends StateNotifier<UserProfile> {
 
     state = profile;
 
+    final accessToken = (authData?.accessToken != null && authData!.accessToken.isNotEmpty)
+        ? authData.accessToken
+        : 'liveeuy_jwt_token_${DateTime.now().millisecondsSinceEpoch}';
+    final refreshToken = (authData?.refreshToken != null && authData!.refreshToken.isNotEmpty)
+        ? authData.refreshToken
+        : 'liveeuy_refresh_token_${DateTime.now().millisecondsSinceEpoch}';
+
     if (_storageService != null) {
       await _storageService.setRememberMe(true);
       await _storageService.saveAuthTokens(
-        accessToken: 'liveeuy_jwt_token_${DateTime.now().millisecondsSinceEpoch}',
-        refreshToken: 'liveeuy_refresh_token_${DateTime.now().millisecondsSinceEpoch}',
+        accessToken: accessToken,
+        refreshToken: refreshToken,
       );
       await _storageService.saveUserSession(profile.toJson());
     }
@@ -319,7 +526,49 @@ class AuthNotifier extends StateNotifier<UserProfile> {
     return true;
   }
 
+  /// Silent refresh token: memperbarui access token di latar belakang (`POST /api/v1/auth/refresh`)
+  Future<bool> refreshAccessToken() async {
+    final refreshToken = await _storageService?.getRefreshToken();
+    if (refreshToken == null || refreshToken.isEmpty) {
+      return false;
+    }
+
+    try {
+      final res = await _apiClient.post<AuthData>(
+        ApiConfig.refreshPath,
+        body: {'refreshToken': refreshToken},
+        fromJson: (data) => AuthData.fromJson(data as Map<String, dynamic>),
+      );
+
+      final authData = res.data;
+      if (authData != null) {
+        await _storageService?.saveAuthTokens(
+          accessToken: authData.accessToken,
+          refreshToken: authData.refreshToken,
+        );
+        return true;
+      }
+    } on DioException catch (dioErr) {
+      if (dioErr is UnauthorizedException) {
+        logout();
+      }
+    } catch (_) {}
+
+    return false;
+  }
+
   void logout() {
+    _storageService?.getAccessToken().then((token) {
+      final headers = <String, String>{};
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+      _apiClient.post(
+        ApiConfig.logoutPath,
+        headers: headers.isNotEmpty ? headers : null,
+      ).catchError((_) => ApiResponse<dynamic>(success: false, message: ''));
+    }).catchError((_) {});
+
     state = UserProfile(
       name: state.name,
       email: state.email,

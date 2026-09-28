@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../core/theme/app_theme.dart';
 import '../../models/device_session_model.dart';
 import '../../providers/auth_provider.dart';
 
 /// Modal bottom sheet manajemen keamanan perangkat & sesi login.
-/// Membedakan sesi Mobile (perangkat ini) dengan sesi Web / Desktop (dev-frontend).
+/// Membedakan sesi Mobile (perangkat ini) dengan sesi Web / Desktop.
+/// Mengikuti styling sistem penyimpanan & cache (AppColors, surfaceContainerLowest, Outfit & Inter).
 class DeviceSecuritySheet extends ConsumerStatefulWidget {
   const DeviceSecuritySheet({super.key});
 
@@ -33,9 +35,9 @@ class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
           message,
           style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500),
         ),
-        backgroundColor: isError ? const Color(0xFFE11D48) : const Color(0xFF1E1E2E),
+        backgroundColor: isError ? AppColors.errorContainer : AppColors.surfaceContainerHighest,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
       ),
     );
@@ -45,12 +47,12 @@ class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A2B),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: AppColors.surfaceContainerHigh,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           'Keluarkan Perangkat?',
           style: GoogleFonts.outfit(
-            color: Colors.white,
+            color: AppColors.onSurface,
             fontWeight: FontWeight.w700,
             fontSize: 18,
           ),
@@ -58,7 +60,7 @@ class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
         content: Text(
           'Sesi login pada ${session.deviceName} (${session.browserOrApp}) akan dicabut seketika. Perangkat tersebut harus login kembali.',
           style: GoogleFonts.inter(
-            color: const Color(0xFFA0A0B2),
+            color: AppColors.textSecondary,
             fontSize: 13,
             height: 1.5,
           ),
@@ -68,15 +70,16 @@ class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
             onPressed: () => Navigator.pop(dialogCtx, false),
             child: Text(
               'Batal',
-              style: GoogleFonts.outfit(color: const Color(0xFF8E8EA8)),
+              style: GoogleFonts.outfit(color: AppColors.outline),
             ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(dialogCtx, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE11D48),
+              backgroundColor: AppColors.errorContainer,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             child: Text(
               'Keluarkan',
@@ -104,12 +107,12 @@ class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A2B),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: AppColors.surfaceContainerHigh,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           'Keluarkan Semua Perangkat Web/Lain?',
           style: GoogleFonts.outfit(
-            color: Colors.white,
+            color: AppColors.onSurface,
             fontWeight: FontWeight.w700,
             fontSize: 18,
           ),
@@ -117,7 +120,7 @@ class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
         content: Text(
           'Seluruh sesi aktif di browser Web (laptop, PC desktop, smart TV) akan dicabut. Sesi LiveEuy Mobile di smartphone ini akan tetap aktif.',
           style: GoogleFonts.inter(
-            color: const Color(0xFFA0A0B2),
+            color: AppColors.textSecondary,
             fontSize: 13,
             height: 1.5,
           ),
@@ -127,15 +130,16 @@ class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
             onPressed: () => Navigator.pop(dialogCtx, false),
             child: Text(
               'Batal',
-              style: GoogleFonts.outfit(color: const Color(0xFF8E8EA8)),
+              style: GoogleFonts.outfit(color: AppColors.outline),
             ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(dialogCtx, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE11D48),
+              backgroundColor: AppColors.errorContainer,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             child: Text(
               'Ya, Keluarkan Semua',
@@ -187,32 +191,31 @@ class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
         right: 20,
         bottom: MediaQuery.of(context).viewInsets.bottom + 28,
       ),
-      decoration: const BoxDecoration(
-        color: Color(0xFF141422),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border(
-          top: BorderSide(color: Color(0xFF28283E), width: 1.5),
-        ),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerHigh.withValues(alpha: 0.98),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border.all(color: AppColors.glassBorder),
       ),
       child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Drag handle
+            // Drag handle konsisten dengan penyimpanan cache
             Center(
               child: Container(
-                width: 44,
+                width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF383852),
+                  color: AppColors.surfaceVariant,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 16),
 
-            // Header title
+            // Header konsisten dengan penyimpanan cache
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -221,15 +224,14 @@ class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
                     children: [
                       Container(
                         padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF5D5FE6).withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFF5D5FE6).withValues(alpha: 0.3)),
+                        decoration: const BoxDecoration(
+                          color: AppColors.primaryContainer,
+                          shape: BoxShape.circle,
                         ),
                         child: const Icon(
                           Icons.devices_rounded,
-                          color: Color(0xFF8587FC),
-                          size: 22,
+                          color: Colors.white,
+                          size: 20,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -244,7 +246,7 @@ class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
                               style: GoogleFonts.outfit(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,
-                                color: Colors.white,
+                                color: AppColors.onSurface,
                               ),
                             ),
                             Text(
@@ -252,8 +254,8 @@ class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: GoogleFonts.inter(
-                                fontSize: 12,
-                                color: const Color(0xFFA0A0B2),
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
                               ),
                             ),
                           ],
@@ -264,7 +266,7 @@ class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
                 ),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close_rounded, color: Color(0xFF8E8EA8)),
+                  icon: const Icon(Icons.close_rounded, color: AppColors.outline),
                 ),
               ],
             ),
@@ -276,33 +278,32 @@ class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
               style: GoogleFonts.outfit(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
-                letterSpacing: 1.0,
-                color: const Color(0xFF10B981),
+                letterSpacing: 0.8,
+                color: AppColors.textSecondary,
               ),
             ),
             const SizedBox(height: 8),
 
             Container(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFF1A1A2B),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.35)),
+                color: AppColors.surfaceContainerLowest,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.2)),
               ),
               child: Row(
                 children: [
                   Container(
-                    width: 44,
-                    height: 44,
+                    width: 42,
+                    height: 42,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF10B981).withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.25)),
+                      color: AppColors.primaryContainer.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
                     ),
                     child: const Icon(
                       Icons.phone_android_rounded,
-                      color: Color(0xFF34D399),
-                      size: 24,
+                      color: AppColors.primary,
+                      size: 22,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -318,7 +319,7 @@ class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
                                 style: GoogleFonts.outfit(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
-                                  color: Colors.white,
+                                  color: AppColors.onSurface,
                                 ),
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -327,7 +328,7 @@ class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                                color: AppColors.surfaceContainerHighest,
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
@@ -335,7 +336,7 @@ class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
                                 style: GoogleFonts.inter(
                                   fontSize: 9,
                                   fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF34D399),
+                                  color: AppColors.primary,
                                 ),
                               ),
                             ),
@@ -346,21 +347,21 @@ class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
                           '${currentDevice.os} • ${currentDevice.ipAddress} • ${currentDevice.location}',
                           style: GoogleFonts.inter(
                             fontSize: 11,
-                            color: const Color(0xFFA0A0B2),
+                            color: AppColors.textSecondary,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 3),
                         Row(
                           children: [
-                            const Icon(Icons.circle, color: Color(0xFF10B981), size: 7),
+                            const Icon(Icons.circle, color: Color(0xFF4ADE80), size: 7),
                             const SizedBox(width: 5),
                             Text(
                               currentDevice.lastActive,
                               style: GoogleFonts.inter(
                                 fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFF10B981),
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.textSecondary,
                               ),
                             ),
                           ],
@@ -372,7 +373,7 @@ class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
               ),
             ),
 
-            const SizedBox(height: 22),
+            const SizedBox(height: 20),
 
             // Section 2: Perangkat Lain (Web & Desktop)
             Row(
@@ -384,8 +385,8 @@ class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
                     style: GoogleFonts.outfit(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
-                      letterSpacing: 1.0,
-                      color: const Color(0xFF8587FC),
+                      letterSpacing: 0.8,
+                      color: AppColors.textSecondary,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -396,7 +397,7 @@ class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
                   style: GoogleFonts.inter(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: const Color(0xFF8E8EA8),
+                    color: AppColors.outline,
                   ),
                 ),
               ],
@@ -408,15 +409,15 @@ class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1A1A2B).withValues(alpha: 0.6),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFF28283E)),
+                  color: AppColors.surfaceContainerLowest,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.2)),
                 ),
                 child: Column(
                   children: [
                     const Icon(
                       Icons.shield_outlined,
-                      color: Color(0xFF10B981),
+                      color: AppColors.primary,
                       size: 28,
                     ),
                     const SizedBox(height: 8),
@@ -425,7 +426,7 @@ class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
                       style: GoogleFonts.outfit(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: Colors.white,
+                        color: AppColors.onSurface,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -433,7 +434,7 @@ class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
                       'Akun Anda saat ini hanya terhubung di aplikasi mobile ini.',
                       style: GoogleFonts.inter(
                         fontSize: 11,
-                        color: const Color(0xFFA0A0B2),
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ],
@@ -443,33 +444,26 @@ class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
               ...otherDevices.map((device) {
                 final isWeb = device.isWebOrDesktop;
                 return Container(
-                  margin: const EdgeInsets.only(bottom: 10),
+                  margin: const EdgeInsets.only(bottom: 8),
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1A1A2B),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFF28283E)),
+                    color: AppColors.surfaceContainerLowest,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.2)),
                   ),
                   child: Row(
                     children: [
                       Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: isWeb
-                              ? const Color(0xFF5D5FE6).withValues(alpha: 0.12)
-                              : const Color(0xFFF59E0B).withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: isWeb
-                                ? const Color(0xFF5D5FE6).withValues(alpha: 0.25)
-                                : const Color(0xFFF59E0B).withValues(alpha: 0.25),
-                          ),
+                        width: 42,
+                        height: 42,
+                        decoration: const BoxDecoration(
+                          color: AppColors.surfaceContainerHighest,
+                          shape: BoxShape.circle,
                         ),
                         child: Icon(
                           isWeb ? Icons.laptop_chromebook_rounded : Icons.tablet_mac_rounded,
-                          color: isWeb ? const Color(0xFF8587FC) : const Color(0xFFFBBF24),
-                          size: 22,
+                          color: AppColors.outline,
+                          size: 20,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -485,7 +479,7 @@ class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
                                     style: GoogleFonts.outfit(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w700,
-                                      color: Colors.white,
+                                      color: AppColors.onSurface,
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -494,7 +488,7 @@ class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF5D5FE6).withValues(alpha: 0.18),
+                                    color: AppColors.surfaceContainerHighest,
                                     borderRadius: BorderRadius.circular(5),
                                   ),
                                   child: Text(
@@ -502,7 +496,7 @@ class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
                                     style: GoogleFonts.inter(
                                       fontSize: 9,
                                       fontWeight: FontWeight.w700,
-                                      color: const Color(0xFF8587FC),
+                                      color: AppColors.textSecondary,
                                     ),
                                   ),
                                 ),
@@ -513,7 +507,7 @@ class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
                               '${device.browserOrApp} • ${device.ipAddress}',
                               style: GoogleFonts.inter(
                                 fontSize: 11,
-                                color: const Color(0xFFA0A0B2),
+                                color: AppColors.textSecondary,
                               ),
                             ),
                             const SizedBox(height: 2),
@@ -521,7 +515,7 @@ class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
                               '${device.location} • Aktif ${device.lastActive}',
                               style: GoogleFonts.inter(
                                 fontSize: 10.5,
-                                color: const Color(0xFF8E8EA8),
+                                color: AppColors.outline,
                               ),
                             ),
                           ],
@@ -531,19 +525,19 @@ class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
                       OutlinedButton(
                         onPressed: _isProcessing ? null : () => _handleRevokeSingle(device),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFFFB7185),
-                          side: const BorderSide(color: Color(0xFFE11D48), width: 1),
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          minimumSize: const Size(60, 36),
+                          foregroundColor: AppColors.error,
+                          side: BorderSide(color: AppColors.error.withValues(alpha: 0.35)),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          minimumSize: const Size(60, 32),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(10),
                           ),
                         ),
                         child: Text(
                           'Keluarkan',
                           style: GoogleFonts.outfit(
                             fontSize: 11,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
@@ -552,39 +546,41 @@ class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
                 );
               }),
 
-            const SizedBox(height: 18),
+            const SizedBox(height: 20),
 
             // Section 3: Logout Semua Perangkat Lain Button
             if (otherDevices.isNotEmpty)
               SizedBox(
                 width: double.infinity,
-                height: 46,
-                child: OutlinedButton.icon(
+                child: ElevatedButton.icon(
                   onPressed: _isProcessing ? null : _handleLogoutAllOther,
-                  icon: const Icon(Icons.logout_rounded, color: Color(0xFFFB7185), size: 18),
+                  icon: const Icon(Icons.logout_rounded, size: 18),
                   label: Text(
                     'KELUARKAN SEMUA PERANGKAT WEB LAIN',
                     style: GoogleFonts.outfit(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      letterSpacing: 0.6,
-                      color: const Color(0xFFFB7185),
+                      letterSpacing: 0.5,
                     ),
                   ),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0xFFE11D48), width: 1.2),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.errorContainer.withValues(alpha: 0.35),
+                    foregroundColor: AppColors.error,
+                    elevation: 0,
+                    side: BorderSide(color: AppColors.error.withValues(alpha: 0.4)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
                 ),
               ),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             Center(
               child: Text(
                 'Identifikasi perangkat diverifikasi via User-Agent & Header API LiveEuy.',
                 style: GoogleFonts.inter(
                   fontSize: 10.5,
-                  color: const Color(0xFF717188),
+                  color: AppColors.outline,
                 ),
               ),
             ),

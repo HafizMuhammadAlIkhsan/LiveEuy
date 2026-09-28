@@ -3,8 +3,11 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../core/network/dio_exception.dart';
 import '../../core/theme/app_theme.dart';
+import '../../models/device_session_model.dart';
 import '../../providers/auth_provider.dart';
+import '../../shared/widgets/device_conflict_dialog.dart';
 import '../../shared/widgets/streamflix_logo.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -163,14 +166,113 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
 
     setState(() => _isLoading = true);
-    final success = await ref.read(authProvider.notifier).login(email, pass, _rememberMe);
-    if (mounted) {
+
+    // 1. Jalankan Device Conflict Checker (Web vs Mobile Single Session Rule)
+    final conflictCheck = await ref.read(authProvider.notifier).checkDeviceConflict(email);
+    if (!mounted) return;
+
+    if (conflictCheck.hasWebConflict) {
       setState(() => _isLoading = false);
-      if (success) {
-        _showToast('Verifikasi Berhasil', 'Selamat menonton film favoritmu!', icon: Icons.check_circle_rounded);
-        Navigator.pop(context);
+      _showDeviceConflictDialog(conflictCheck, email, pass);
+      return;
+    }
+
+    try {
+      final success = await ref.read(authProvider.notifier).login(email, pass, _rememberMe);
+      if (mounted) {
+        setState(() => _isLoading = false);
+        if (success) {
+          _showToast('Verifikasi Berhasil', 'Selamat menonton film favoritmu!', icon: Icons.check_circle_rounded);
+          Navigator.pop(context);
+        } else {
+          _showToast('Masuk Gagal', 'Kredensial atau otentikasi tidak valid', icon: Icons.error_outline_rounded);
+        }
+      }
+    } on DioException catch (dioErr) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _showToast(
+          'Masuk Gagal',
+          dioErr.message ?? 'Email atau kata sandi tidak sesuai',
+          icon: Icons.error_outline_rounded,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _showToast('Masuk Gagal', 'Terjadi kesalahan sistem: $e', icon: Icons.error_outline_rounded);
       }
     }
+  }
+
+  void _showDeviceConflictDialog(DeviceCheckResult conflictResult, String email, String pass) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          bool isTakeoverProcessing = false;
+          return DeviceConflictDialog(
+            conflictResult: conflictResult,
+            isProcessing: isTakeoverProcessing,
+            onCancel: () {
+              Navigator.of(dialogCtx).pop();
+              _showToast(
+                'Masuk Dibatalkan',
+                'Sesi akun Anda tetap aktif di Web Browser.',
+                icon: Icons.info_outline_rounded,
+              );
+            },
+            onConfirmTakeover: () async {
+              setDialogState(() => isTakeoverProcessing = true);
+              try {
+                final success = await ref.read(authProvider.notifier).login(
+                      email,
+                      pass,
+                      _rememberMe,
+                      forceTakeover: true,
+                    );
+                if (mounted) {
+                  Navigator.of(dialogCtx).pop();
+                  if (success) {
+                    _showToast(
+                      'Sesi Web Dikeluarkan',
+                      'Akun Anda kini aktif di perangkat Mobile ini.',
+                      icon: Icons.phonelink_lock_rounded,
+                    );
+                    Navigator.pop(context);
+                  } else {
+                    _showToast(
+                      'Gagal Mengambil Alih Sesi',
+                      'Terjadi kesalahan saat mencabut sesi Web.',
+                      icon: Icons.error_outline_rounded,
+                    );
+                  }
+                }
+              } on DioException catch (dioErr) {
+                if (mounted) {
+                  Navigator.of(dialogCtx).pop();
+                  _showToast(
+                    'Gagal Masuk',
+                    dioErr.message ?? 'Kredensial tidak valid',
+                    icon: Icons.error_outline_rounded,
+                  );
+                }
+              } catch (_) {
+                if (mounted) {
+                  Navigator.of(dialogCtx).pop();
+                  _showToast(
+                    'Gagal Mengambil Alih Sesi',
+                    'Terjadi kesalahan saat mencabut sesi Web.',
+                    icon: Icons.error_outline_rounded,
+                  );
+                }
+              }
+            },
+          );
+        },
+      ),
+    );
   }
 
   void _handleDaftar() async {
@@ -196,12 +298,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
 
     setState(() => _isLoading = true);
-    final success = await ref.read(authProvider.notifier).register(name, email, pass);
-    if (mounted) {
-      setState(() => _isLoading = false);
-      if (success) {
-        _showToast('Pendaftaran Berhasil', 'Akun Anda berhasil didaftarkan. Selamat datang!', icon: Icons.check_circle_rounded);
-        Navigator.pop(context);
+    try {
+      final success = await ref.read(authProvider.notifier).register(name, email, pass);
+      if (mounted) {
+        setState(() => _isLoading = false);
+        if (success) {
+          _showToast('Pendaftaran Berhasil', 'Akun Anda berhasil didaftarkan. Selamat datang!', icon: Icons.check_circle_rounded);
+          Navigator.pop(context);
+        }
+      }
+    } on DioException catch (dioErr) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _showToast(
+          'Pendaftaran Gagal',
+          dioErr.message ?? 'Gagal mendaftarkan akun. Periksa data Anda.',
+          icon: Icons.error_outline_rounded,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _showToast('Pendaftaran Gagal', 'Terjadi kesalahan sistem: $e', icon: Icons.error_outline_rounded);
       }
     }
   }

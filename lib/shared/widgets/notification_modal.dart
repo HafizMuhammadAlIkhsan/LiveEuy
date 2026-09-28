@@ -37,7 +37,7 @@ class NotificationIconButton extends ConsumerWidget {
               width: 8,
               height: 8,
               decoration: BoxDecoration(
-                color: AppColors.brand500,
+                color: AppColors.primary,
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: AppColors.background,
@@ -66,199 +66,287 @@ void showNotificationSheet(
           final notifState = ref.watch(notificationProvider);
 
           return Container(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
             decoration: BoxDecoration(
-              color: const Color(0xFF0F101A),
+              color: AppColors.surfaceContainerHigh.withValues(alpha: 0.98),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.1),
-                width: 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.6),
-                  blurRadius: 24,
-                  offset: const Offset(0, -4),
-                ),
-              ],
+              border: Border.all(color: AppColors.glassBorder),
             ),
             child: SafeArea(
               top: false,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Center drag pill handle
-                  Center(
-                    child: Container(
-                      width: 36,
-                      height: 4,
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: AppColors.outlineVariant.withValues(alpha: 0.8),
-                        borderRadius: BorderRadius.circular(2),
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Center drag pill handle
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceVariant,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                     ),
-                  ),
+                    const SizedBox(height: 16),
 
-                  // Header (NOTIFIKASI TERBARU + Tandai dibaca)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'NOTIFIKASI TERBARU',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.2,
-                          color: AppColors.brandSlate400,
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          ref.read(notificationProvider.notifier).markAllAsRead();
-                        },
-                        child: Text(
-                          'Tandai dibaca',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.brand400,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Divider(color: Colors.white.withValues(alpha: 0.08), height: 1),
-                  const SizedBox(height: 12),
-
-                  // Items List
-                  if (notifState.items.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 24),
-                      child: Center(
-                        child: Text(
-                          'Tidak ada notifikasi saat ini.',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 13,
-                            color: AppColors.textMuted,
-                          ),
-                        ),
-                      ),
-                    )
-                  else
-                    ...notifState.items.map((item) {
-                      final isSparkles = item.iconType == 'sparkles';
-                      final iconBg = isSparkles
-                          ? AppColors.brand500.withValues(alpha: 0.15)
-                          : const Color(0xFFF59E0B).withValues(alpha: 0.15);
-                      final iconColor = isSparkles
-                          ? AppColors.brand400
-                          : const Color(0xFFF59E0B);
-                      final iconData = isSparkles
-                          ? Icons.auto_awesome_rounded
-                          : Icons.local_fire_department_rounded;
-
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 8.0),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(16),
-                          onTap: () {
-                            ref
-                                .read(notificationProvider.notifier)
-                                .markAsRead(item.id);
-                            Navigator.pop(ctx);
-                            if (onOpenMediaId != null && item.targetMediaId != null) {
-                              onOpenMediaId(item.targetMediaId!);
-                            } else {
-                              ref
-                                  .read(notificationProvider.notifier)
-                                  .openNotification(item);
-                            }
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: item.isRead
-                                  ? Colors.white.withValues(alpha: 0.03)
-                                  : Colors.white.withValues(alpha: 0.07),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: item.isRead
-                                    ? Colors.white.withValues(alpha: 0.04)
-                                    : AppColors.brand400.withValues(alpha: 0.2),
-                              ),
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  width: 36,
-                                  height: 36,
-                                  decoration: BoxDecoration(
-                                    color: iconBg,
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Icon(iconData, color: iconColor, size: 18),
+                    // Header (konsisten dengan modal penyimpanan & cache)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: const BoxDecoration(
+                                  color: AppColors.primaryContainer,
+                                  shape: BoxShape.circle,
                                 ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            item.title,
-                                            style: GoogleFonts.plusJakartaSans(
-                                              fontSize: 13,
+                                child: const Icon(
+                                  Icons.notifications_rounded,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            'NOTIFIKASI TERBARU',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: GoogleFonts.outfit(
+                                              fontSize: 16,
                                               fontWeight: FontWeight.w700,
-                                              color: Colors.white,
+                                              letterSpacing: 0.5,
+                                              color: AppColors.onSurface,
                                             ),
                                           ),
-                                          if (!item.isRead)
-                                            Container(
-                                              width: 6,
-                                              height: 6,
-                                              decoration: const BoxDecoration(
-                                                color: AppColors.brand500,
-                                                shape: BoxShape.circle,
+                                        ),
+                                        if (notifState.hasUnread) ...[
+                                          const SizedBox(width: 8),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.primaryContainer.withValues(alpha: 0.2),
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                            child: Text(
+                                              '${notifState.items.where((i) => !i.isRead).length}',
+                                              style: GoogleFonts.outfit(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w700,
+                                                color: AppColors.primary,
                                               ),
                                             ),
+                                          ),
                                         ],
+                                      ],
+                                    ),
+                                    Text(
+                                      'Pemberitahuan episode dan rilis tayangan',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.inter(
+                                        fontSize: 11,
+                                        color: AppColors.textSecondary,
                                       ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        item.message,
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 12,
-                                          color: const Color(0xFFCBD5E1),
-                                          height: 1.35,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        item.time,
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 10,
-                                          color: AppColors.brandSlate400,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ),
-                      );
-                    }),
-                ],
+                        const SizedBox(width: 8),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                ref.read(notificationProvider.notifier).markAllAsRead();
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                                child: Text(
+                                  'Tandai dibaca',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: notifState.hasUnread ? AppColors.primary : AppColors.outline,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close_rounded, color: AppColors.outline),
+                              onPressed: () => Navigator.pop(ctx),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+
+                    // Items List
+                    if (notifState.items.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 32),
+                        child: Center(
+                          child: Column(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(14),
+                                decoration: const BoxDecoration(
+                                  color: AppColors.surfaceContainerLowest,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.notifications_none_rounded,
+                                  color: AppColors.outline,
+                                  size: 28,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                'Tidak ada notifikasi saat ini.',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textMuted,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    else
+                      ...notifState.items.map((item) {
+                        final isSparkles = item.iconType == 'sparkles';
+                        final iconData = isSparkles
+                            ? Icons.auto_awesome_rounded
+                            : Icons.local_fire_department_rounded;
+
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 10.0),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: () {
+                              ref
+                                  .read(notificationProvider.notifier)
+                                  .markAsRead(item.id);
+                              Navigator.pop(ctx);
+                              if (onOpenMediaId != null && item.targetMediaId != null) {
+                                onOpenMediaId(item.targetMediaId!);
+                              } else {
+                                ref
+                                    .read(notificationProvider.notifier)
+                                    .openNotification(item);
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: item.isRead
+                                    ? AppColors.surfaceContainerLowest.withValues(alpha: 0.5)
+                                    : AppColors.surfaceContainerLowest,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: item.isRead
+                                      ? AppColors.outlineVariant.withValues(alpha: 0.15)
+                                      : AppColors.outlineVariant.withValues(alpha: 0.35),
+                                ),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      color: item.isRead
+                                          ? AppColors.surfaceContainerHigh
+                                          : AppColors.primaryContainer.withValues(alpha: 0.15),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      iconData,
+                                      color: item.isRead ? AppColors.outline : AppColors.primary,
+                                      size: 19,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                item.title,
+                                                style: GoogleFonts.outfit(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: AppColors.onSurface,
+                                                ),
+                                              ),
+                                            ),
+                                            if (!item.isRead) ...[
+                                              const SizedBox(width: 6),
+                                              Container(
+                                                width: 7,
+                                                height: 7,
+                                                decoration: const BoxDecoration(
+                                                  color: AppColors.primary,
+                                                  shape: BoxShape.circle,
+                                                ),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          item.message,
+                                          style: GoogleFonts.inter(
+                                            fontSize: 12,
+                                            color: AppColors.textSecondary,
+                                            height: 1.4,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          item.time,
+                                          style: GoogleFonts.inter(
+                                            fontSize: 10.5,
+                                            color: AppColors.outline,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+                  ],
+                ),
               ),
             ),
           );

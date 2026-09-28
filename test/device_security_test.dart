@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:liveeuy_mob/core/network/api_config.dart';
 import 'package:liveeuy_mob/models/device_session_model.dart';
 import 'package:liveeuy_mob/providers/auth_provider.dart';
+import 'package:liveeuy_mob/shared/widgets/device_conflict_dialog.dart';
 import 'package:liveeuy_mob/shared/widgets/device_security_sheet.dart';
 
 void main() {
@@ -193,4 +194,159 @@ void main() {
       expect(find.text('KELUARKAN SEMUA PERANGKAT WEB LAIN'), findsOneWidget);
     });
   });
+
+  group('DeviceCheckResult Model Tests', () {
+    test('DeviceCheckResult.noConflict instantiates properly', () {
+      final res = DeviceCheckResult.noConflict();
+      expect(res.hasWebConflict, isFalse);
+      expect(res.activeWebCount, equals(0));
+      expect(res.conflictingSession, isNull);
+      expect(res.message, contains('diizinkan login'));
+    });
+
+    test('DeviceCheckResult.conflict serializes and deserializes correctly', () {
+      const session = DeviceSession(
+        sessionId: 'sess-web-test',
+        deviceName: 'Apple Safari (macOS)',
+        deviceType: DeviceType.desktop,
+        os: 'macOS Sequoia',
+        browserOrApp: 'Safari 18',
+        ipAddress: '10.0.0.1',
+        location: 'Bandung, Indonesia',
+        lastActive: '5 menit lalu',
+        isCurrentDevice: false,
+      );
+
+      final conflict = DeviceCheckResult.conflict(session: session, activeWebCount: 2);
+      expect(conflict.hasWebConflict, isTrue);
+      expect(conflict.activeWebCount, equals(2));
+      expect(conflict.conflictingSession?.deviceName, equals('Apple Safari (macOS)'));
+
+      final json = conflict.toJson();
+      expect(json['hasWebConflict'], isTrue);
+      expect(json['activeWebCount'], equals(2));
+
+      final parsed = DeviceCheckResult.fromJson(json);
+      expect(parsed.hasWebConflict, isTrue);
+      expect(parsed.conflictingSession?.sessionId, equals('sess-web-test'));
+    });
+  });
+
+  group('Device Conflict Checker & Takeover Logic Tests', () {
+    test('checkDeviceConflict detects conflict when account has active web session', () async {
+      final notifier = AuthNotifier();
+
+      // Alex has active web session registered by default
+      final conflict = await notifier.checkDeviceConflict('alex@streamflix.id');
+      expect(conflict.hasWebConflict, isTrue);
+      expect(conflict.conflictingSession, isNotNull);
+      expect(conflict.conflictingSession?.deviceName, contains('Google Chrome'));
+
+      // Clean account without web session has no conflict
+      final clean = await notifier.checkDeviceConflict('clean_user@streamflix.id');
+      expect(clean.hasWebConflict, isFalse);
+    });
+
+    test('login is blocked when web session is active and forceTakeover is false', () async {
+      final notifier = AuthNotifier();
+
+      // Login attempt without takeover
+      final success = await notifier.login('alex@streamflix.id', 'Password123!', true, forceTakeover: false);
+      expect(success, isFalse);
+      expect(notifier.state.isLoggedIn, isFalse);
+    });
+
+    test('login with forceTakeover=true revokes web session and sets mobile as sole session', () async {
+      final notifier = AuthNotifier();
+
+      // Force takeover
+      final success = await notifier.login('alex@streamflix.id', 'Password123!', true, forceTakeover: true);
+      expect(success, isTrue);
+      expect(notifier.state.isLoggedIn, isTrue);
+
+      // Web sessions revoked, only 1 current mobile session left
+      expect(notifier.state.activeSessions.length, equals(1));
+      expect(notifier.state.activeSessions.first.isCurrentDevice, isTrue);
+      expect(notifier.state.activeSessions.first.isMobile, isTrue);
+
+      // Subsequent conflict check returns no conflict
+      final postCheck = await notifier.checkDeviceConflict('alex@streamflix.id');
+      expect(postCheck.hasWebConflict, isFalse);
+    });
+
+    test('registerWebSession and clearWebSessions dynamically control conflict state', () async {
+      final notifier = AuthNotifier();
+      const testEmail = 'custom_device@test.id';
+
+      expect((await notifier.checkDeviceConflict(testEmail)).hasWebConflict, isFalse);
+
+      notifier.registerWebSession(testEmail);
+      expect((await notifier.checkDeviceConflict(testEmail)).hasWebConflict, isTrue);
+
+      notifier.clearWebSessions(testEmail);
+      expect((await notifier.checkDeviceConflict(testEmail)).hasWebConflict, isFalse);
+    });
+  });
+
+  group('DeviceConflictDialog Widget Tests', () {
+    testWidgets('Renders conflict banner, web details, and triggers takeover callback', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      bool cancelled = false;
+      bool takeoverTriggered = false;
+
+      const session = DeviceSession(
+        sessionId: 'sess-web-dialog',
+        deviceName: 'Google Chrome (Windows 11)',
+        deviceType: DeviceType.desktop,
+        os: 'Windows 11 Pro',
+        browserOrApp: 'Chrome 128',
+        ipAddress: '180.252.164.218',
+        location: 'Jakarta, Indonesia',
+        lastActive: '10 menit yang lalu',
+      );
+
+      final conflictResult = DeviceCheckResult.conflict(session: session);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: DeviceConflictDialog(
+              conflictResult: conflictResult,
+              onCancel: () => cancelled = true,
+              onConfirmTakeover: () => takeoverTriggered = true,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+
+      // Header and badge
+      expect(find.text('KONFLIK SESI PERANGKAT'), findsOneWidget);
+      expect(find.text('Akun Sedang Aktif di Web'), findsOneWidget);
+
+      // Active web card details
+      expect(find.text('Google Chrome (Windows 11)'), findsOneWidget);
+      expect(find.text('WEB CLIENT'), findsOneWidget);
+      expect(find.textContaining('180.252.164.218'), findsOneWidget);
+
+      // Buttons
+      expect(find.text('Batal'), findsOneWidget);
+      expect(find.text('Keluarkan Web & Masuk'), findsOneWidget);
+
+      // Tap takeover button
+      await tester.tap(find.text('Keluarkan Web & Masuk'));
+      await tester.pump();
+      expect(takeoverTriggered, isTrue);
+
+      // Tap cancel button
+      await tester.tap(find.text('Batal'));
+      await tester.pump();
+      expect(cancelled, isTrue);
+    });
+  });
 }
+

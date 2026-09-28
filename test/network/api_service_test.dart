@@ -321,5 +321,177 @@ void main() {
       expect(newReview?.rating, 10.0);
       expect(newReview?.comment, 'Luar biasa!');
     });
+
+    test('login authenticates user and returns AuthData matching backend contract', () async {
+      final mockClient = MockClient((request) async {
+        expect(request.method, 'POST');
+        expect(request.url.path, '/api/v1/auth/login');
+        final body = jsonDecode(request.body);
+        expect(body['email'], 'hafiz@streamflix.id');
+        expect(body['password'], 'password123');
+        expect(body['rememberMe'], true);
+
+        return http.Response(
+          jsonEncode({
+            'success': true,
+            'message': 'Login berhasil',
+            'data': {
+              'accessToken': 'jwt_access_mock_123',
+              'refreshToken': 'jwt_refresh_mock_456',
+              'tokenType': 'Bearer',
+              'expiresIn': 900,
+              'user': {
+                'id': 'usr_1',
+                'name': 'Hafiz Muhammad',
+                'email': 'hafiz@streamflix.id',
+                'avatarUrl': 'https://example.com/avatar.jpg',
+                'membershipTier': 'VIP_4K',
+              },
+            },
+            'timestamp': '2026-09-28T10:00:00',
+          }),
+          200,
+        );
+      });
+
+      final service = ApiService(
+        client: ApiClient(httpClient: mockClient, baseUrl: 'http://localhost:8080/api/v1'),
+      );
+
+      final authData = await service.login(
+        email: 'hafiz@streamflix.id',
+        password: 'password123',
+        rememberMe: true,
+      );
+
+      expect(authData, isNotNull);
+      expect(authData?.accessToken, 'jwt_access_mock_123');
+      expect(authData?.refreshToken, 'jwt_refresh_mock_456');
+      expect(authData?.user?.name, 'Hafiz Muhammad');
+      expect(authData?.user?.isVip, isTrue);
+    });
+
+    test('register creates new account and returns AuthData', () async {
+      final mockClient = MockClient((request) async {
+        expect(request.method, 'POST');
+        expect(request.url.path, '/api/v1/auth/register');
+        final body = jsonDecode(request.body);
+        expect(body['name'], 'Aria Pratama');
+        expect(body['email'], 'aria@liveeuy.id');
+        expect(body['password'], 'Secret123');
+
+        return http.Response(
+          jsonEncode({
+            'success': true,
+            'message': 'Registrasi berhasil',
+            'data': {
+              'accessToken': 'jwt_access_aria_1',
+              'refreshToken': 'jwt_refresh_aria_1',
+              'tokenType': 'Bearer',
+              'expiresIn': 900,
+              'user': {
+                'id': 'usr_aria',
+                'name': 'Aria Pratama',
+                'email': 'aria@liveeuy.id',
+                'avatarUrl': 'https://example.com/aria.jpg',
+                'membershipTier': 'REGULAR',
+              },
+            },
+            'timestamp': '2026-09-28T10:00:00',
+          }),
+          201,
+        );
+      });
+
+      final service = ApiService(
+        client: ApiClient(httpClient: mockClient, baseUrl: 'http://localhost:8080/api/v1'),
+      );
+
+      final authData = await service.register(
+        name: 'Aria Pratama',
+        email: 'aria@liveeuy.id',
+        password: 'Secret123',
+      );
+
+      expect(authData, isNotNull);
+      expect(authData?.accessToken, 'jwt_access_aria_1');
+      expect(authData?.user?.name, 'Aria Pratama');
+      expect(authData?.user?.email, 'aria@liveeuy.id');
+    });
+
+    test('refreshToken rotates tokens for mobile client', () async {
+      final mockClient = MockClient((request) async {
+        expect(request.method, 'POST');
+        expect(request.url.path, '/api/v1/auth/refresh');
+        final body = jsonDecode(request.body);
+        expect(body['refreshToken'], 'old_refresh_token');
+
+        return http.Response(
+          jsonEncode({
+            'success': true,
+            'message': 'Token refreshed',
+            'data': {
+              'accessToken': 'new_access_token',
+              'refreshToken': 'new_refresh_token',
+              'tokenType': 'Bearer',
+              'expiresIn': 900,
+            },
+            'timestamp': '2026-09-28T10:15:00',
+          }),
+          200,
+        );
+      });
+
+      final service = ApiService(
+        client: ApiClient(httpClient: mockClient, baseUrl: 'http://localhost:8080/api/v1'),
+      );
+
+      final authData = await service.refreshToken('old_refresh_token');
+      expect(authData?.accessToken, 'new_access_token');
+      expect(authData?.refreshToken, 'new_refresh_token');
+    });
+
+    test('getCurrentUser and logout call expected endpoints and headers', () async {
+      final mockClient = MockClient((request) async {
+        if (request.method == 'GET' && request.url.path == '/api/v1/auth/me') {
+          expect(request.headers['authorization'], 'Bearer token_123');
+          return http.Response(
+            jsonEncode({
+              'success': true,
+              'message': 'Profile loaded',
+              'data': {
+                'id': 'usr_1',
+                'name': 'Hafiz Muhammad',
+                'email': 'hafiz@streamflix.id',
+                'avatarUrl': 'https://example.com/avatar.jpg',
+                'membershipTier': 'VIP_4K',
+              },
+            }),
+            200,
+          );
+        } else if (request.method == 'POST' && request.url.path == '/api/v1/auth/logout') {
+          return http.Response(
+            jsonEncode({
+              'success': true,
+              'message': 'Logout berhasil',
+              'data': null,
+            }),
+            200,
+          );
+        }
+        return http.Response('Not Found', 404);
+      });
+
+      final service = ApiService(
+        client: ApiClient(httpClient: mockClient, baseUrl: 'http://localhost:8080/api/v1'),
+      );
+
+      final user = await service.getCurrentUser(accessToken: 'token_123');
+      expect(user?.name, 'Hafiz Muhammad');
+      expect(user?.isVip, isTrue);
+
+      final logoutSuccess = await service.logout(accessToken: 'token_123');
+      expect(logoutSuccess, isTrue);
+    });
   });
 }

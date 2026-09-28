@@ -113,3 +113,61 @@ class DeviceSession {
     );
   }
 }
+
+/// Hasil pengecekan konflik sesi login antar platform (Web/Desktop vs Mobile)
+class DeviceCheckResult {
+  final bool hasWebConflict;
+  final DeviceSession? conflictingSession;
+  final int activeWebCount;
+  final String message;
+
+  const DeviceCheckResult({
+    required this.hasWebConflict,
+    this.conflictingSession,
+    this.activeWebCount = 0,
+    required this.message,
+  });
+
+  factory DeviceCheckResult.noConflict({String? message}) {
+    return DeviceCheckResult(
+      hasWebConflict: false,
+      activeWebCount: 0,
+      message: message ?? 'Perangkat diizinkan login. Tidak ada konflik sesi Web yang aktif.',
+    );
+  }
+
+  factory DeviceCheckResult.conflict({
+    required DeviceSession session,
+    int activeWebCount = 1,
+    String? customMessage,
+  }) {
+    return DeviceCheckResult(
+      hasWebConflict: true,
+      conflictingSession: session,
+      activeWebCount: activeWebCount,
+      message: customMessage ??
+          'Akun sedang aktif pada sesi Web (${session.deviceName}). Kebijakan keamanan melarang login bersamaan pada Web dan Mobile.',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'hasWebConflict': hasWebConflict,
+      'conflictingSession': conflictingSession?.toJson(),
+      'activeWebCount': activeWebCount,
+      'message': message,
+    };
+  }
+
+  factory DeviceCheckResult.fromJson(Map<String, dynamic> json) {
+    return DeviceCheckResult(
+      hasWebConflict: json['hasWebConflict'] as bool? ?? false,
+      conflictingSession: json['conflictingSession'] != null
+          ? DeviceSession.fromJson(json['conflictingSession'] as Map<String, dynamic>)
+          : null,
+      activeWebCount: json['activeWebCount'] as int? ?? 0,
+      message: json['message'] as String? ?? '',
+    );
+  }
+}
+

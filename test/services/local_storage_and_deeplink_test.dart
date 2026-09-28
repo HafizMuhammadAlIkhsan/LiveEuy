@@ -1,6 +1,10 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:liveeuy_mob/core/deeplink/deep_link_service.dart';
+import 'package:liveeuy_mob/core/network/api_client.dart';
 import 'package:liveeuy_mob/core/notification/notification_service.dart';
 import 'package:liveeuy_mob/core/storage/local_storage_service.dart';
 import 'package:liveeuy_mob/models/notification_model.dart';
@@ -292,6 +296,169 @@ void main() {
       authNotifier.logout();
       expect(authNotifier.state.isLoggedIn, isFalse);
       expect(await storage.getAccessToken(), isNull);
+    });
+
+    test('login with backend API success saves backend tokens and user data', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final storage = LocalStorageService(prefs: prefs);
+
+      final mockClient = MockClient((request) async {
+        if (request.method == 'GET' && request.url.path.contains('/auth/device-check')) {
+          return http.Response(
+            jsonEncode({
+              'success': true,
+              'message': 'OK',
+              'data': {'hasWebConflict': false, 'activeWebCount': 0},
+            }),
+            200,
+          );
+        }
+        if (request.method == 'POST' && request.url.path == '/api/v1/auth/login') {
+          return http.Response(
+            jsonEncode({
+              'success': true,
+              'message': 'Login sukses',
+              'data': {
+                'accessToken': 'backend_access_jwt_123',
+                'refreshToken': 'backend_refresh_jwt_456',
+                'tokenType': 'Bearer',
+                'expiresIn': 900,
+                'user': {
+                  'id': 'usr_backend_1',
+                  'name': 'Hafiz Backend',
+                  'email': 'hafiz@streamflix.id',
+                  'avatarUrl': 'https://example.com/hafiz.jpg',
+                  'membershipTier': 'VIP_4K',
+                },
+              },
+            }),
+            200,
+          );
+        }
+        return http.Response('Not Found', 404);
+      });
+
+      final apiClient = ApiClient(httpClient: mockClient, baseUrl: 'http://localhost:8080/api/v1');
+      final authNotifier = AuthNotifier(storage, apiClient);
+
+      final success = await authNotifier.login('hafiz@streamflix.id', 'password123', true);
+      expect(success, isTrue);
+      expect(authNotifier.state.name, equals('Hafiz Backend'));
+      expect(authNotifier.state.isVip, isTrue);
+      expect(await storage.getAccessToken(), equals('backend_access_jwt_123'));
+      expect(await storage.getRefreshToken(), equals('backend_refresh_jwt_456'));
+    });
+
+    test('login rethrows UnauthorizedException on 401 invalid credentials', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final storage = LocalStorageService(prefs: prefs);
+
+      final mockClient = MockClient((request) async {
+        if (request.method == 'GET' && request.url.path.contains('/auth/device-check')) {
+          return http.Response(
+            jsonEncode({
+              'success': true,
+              'message': 'OK',
+              'data': {'hasWebConflict': false},
+            }),
+            200,
+          );
+        }
+        if (request.method == 'POST' && request.url.path == '/api/v1/auth/login') {
+          return http.Response(
+            jsonEncode({
+              'success': false,
+              'message': 'Email atau kata sandi tidak sesuai',
+              'data': null,
+            }),
+            401,
+          );
+        }
+        return http.Response('Not Found', 404);
+      });
+
+      final apiClient = ApiClient(httpClient: mockClient, baseUrl: 'http://localhost:8080/api/v1');
+      final authNotifier = AuthNotifier(storage, apiClient);
+
+      expect(
+        authNotifier.login('wrong@streamflix.id', 'wrongpass', true),
+        throwsA(isA<UnauthorizedException>()),
+      );
+    });
+
+    test('refreshAccessToken updates tokens via silent refresh', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final storage = LocalStorageService(prefs: prefs);
+      await storage.saveAuthTokens(accessToken: 'old_acc', refreshToken: 'valid_refresh');
+
+      final mockClient = MockClient((request) async {
+        if (request.method == 'POST' && request.url.path == '/api/v1/auth/refresh') {
+          final body = jsonDecode(request.body);
+          expect(body['refreshToken'], 'valid_refresh');
+          return http.Response(
+            jsonEncode({
+              'success': true,
+              'message': 'Token refreshed',
+              'data': {
+                'accessToken': 'brand_new_access_token',
+                'refreshToken': 'brand_new_refresh_token',
+              },
+            }),
+            200,
+          );
+        }
+        return http.Response('Not Found', 404);
+      });
+
+      final apiClient = ApiClient(httpClient: mockClient, baseUrl: 'http://localhost:8080/api/v1');
+      final authNotifier = AuthNotifier(storage, apiClient);
+
+      final refreshed = await authNotifier.refreshAccessToken();
+      expect(refreshed, isTrue);
+      expect(await storage.getAccessToken(), equals('brand_new_access_token'));
+      expect(await storage.getRefreshToken(), equals('brand_new_refresh_token'));
+    });
+
+    test('register with backend API success saves tokens and user data', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final storage = LocalStorageService(prefs: prefs);
+
+      final mockClient = MockClient((request) async {
+        if (request.method == 'POST' && request.url.path == '/api/v1/auth/register') {
+          return http.Response(
+            jsonEncode({
+              'success': true,
+              'message': 'Registrasi sukses',
+              'data': {
+                'accessToken': 'registered_access_jwt',
+                'refreshToken': 'registered_refresh_jwt',
+                'user': {
+                  'id': 'usr_new',
+                  'name': 'Budi Baru',
+                  'email': 'budi@liveeuy.id',
+                  'avatarUrl': 'https://example.com/budi.jpg',
+                  'membershipTier': 'REGULAR',
+                },
+              },
+            }),
+            201,
+          );
+        }
+        return http.Response('Not Found', 404);
+      });
+
+      final apiClient = ApiClient(httpClient: mockClient, baseUrl: 'http://localhost:8080/api/v1');
+      final authNotifier = AuthNotifier(storage, apiClient);
+
+      final registered = await authNotifier.register('Budi Baru', 'budi@liveeuy.id', 'password123');
+      expect(registered, isTrue);
+      expect(authNotifier.state.name, equals('Budi Baru'));
+      expect(authNotifier.state.isLoggedIn, isTrue);
+      expect(await storage.getAccessToken(), equals('registered_access_jwt'));
     });
   });
 }

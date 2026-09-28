@@ -98,8 +98,13 @@ class ApiConfig {
   static const String settingsPath = '/user/settings';
 
   // Device & Auth Security paths
+  static const String loginPath = '/auth/login';
+  static const String registerPath = '/auth/register';
+  static const String refreshPath = '/auth/refresh';
+  static const String mePath = '/auth/me';
   static const String logoutPath = '/auth/logout';
   static const String logoutAllPath = '/auth/logout-all';
   static String revokeDevicePath(String deviceId) => '/auth/devices/$deviceId';
+  static String deviceCheckPath(String email) => '/auth/device-check?email=${Uri.encodeComponent(email)}';
 }
 
