@@ -49,7 +49,10 @@ func main() {
 
 	cfg := config.NewConfigFromEnv()
 
-	db, err := gorm.Open(postgres.Open(cfg.DBURL), &gorm.Config{
+	db, err := gorm.Open(postgres.New(postgres.Config{
+		DSN:                  cfg.DBURL,
+		PreferSimpleProtocol: true, // Disables prepared statement caching for Neon Pooler / PgBouncer compatibility
+	}), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
 	})
 	if err != nil {

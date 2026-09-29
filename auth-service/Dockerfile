@@ -1,9 +1,11 @@
 # ==========================================
 # Stage 1: Builder
 # ==========================================
-FROM golang:1.24-alpine AS builder
+FROM golang:1.26-alpine AS builder
 
 RUN apk add --no-cache git
+
+RUN go install github.com/swaggo/swag/cmd/swag@latest
 
 WORKDIR /app
 
@@ -13,6 +15,8 @@ RUN go mod download
 
 # Copy application source
 COPY . .
+
+RUN swag init -g cmd/server/main.go -o ./docs
 
 # Compile static binary
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /app/auth-service ./cmd/server

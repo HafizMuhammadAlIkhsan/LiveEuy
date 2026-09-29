@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"strconv"
+	"strings"
 )
 
 type WebOAuth struct {
@@ -77,7 +78,7 @@ func NewConfigFromEnv() *Config {
 
 func getEnv(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
-		return v
+		return strings.Trim(v, "\"'")
 	}
 	return fallback
 }
