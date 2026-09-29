@@ -24,7 +24,7 @@ var (
 
 const (
 	refreshTokenDuration = 30 * 24 * time.Hour
-	defaultAvatar        = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=160&auto=format&fit=crop&q=80"
+	defaultPicture        = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=160&auto=format&fit=crop&q=80"
 )
 
 type AuthService struct {
@@ -92,7 +92,7 @@ func (s *AuthService) Register(ctx context.Context, name, email, password, tier 
 		Name:       name,
 		Email:      email,
 		Password:   hashed,
-		Avatar:     defaultAvatar,
+		Picture:     defaultPicture,
 		Role:       "user",
 		Tier:       tier,
 		Provider:   "local",
@@ -199,7 +199,7 @@ func (s *AuthService) DemoLogin(ctx context.Context, persona string, deviceName 
 			Name:       demoName,
 			Email:      demoEmail,
 			Password:   hashed,
-			Avatar:     defaultAvatar,
+			Picture:     defaultPicture,
 			Role:       demoRole,
 			Tier:       demoTier,
 			Provider:   "demo",
@@ -303,8 +303,8 @@ func (s *AuthService) VerifyToken(token string) (string, error) {
 	return claims.Subject, nil
 }
 
-func (s *AuthService) UpdateProfile(userID, newName, newAvatar string) (*models.User, error) {
-	if err := s.repo.EditProfile(userID, newName, newAvatar); err != nil {
+func (s *AuthService) UpdateProfile(userID, newName, newPicture string) (*models.User, error) {
+	if err := s.repo.EditProfile(userID, newName, newPicture); err != nil {
 		return nil, err
 	}
 	return s.repo.FindByID(userID)

@@ -15,7 +15,6 @@ type User struct {
 	Email      string    `gorm:"uniqueIndex;not null" json:"email"`
 	Password   string    `json:"-"`
 	Provider   string    `gorm:"default:'local'" json:"provider"`
-	Avatar     string    `gorm:"column:avatar" json:"avatar"`
 	Picture    string    `gorm:"column:picture" json:"picture"`
 	Role       string    `gorm:"default:'user'" json:"role"`
 	Tier       string    `gorm:"default:'VIP Standard'" json:"tier"`
@@ -58,18 +57,12 @@ func (u *User) ToDomain() *models.User {
 		return nil
 	}
 
-	avatar := u.Avatar
-	if avatar == "" {
-		avatar = u.Picture
-	}
-
 	return &models.User{
 		ID:         u.ID,
 		Name:       u.Name,
 		Email:      u.Email,
 		Password:   u.Password,
 		Provider:   u.Provider,
-		Avatar:     avatar,
 		Picture:    u.Picture,
 		Role:       u.Role,
 		Tier:       u.Tier,
@@ -86,7 +79,7 @@ type UserRepository interface {
 	FindByID(id string) (*models.User, error)
 	EditPasswordByID(ID, newPassword string) error
 	EditNameByID(ID, newName string) error
-	EditProfile(ID, name, avatar string) error
+	EditProfile(ID, name, picture string) error
 	Update(u *models.User) error
 }
 
@@ -105,7 +98,6 @@ func (r *userRepo) Create(u *models.User) error {
 		Email:      u.Email,
 		Password:   u.Password,
 		Provider:   u.Provider,
-		Avatar:     u.Avatar,
 		Picture:    u.Picture,
 		Role:       u.Role,
 		Tier:       u.Tier,
@@ -131,14 +123,13 @@ func (r *userRepo) EditNameByID(ID, newName string) error {
 	return r.db.Model(&User{}).Where("id = ?", ID).Update("name", newName).Error
 }
 
-func (r *userRepo) EditProfile(ID, name, avatar string) error {
+func (r *userRepo) EditProfile(ID, name, picture string) error {
 	updates := map[string]interface{}{}
 	if name != "" {
 		updates["name"] = name
 	}
-	if avatar != "" {
-		updates["avatar"] = avatar
-		updates["picture"] = avatar
+	if picture != "" {
+		updates["picture"] = picture
 	}
 	return r.db.Model(&User{}).Where("id = ?", ID).Updates(updates).Error
 }
@@ -149,7 +140,7 @@ func (r *userRepo) Update(u *models.User) error {
 		"email":       u.Email,
 		"password":    u.Password,
 		"provider":    u.Provider,
-		"avatar":      u.Avatar,
+
 		"picture":     u.Picture,
 		"role":        u.Role,
 		"tier":        u.Tier,

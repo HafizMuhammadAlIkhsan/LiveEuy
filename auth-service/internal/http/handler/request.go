@@ -43,7 +43,7 @@ func (r *logoutReq) GetToken() string {
 
 type profileUpdateReq struct {
 	Name   string `json:"name" example:"Hafiz Muhammad Al Ikhsan"`
-	Avatar string `json:"avatar" example:"https://images.unsplash.com/photo-custom.jpg"`
+	Picture string `json:"picture" example:"https://images.unsplash.com/photo-custom.jpg"`
 }
 
 type updateNameReq struct {

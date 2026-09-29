@@ -16,7 +16,7 @@ type mockUserRepository struct {
 	findByIDFunc         func(id string) (*domain.User, error)
 	editPasswordByIDFunc func(id, newPassword string) error
 	editNameByIDFunc     func(id, newName string) error
-	editProfileFunc      func(id, name, avatar string) error
+	editProfileFunc      func(id, name, picture string) error
 	updateFunc           func(u *domain.User) error
 }
 
@@ -56,9 +56,9 @@ func (m *mockUserRepository) EditNameByID(id, newName string) error {
 	return nil
 }
 
-func (m *mockUserRepository) EditProfile(id, name, avatar string) error {
+func (m *mockUserRepository) EditProfile(id, name, picture string) error {
 	if m.editProfileFunc != nil {
-		return m.editProfileFunc(id, name, avatar)
+		return m.editProfileFunc(id, name, picture)
 	}
 	return nil
 }

@@ -7,7 +7,6 @@ type User struct {
 	Name       string    `json:"name"`
 	Email      string    `json:"email"`
 	Password   string    `json:"-"`
-	Avatar     string    `json:"avatar"`
 	Picture    string    `json:"picture,omitempty"`
 	Role       string    `json:"role"`
 	Tier       string    `json:"tier"`
@@ -19,9 +18,7 @@ type User struct {
 }
 
 func (u *User) GetAvatar() string {
-	if u.Avatar != "" {
-		return u.Avatar
-	}
+
 	if u.Picture != "" {
 		return u.Picture
 	}

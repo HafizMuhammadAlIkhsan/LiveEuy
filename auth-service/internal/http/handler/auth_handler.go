@@ -296,7 +296,7 @@ func (h *AuthHandler) Me(c *gin.Context) {
 
 // UpdateProfile godoc
 // @Summary Update user profile
-// @Description Update authenticated user's name and avatar
+// @Description Update authenticated user's name and picture
 // @Tags Authentication
 // @Accept json
 // @Produce json
@@ -319,7 +319,7 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	updatedUser, err := h.svc.UpdateProfile(userID.(string), req.Name, req.Avatar)
+	updatedUser, err := h.svc.UpdateProfile(userID.(string), req.Name, req.Picture)
 	if err != nil {
 		sendError(c, http.StatusInternalServerError, "Gagal memperbarui profil.", "INTERNAL_ERROR", "AUTH_500_01", nil)
 		return

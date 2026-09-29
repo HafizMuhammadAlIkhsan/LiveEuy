@@ -17,7 +17,7 @@ type UserContractResponse struct {
 	ID          string  `json:"id"`
 	Name        string  `json:"name"`
 	Email       string  `json:"email"`
-	Avatar      string  `json:"avatar"`
+	Picture      string  `json:"picture"`
 	Tier        string  `json:"tier"`
 	Role        string  `json:"role"`
 	MemberSince string  `json:"memberSince"`
@@ -46,7 +46,7 @@ func ToUserContractResponse(u *domain.User) UserContractResponse {
 		ID:          u.ID,
 		Name:        u.Name,
 		Email:       u.Email,
-		Avatar:      u.GetAvatar(),
+
 		Tier:        tier,
 		Role:        role,
 		MemberSince: u.GetMemberSince(),
