@@ -1,0 +1,31 @@
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+
+# RSA Keys & Certificates (DO NOT COMMIT)
+certs/
+*.pem
+*.key
+*.crt
+*.pub
+
+# Binaries & Build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+dist/
+server
+
+# Log files
+*.log
+logs/
+
+# IDE & OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

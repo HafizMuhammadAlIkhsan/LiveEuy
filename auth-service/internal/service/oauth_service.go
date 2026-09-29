@@ -50,7 +50,7 @@ func (s *OAuthService) HandleGoogleCallback(ctx context.Context, code string) (s
 		user = newUser
 	}
 
-	accessToken, err := s.jwtUtil.GenerateAccessToken(user.ID)
+	accessToken, err := s.jwtUtil.GenerateAccessToken(user)
 	if err != nil {
 		return "", "", fmt.Errorf("gagal generate JWT token: %w", err)
 	}
@@ -60,6 +60,12 @@ func (s *OAuthService) HandleGoogleCallback(ctx context.Context, code string) (s
 		return "", "", fmt.Errorf("gagal generate refresh token: %w", err)
 	}
 	
+	maxDevices := user.Devices
+	if maxDevices <= 0 {
+		maxDevices = 2
+	}
+	_ = s.sessionRepo.EnforceMaxDevices(ctx, user.ID, maxDevices)
+
 	if err := s.sessionRepo.Save(ctx, refreshTokenSession); err != nil {
 		return "", "", fmt.Errorf("gagal menyimpan refresh token ke redis: %w", err)
 	}

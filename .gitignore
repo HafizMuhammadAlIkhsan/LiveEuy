@@ -8,17 +8,18 @@
 .env
 .env.local
 .env.*.local
+.env.*
+!.env.example
+
+# RSA Keys & Certificates (DO NOT COMMIT)
+certs/
 *.pem
 *.key
+*.crt
+*.pub
 
-# ------------------------------------------------------------------------------
-# 2. Node & Web Frontend (React + Vite)
-# ------------------------------------------------------------------------------
-node_modules/
-dist/
-dist-ssr/
-*.local
-*.tsbuildinfo
+# Logs
+logs
 logs/
 *.log
 npm-debug.log*
@@ -26,6 +27,16 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+
+# ------------------------------------------------------------------------------
+# 2. Node & Web Frontend (React + Vite)
+# ------------------------------------------------------------------------------
+node_modules/
+dist/
+dist-ssr/
+MD_files
+*.local
+*.tsbuildinfo
 
 # ------------------------------------------------------------------------------
 # 3. Flutter & Dart (Mobile Client)

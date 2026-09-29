@@ -49,7 +49,10 @@ func main() {
 
 	cfg := config.NewConfigFromEnv()
 
-	db, err := gorm.Open(postgres.Open(cfg.DBURL), &gorm.Config{
+	db, err := gorm.Open(postgres.New(postgres.Config{
+		DSN:                  cfg.DBURL,
+		PreferSimpleProtocol: true, // Disables prepared statement caching for Neon Pooler / PgBouncer compatibility
+	}), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
 	})
 	if err != nil {
@@ -79,7 +82,18 @@ func main() {
 	// Repositories and Providers
 	userRepo := repo.NewUserRepository(db)
 	sessionRepo := repo.NewRedisSessionRepository(rdb)
-	jwtMgr := utils.NewJWTManager(cfg.JWTConfig.Secret, cfg.JWTConfig.TTL)
+
+	// Initialize RSA Keypair & JWT Manager (Asymmetric RS256)
+	privKey, pubKey, err := utils.LoadOrGenerateRSAKeys(
+		cfg.JWTConfig.PrivateKeyPath,
+		cfg.JWTConfig.PublicKeyPath,
+		cfg.JWTConfig.PrivateKey,
+		cfg.JWTConfig.PublicKey,
+	)
+	if err != nil {
+		log.Fatalf("Failed to initialize RSA keys: %v", err)
+	}
+	jwtMgr := utils.NewJWTManager(privKey, pubKey, cfg.JWTConfig.KeyID, cfg.JWTConfig.TTL)
 	oauthProvider := provider.NewGoogleOAuthProvider(cfg)
 
 	r := http.NewRouter(cfg, userRepo, jwtMgr, sessionRepo, oauthProvider)

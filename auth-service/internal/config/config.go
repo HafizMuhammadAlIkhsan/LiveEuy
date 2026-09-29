@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"strconv"
+	"strings"
 )
 
 type WebOAuth struct {
@@ -17,8 +18,12 @@ type Redis struct {
 }
 
 type JWT struct {
-	Secret string
-	TTL    int
+	PrivateKeyPath string
+	PublicKeyPath  string
+	PrivateKey     string
+	PublicKey      string
+	KeyID          string
+	TTL            int
 }
 
 type Config struct {
@@ -30,28 +35,36 @@ type Config struct {
 }
 
 func NewConfigFromEnv() *Config {
-
 	webOAuth := WebOAuth{
 		GoogleClientID:     getEnv("WEB_OAUTH_GOOGLE_CLIENT_ID", "Tidak Ada"),
 		GoogleClientSecret: getEnv("WEB_OAUTH_GOOGLE_CLIENT_SECRET", "Tidak Ada"),
 		GoogleRedirectURL:  getEnv("WEB_OAUTH_GOOGLE_REDIRECT_URL", "Tidak Ada"),
 	}
 
+	redisURL := getEnv("REDIS_URL", "")
+	if redisURL == "" {
+		redisURL = getEnv("UPSTASH_REDIS_REST_URL", "")
+	}
+
 	redisData := Redis{
-		URL:   getEnv("UPSTASH_REDIS_REST_URL", ""),
+		URL:   redisURL,
 		Token: getEnv("UPSTASH_REDIS_REST_TOKEN", ""),
 	}
 
-	jwtTTL := 60
+	jwtTTL := 15 // Default 15 minutes as per contract
 	if v := getEnv("JWT_EXPIRATION_MS", ""); v != "" {
-		if n, err := strconv.Atoi(v); err == nil {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
 			jwtTTL = n / 60000
 		}
 	}
 
 	jwtConfig := JWT{
-		Secret: getEnv("JWT_SECRET", "secret"),
-		TTL:    jwtTTL,
+		PrivateKeyPath: getEnv("JWT_PRIVATE_KEY_PATH", "certs/private.pem"),
+		PublicKeyPath:  getEnv("JWT_PUBLIC_KEY_PATH", "certs/public.pem"),
+		PrivateKey:     getEnv("JWT_PRIVATE_KEY", ""),
+		PublicKey:      getEnv("JWT_PUBLIC_KEY", ""),
+		KeyID:          getEnv("JWT_KEY_ID", "liveeuy-auth-key-1"),
+		TTL:            jwtTTL,
 	}
 
 	return &Config{
@@ -65,7 +78,7 @@ func NewConfigFromEnv() *Config {
 
 func getEnv(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
-		return v
+		return strings.Trim(v, "\"'")
 	}
 	return fallback
 }

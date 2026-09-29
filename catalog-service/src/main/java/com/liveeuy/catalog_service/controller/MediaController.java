@@ -11,6 +11,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.data.domain.Page;
 
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+
 import java.util.List;
 
 @RestController
@@ -20,14 +23,33 @@ public class MediaController {
 
     private final MediaService mediaService;
 
-    // @GetMapping("/featured")
-    // public ResponseEntity<ApiResponse<MediaResponseDTO>> getFeaturedMedia() {
-    //     MediaResponseDTO featured = mediaService.getFeaturedMedia();
-    //     if (featured == null) {
-    //         return ResponseEntity.ok(ApiResponse.success(null, "Catalog Service is Online (no featured media yet)"));
-    //     }
-    //     return ResponseEntity.ok(ApiResponse.success(featured, "Featured media berhasil diambil"));
-    // }
+    @GetMapping("/featured")
+    public ResponseEntity<ApiResponse<MediaResponseDTO>> getFeaturedMedia() {
+        MediaResponseDTO featured = mediaService.getFeaturedMedia();
+        if (featured == null) {
+            return ResponseEntity.ok(ApiResponse.success(null, "Catalog Service is Online (no featured media yet)"));
+        }
+        return ResponseEntity.ok(ApiResponse.success(featured, "Featured media berhasil diambil"));
+    }
+
+    /**
+     * Endpoint feed kurasi berdasarkan identitas pengguna & tier langganan dari JWT token.
+     * Mengimplementasikan panduan integrasi JWT prompt.md (Section 1).
+     */
+    @GetMapping("/feed")
+    public ResponseEntity<ApiResponse<Page<MediaResponseDTO>>> getPersonalizedFeed(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        String tier = jwt != null ? jwt.getClaimAsString("tier") : null;
+        Page<MediaResponseDTO> mediaPage = mediaService.getAllMedia(null, null, null, "rating", page, size);
+        String message = (tier != null && !tier.isBlank())
+                ? "Feed kurasi katalog untuk member " + tier
+                : "Feed kurasi katalog media";
+
+        return ResponseEntity.ok(ApiResponse.success(mediaPage, message));
+    }
 
     @GetMapping
     public ResponseEntity<ApiResponse<Page<MediaResponseDTO>>> getAllMedia(

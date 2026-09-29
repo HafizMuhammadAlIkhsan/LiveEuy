@@ -10,14 +10,18 @@ import (
 )
 
 type User struct {
-	ID        string    `gorm:"type:uuid;primaryKey" json:"id"`
-	Name      string    `gorm:"not null" json:"name"`
-	Email     string    `gorm:"uniqueIndex;not null" json:"email"`
-	Password  string    `json:"-"` 
-	Provider  string    `gorm:"default:'local'" json:"provider"`
-	Picture   string    `json:"picture"`
-	CreatedAt time.Time `gorm:"autoCreateTime" json:"created_at"`
-	UpdatedAt time.Time `gorm:"autoUpdateTime" json:"updated_at"`
+	ID         string    `gorm:"type:uuid;primaryKey" json:"id"`
+	Name       string    `gorm:"not null" json:"name"`
+	Email      string    `gorm:"uniqueIndex;not null" json:"email"`
+	Password   string    `json:"-"`
+	Provider   string    `gorm:"default:'local'" json:"provider"`
+	Picture    string    `gorm:"column:picture" json:"picture"`
+	Role       string    `gorm:"default:'user'" json:"role"`
+	Tier       string    `gorm:"default:'VIP Standard'" json:"tier"`
+	WatchHours float64   `gorm:"default:0.0" json:"watch_hours"`
+	Devices    int       `gorm:"default:2" json:"devices"`
+	CreatedAt  time.Time `gorm:"autoCreateTime" json:"created_at"`
+	UpdatedAt  time.Time `gorm:"autoUpdateTime" json:"updated_at"`
 }
 
 func (User) TableName() string {
@@ -30,6 +34,15 @@ func (u *User) BeforeCreate(tx *gorm.DB) error {
 	}
 	if u.Provider == "" {
 		u.Provider = "local"
+	}
+	if u.Role == "" {
+		u.Role = "user"
+	}
+	if u.Tier == "" {
+		u.Tier = "VIP Standard"
+	}
+	if u.Devices == 0 {
+		u.Devices = 2
 	}
 	return nil
 }
@@ -45,14 +58,18 @@ func (u *User) ToDomain() *models.User {
 	}
 
 	return &models.User{
-		ID:        u.ID,
-		Name:      u.Name,
-		Email:     u.Email,
-		Password:  u.Password,
-		Provider:  u.Provider,
-		Picture:   u.Picture,
-		CreatedAt: u.CreatedAt,
-		UpdatedAt: u.UpdatedAt,
+		ID:         u.ID,
+		Name:       u.Name,
+		Email:      u.Email,
+		Password:   u.Password,
+		Provider:   u.Provider,
+		Picture:    u.Picture,
+		Role:       u.Role,
+		Tier:       u.Tier,
+		WatchHours: u.WatchHours,
+		Devices:    u.Devices,
+		CreatedAt:  u.CreatedAt,
+		UpdatedAt:  u.UpdatedAt,
 	}
 }
 
@@ -62,6 +79,8 @@ type UserRepository interface {
 	FindByID(id string) (*models.User, error)
 	EditPasswordByID(ID, newPassword string) error
 	EditNameByID(ID, newName string) error
+	EditProfile(ID, name, picture string) error
+	Update(u *models.User) error
 }
 
 type userRepo struct {
@@ -73,7 +92,27 @@ func NewUserRepository(db *gorm.DB) UserRepository {
 }
 
 func (r *userRepo) Create(u *models.User) error {
-	return r.db.Create(u).Error
+	repoUser := &User{
+		ID:         u.ID,
+		Name:       u.Name,
+		Email:      u.Email,
+		Password:   u.Password,
+		Provider:   u.Provider,
+		Picture:    u.Picture,
+		Role:       u.Role,
+		Tier:       u.Tier,
+		WatchHours: u.WatchHours,
+		Devices:    u.Devices,
+		CreatedAt:  u.CreatedAt,
+		UpdatedAt:  u.UpdatedAt,
+	}
+	if err := r.db.Create(repoUser).Error; err != nil {
+		return err
+	}
+	u.ID = repoUser.ID
+	u.CreatedAt = repoUser.CreatedAt
+	u.UpdatedAt = repoUser.UpdatedAt
+	return nil
 }
 
 func (r *userRepo) EditPasswordByID(ID, newPassword string) error {
@@ -82,6 +121,32 @@ func (r *userRepo) EditPasswordByID(ID, newPassword string) error {
 
 func (r *userRepo) EditNameByID(ID, newName string) error {
 	return r.db.Model(&User{}).Where("id = ?", ID).Update("name", newName).Error
+}
+
+func (r *userRepo) EditProfile(ID, name, picture string) error {
+	updates := map[string]interface{}{}
+	if name != "" {
+		updates["name"] = name
+	}
+	if picture != "" {
+		updates["picture"] = picture
+	}
+	return r.db.Model(&User{}).Where("id = ?", ID).Updates(updates).Error
+}
+
+func (r *userRepo) Update(u *models.User) error {
+	return r.db.Model(&User{}).Where("id = ?", u.ID).Updates(map[string]interface{}{
+		"name":        u.Name,
+		"email":       u.Email,
+		"password":    u.Password,
+		"provider":    u.Provider,
+
+		"picture":     u.Picture,
+		"role":        u.Role,
+		"tier":        u.Tier,
+		"watch_hours": u.WatchHours,
+		"devices":     u.Devices,
+	}).Error
 }
 
 func (r *userRepo) FindByEmail(email string) (*models.User, error) {

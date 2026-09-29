@@ -8,6 +8,8 @@ import java.util.List;
 
 public interface MediaService {
 
+    MediaResponseDTO getFeaturedMedia();
+
     Page<MediaResponseDTO> getAllMedia(String type, String genre, String search, String sortBy, int page, int size);
     Page<MediaResponseDTO> getAllMedia(String type, String genre, String search, String sortBy, String country, Integer year, int page, int size);
 

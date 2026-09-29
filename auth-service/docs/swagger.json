@@ -17,13 +17,29 @@
     "host": "localhost:8080",
     "basePath": "/",
     "paths": {
+        "/.well-known/jwks.json": {
+            "get": {
+                "description": "Exposes RSA public keys in RFC 7517 format for downstream microservices",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "System"
+                ],
+                "summary": "JSON Web Key Set (Public Keys)",
+                "responses": {
+                    "200": {
+                        "description": "JSON Web Key Set",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/api/health": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Service health status",
                 "produces": [
                     "application/json"
@@ -42,170 +58,8 @@
                 }
             }
         },
-        "/api/me": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Retrieve current authenticated user profile",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "User"
-                ],
-                "summary": "Get user profile",
-                "responses": {
-                    "200": {
-                        "description": "User Profile",
-                        "schema": {
-                            "$ref": "#/definitions/handler.UserProfileResponseData"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/handler.BaseResponseData"
-                        }
-                    },
-                    "404": {
-                        "description": "User not found",
-                        "schema": {
-                            "$ref": "#/definitions/handler.BaseResponseData"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/handler.BaseResponseData"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/me/name": {
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Update the authenticated user's name",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "User"
-                ],
-                "summary": "Update user name",
-                "parameters": [
-                    {
-                        "description": "Update Name Request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/handler.updateNameReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Name updated successfully",
-                        "schema": {
-                            "$ref": "#/definitions/handler.BaseResponseData"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/handler.BaseResponseData"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/handler.BaseResponseData"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/handler.BaseResponseData"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/me/password": {
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Update the authenticated user's password",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "User"
-                ],
-                "summary": "Update user password",
-                "parameters": [
-                    {
-                        "description": "Update Password Request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/handler.updatePasswordReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Password updated successfully",
-                        "schema": {
-                            "$ref": "#/definitions/handler.BaseResponseData"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/handler.BaseResponseData"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/handler.BaseResponseData"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/handler.BaseResponseData"
-                        }
-                    }
-                }
-            }
-        },
         "/api/ping": {
             "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
                 "description": "Ping test endpoint",
                 "produces": [
                     "application/json"
@@ -219,6 +73,149 @@
                         "description": "Pong",
                         "schema": {
                             "$ref": "#/definitions/handler.BaseResponseData"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/change-password": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Change password with validation against current password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Change user password",
+                "parameters": [
+                    {
+                        "description": "Change Password Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.changePasswordReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Kata sandi berhasil diubah",
+                        "schema": {
+                            "$ref": "#/definitions/handler.APIResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/handler.APIErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Kata sandi saat ini salah",
+                        "schema": {
+                            "$ref": "#/definitions/handler.APIErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/demo-login": {
+            "post": {
+                "description": "Fast login for development, testing, and UI persona testing (hafiz / budi)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Demo persona login",
+                "parameters": [
+                    {
+                        "description": "Demo Login Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.demoLoginReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Berhasil masuk via Demo Account",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/handler.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/handler.AuthContractData"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/handler.APIErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/handler.APIErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/forgot-password": {
+            "post": {
+                "description": "Request password reset email",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Forgot password",
+                "parameters": [
+                    {
+                        "description": "Forgot Password Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.forgotPasswordReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Email pemulihan terkirim",
+                        "schema": {
+                            "$ref": "#/definitions/handler.APIResponse"
                         }
                     }
                 }
@@ -301,7 +298,7 @@
                 }
             }
         },
-        "/login": {
+        "/api/v1/auth/login": {
             "post": {
                 "description": "Authenticate user using email and password",
                 "consumes": [
@@ -327,35 +324,243 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Logged in successfully",
+                        "description": "Berhasil masuk ke LiveEuy",
                         "schema": {
-                            "$ref": "#/definitions/handler.AuthResponseData"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/handler.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/handler.AuthContractData"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/handler.BaseResponseData"
+                            "$ref": "#/definitions/handler.APIErrorResponse"
                         }
                     },
                     "401": {
-                        "description": "Invalid credentials",
+                        "description": "Email atau kata sandi tidak cocok",
                         "schema": {
-                            "$ref": "#/definitions/handler.BaseResponseData"
+                            "$ref": "#/definitions/handler.APIErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/handler.BaseResponseData"
+                            "$ref": "#/definitions/handler.APIErrorResponse"
                         }
                     }
                 }
             }
         },
-        "/refresh-token": {
+        "/api/v1/auth/logout": {
             "post": {
-                "description": "Rotate refresh token and generate new access token",
+                "description": "Invalidate the specified refresh token session and clear auth cookie",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "User logout (single device)",
+                "parameters": [
+                    {
+                        "description": "Logout Request (Optional if using Cookie)",
+                        "name": "request",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/handler.logoutReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Sesi berhasil diakhiri",
+                        "schema": {
+                            "$ref": "#/definitions/handler.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/logout-all": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Invalidate all active refresh tokens for the authenticated user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Logout all devices",
+                "responses": {
+                    "200": {
+                        "description": "Sesi di seluruh perangkat berhasil diakhiri",
+                        "schema": {
+                            "$ref": "#/definitions/handler.APIResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/handler.APIErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve current authenticated user profile",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Get user profile",
+                "responses": {
+                    "200": {
+                        "description": "Profil berhasil dimuat",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/handler.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/handler.UserContractResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/handler.APIErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "schema": {
+                            "$ref": "#/definitions/handler.APIErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/profile": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update authenticated user's name and avatar",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Update user profile",
+                "parameters": [
+                    {
+                        "description": "Profile Update Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.profileUpdateReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Profil berhasil diperbarui",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/handler.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/handler.UserContractResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/handler.APIErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/handler.APIErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/public-key.pem": {
+            "get": {
+                "description": "Exposes RSA public key in standard PEM format",
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "System"
+                ],
+                "summary": "RSA Public Key in PEM format",
+                "responses": {
+                    "200": {
+                        "description": "RSA Public Key PEM",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/refresh": {
+            "post": {
+                "description": "Rotate refresh token and generate new access token (from Cookie or JSON body)",
                 "consumes": [
                     "application/json"
                 ],
@@ -368,10 +573,9 @@
                 "summary": "Refresh access token",
                 "parameters": [
                     {
-                        "description": "Refresh Token Request",
+                        "description": "Refresh Token Request (Optional if using Cookie)",
                         "name": "request",
                         "in": "body",
-                        "required": true,
                         "schema": {
                             "$ref": "#/definitions/handler.refreshTokenReq"
                         }
@@ -379,29 +583,35 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Token refreshed successfully",
+                        "description": "Token akses berhasil diperbarui",
                         "schema": {
-                            "$ref": "#/definitions/handler.RefreshTokenResponseData"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/handler.BaseResponseData"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/handler.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/handler.RefreshContractData"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "401": {
-                        "description": "Invalid or expired token",
+                        "description": "Refresh token tidak valid atau telah dicabut",
                         "schema": {
-                            "$ref": "#/definitions/handler.BaseResponseData"
+                            "$ref": "#/definitions/handler.APIErrorResponse"
                         }
                     }
                 }
             }
         },
-        "/register": {
+        "/api/v1/auth/register": {
             "post": {
-                "description": "Register a new user with name, email, and password",
+                "description": "Register a new user with name, email, password, and tier",
                 "consumes": [
                     "application/json"
                 ],
@@ -425,27 +635,73 @@
                 ],
                 "responses": {
                     "201": {
-                        "description": "Registered successfully",
+                        "description": "Pendaftaran akun berhasil",
                         "schema": {
-                            "$ref": "#/definitions/handler.AuthResponseData"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/handler.APIResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/handler.AuthContractData"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "400": {
                         "description": "Bad Request / Validation Error",
                         "schema": {
-                            "$ref": "#/definitions/handler.BaseResponseData"
+                            "$ref": "#/definitions/handler.APIErrorResponse"
                         }
                     },
                     "409": {
-                        "description": "User already exists",
+                        "description": "Email sudah terdaftar di sistem",
                         "schema": {
-                            "$ref": "#/definitions/handler.BaseResponseData"
+                            "$ref": "#/definitions/handler.APIErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/handler.BaseResponseData"
+                            "$ref": "#/definitions/handler.APIErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/reset-password": {
+            "post": {
+                "description": "Reset password using received token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Reset password",
+                "parameters": [
+                    {
+                        "description": "Reset Password Request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.resetPasswordReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Kata sandi berhasil direset",
+                        "schema": {
+                            "$ref": "#/definitions/handler.APIResponse"
                         }
                     }
                 }
@@ -453,27 +709,72 @@
         }
     },
     "definitions": {
-        "handler.AuthResponseData": {
+        "handler.APIErrorResponse": {
             "type": "object",
             "properties": {
-                "access_token": {
+                "code": {
                     "type": "string",
-                    "example": "eyJhbGciOi..."
+                    "example": "AUTH_401_01"
+                },
+                "details": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/handler.ErrorDetail"
+                    }
+                },
+                "error": {
+                    "type": "string",
+                    "example": "UNAUTHORIZED"
                 },
                 "message": {
                     "type": "string",
-                    "example": "operation successful"
+                    "example": "Email atau kata sandi tidak cocok."
                 },
-                "refresh_token": {
+                "success": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "timestamp": {
                     "type": "string",
-                    "example": "d0a5f9..."
+                    "example": "2026-09-25T09:30:00Z"
+                }
+            }
+        },
+        "handler.APIResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "message": {
+                    "type": "string",
+                    "example": "Operasi berhasil"
                 },
                 "success": {
                     "type": "boolean",
                     "example": true
+                }
+            }
+        },
+        "handler.AuthContractData": {
+            "type": "object",
+            "properties": {
+                "accessToken": {
+                    "type": "string",
+                    "example": "eyJhbGciOi..."
+                },
+                "expiresIn": {
+                    "type": "integer",
+                    "example": 900
+                },
+                "refreshToken": {
+                    "type": "string",
+                    "example": "rfk-94a28f73..."
+                },
+                "tokenType": {
+                    "type": "string",
+                    "example": "Bearer"
                 },
                 "user": {
-                    "$ref": "#/definitions/handler.UserResponse"
+                    "$ref": "#/definitions/handler.UserContractResponse"
                 }
             }
         },
@@ -498,6 +799,40 @@
                 }
             }
         },
+        "handler.ErrorDetail": {
+            "type": "object",
+            "properties": {
+                "field": {
+                    "type": "string",
+                    "example": "password"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Kata sandi salah"
+                }
+            }
+        },
+        "handler.RefreshContractData": {
+            "type": "object",
+            "properties": {
+                "accessToken": {
+                    "type": "string",
+                    "example": "eyJhbGciOi..."
+                },
+                "expiresIn": {
+                    "type": "integer",
+                    "example": 900
+                },
+                "refreshToken": {
+                    "type": "string",
+                    "example": "rfk-new-rotated..."
+                },
+                "tokenType": {
+                    "type": "string",
+                    "example": "Bearer"
+                }
+            }
+        },
         "handler.RefreshTokenResponseData": {
             "type": "object",
             "properties": {
@@ -515,32 +850,80 @@
                 }
             }
         },
-        "handler.UserProfileResponseData": {
+        "handler.UserContractResponse": {
             "type": "object",
             "properties": {
-                "success": {
-                    "type": "boolean",
-                    "example": true
-                },
-                "user": {
-                    "$ref": "#/definitions/handler.UserResponse"
-                }
-            }
-        },
-        "handler.UserResponse": {
-            "type": "object",
-            "properties": {
-                "created_at": {
+                "avatar": {
                     "type": "string"
                 },
+                "createdAt": {
+                    "type": "string"
+                },
+                "devices": {
+                    "type": "integer"
+                },
                 "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "memberSince": {
                     "type": "string"
                 },
                 "name": {
                     "type": "string"
                 },
-                "picture": {
+                "role": {
                     "type": "string"
+                },
+                "tier": {
+                    "type": "string"
+                },
+                "watchHours": {
+                    "type": "number"
+                }
+            }
+        },
+        "handler.changePasswordReq": {
+            "type": "object",
+            "required": [
+                "currentPassword",
+                "newPassword"
+            ],
+            "properties": {
+                "currentPassword": {
+                    "type": "string",
+                    "example": "LiveEuy#2026"
+                },
+                "newPassword": {
+                    "type": "string",
+                    "minLength": 6,
+                    "example": "LiveEuyUltra#2027"
+                }
+            }
+        },
+        "handler.demoLoginReq": {
+            "type": "object",
+            "required": [
+                "persona"
+            ],
+            "properties": {
+                "persona": {
+                    "type": "string",
+                    "example": "hafiz"
+                }
+            }
+        },
+        "handler.forgotPasswordReq": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "example": "arga@example.com"
                 }
             }
         },
@@ -553,23 +936,54 @@
             "properties": {
                 "email": {
                     "type": "string",
-                    "example": "john@example.com"
+                    "example": "hafiz@liveeuy.id"
                 },
                 "password": {
                     "type": "string",
-                    "example": "secret123"
+                    "example": "LiveEuy#2026"
+                },
+                "rememberMe": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "handler.logoutReq": {
+            "type": "object",
+            "properties": {
+                "refreshToken": {
+                    "type": "string",
+                    "example": "rfk-94a28f73b610c41d99e52e"
+                },
+                "refresh_token": {
+                    "type": "string",
+                    "example": "rfk-94a28f73b610c41d99e52e"
+                }
+            }
+        },
+        "handler.profileUpdateReq": {
+            "type": "object",
+            "properties": {
+                "avatar": {
+                    "type": "string",
+                    "example": "https://images.unsplash.com/photo-custom.jpg"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Hafiz Muhammad Al Ikhsan"
                 }
             }
         },
         "handler.refreshTokenReq": {
             "type": "object",
-            "required": [
-                "refresh_token"
-            ],
             "properties": {
+                "refreshToken": {
+                    "type": "string",
+                    "example": "rfk-94a28f73b610c41d99e52e"
+                },
                 "refresh_token": {
                     "type": "string",
-                    "example": "d0a5f9..."
+                    "example": "rfk-94a28f73b610c41d99e52e"
                 }
             }
         },
@@ -583,41 +997,38 @@
             "properties": {
                 "email": {
                     "type": "string",
-                    "example": "john@example.com"
+                    "example": "arga@example.com"
                 },
                 "name": {
                     "type": "string",
-                    "example": "John Doe"
+                    "example": "Arga Pratama"
                 },
                 "password": {
                     "type": "string",
                     "minLength": 6,
-                    "example": "secret123"
-                }
-            }
-        },
-        "handler.updateNameReq": {
-            "type": "object",
-            "required": [
-                "new_name"
-            ],
-            "properties": {
-                "new_name": {
+                    "example": "PasswordSuper#2026"
+                },
+                "tier": {
                     "type": "string",
-                    "example": "John Smith"
+                    "example": "VIP Standard"
                 }
             }
         },
-        "handler.updatePasswordReq": {
+        "handler.resetPasswordReq": {
             "type": "object",
             "required": [
-                "new_password"
+                "newPassword",
+                "token"
             ],
             "properties": {
-                "new_password": {
+                "newPassword": {
                     "type": "string",
                     "minLength": 6,
-                    "example": "newsecret123"
+                    "example": "NewSecurePassword#2026"
+                },
+                "token": {
+                    "type": "string",
+                    "example": "rst-tok-84729104857201"
                 }
             }
         }
