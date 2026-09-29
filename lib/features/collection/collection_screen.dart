@@ -640,7 +640,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                 if (!_isSelectionMode && continueWatchingItems.isNotEmpty) ...[
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
                       child: Row(
                         children: [
                           const Icon(
@@ -679,7 +679,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                   ),
                   SliverToBoxAdapter(
                     child: SizedBox(
-                      height: 124,
+                      height: 86,
                       child: ListView.separated(
                         physics: const BouncingScrollPhysics(),
                         scrollDirection: Axis.horizontal,
@@ -695,7 +695,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                   ),
                   const SliverToBoxAdapter(
                     child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: EdgeInsets.fromLTRB(16, 14, 16, 10),
                       child: Divider(color: AppColors.glassBorder, height: 1),
                     ),
                   ),
@@ -704,7 +704,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                 // 3. SECTION 2: DAFTAR TONTONAN ANDA (Header + Filter Chips + Tombol Pilih)
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: EdgeInsets.fromLTRB(16, (!_isSelectionMode && continueWatchingItems.isNotEmpty) ? 6 : 16, 16, 12),
+                    padding: EdgeInsets.fromLTRB(16, (!_isSelectionMode && continueWatchingItems.isNotEmpty) ? 2 : 14, 16, 10),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -781,7 +781,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                               ),
                           ],
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 10),
 
                         // Kategori Filter Chips (Semua, Film, Serial TV) konsisten dengan design system
                         SingleChildScrollView(
@@ -903,10 +903,10 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
   Widget _buildContinueWatchingCard(Movie item) {
     final remainingMinutes = _calculateRemainingMinutes(item);
     return Container(
-      width: 275,
+      width: 280,
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: AppColors.outlineVariant.withValues(alpha: 0.2),
         ),
@@ -914,7 +914,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
           onTap: () {
             Navigator.push(
               context,
@@ -930,23 +930,23 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
             padding: const EdgeInsets.all(8.0),
             child: Row(
               children: [
-                // Thumbnail 16:9
+                // Thumbnail 16:9 (120x68)
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(9),
                   child: Stack(
                     children: [
                       CachedNetworkImage(
                         imageUrl: item.backdropUrl,
-                        width: 106,
+                        width: 120,
                         height: 68,
                         fit: BoxFit.cover,
                         placeholder: (context, url) => Container(
-                          width: 106,
+                          width: 120,
                           height: 68,
                           color: AppColors.surfaceContainerHigh,
                         ),
                         errorWidget: (context, url, error) => Container(
-                          width: 106,
+                          width: 120,
                           height: 68,
                           color: AppColors.surfaceContainerHigh,
                           child: const Icon(Icons.movie_rounded, color: AppColors.outline),
@@ -958,8 +958,8 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                           color: Colors.black.withValues(alpha: 0.28),
                           child: Center(
                             child: Container(
-                              width: 30,
-                              height: 30,
+                              width: 28,
+                              height: 28,
                               decoration: BoxDecoration(
                                 color: AppColors.surface.withValues(alpha: 0.85),
                                 shape: BoxShape.circle,
@@ -967,7 +967,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                               child: const Icon(
                                 Icons.play_arrow_rounded,
                                 color: Colors.white,
-                                size: 20,
+                                size: 18,
                               ),
                             ),
                           ),
@@ -994,27 +994,34 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        item.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.outfit(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.onSurface,
-                        ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            item.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.outfit(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Tersisa $remainingMinutes menit',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 3),
-                      Text(
-                        'Tersisa $remainingMinutes menit',
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -1032,8 +1039,9 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                           ),
                           GestureDetector(
                             onTap: () => _showContinueWatchingOptions(item),
+                            behavior: HitTestBehavior.opaque,
                             child: const Padding(
-                              padding: EdgeInsets.all(2.0),
+                              padding: EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
                               child: Icon(
                                 Icons.more_vert_rounded,
                                 size: 18,

@@ -615,7 +615,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
 
                 // 3. Dynamic Context: Trending Suggestions (Idle State) or Results Counter (Active State)
                 if (_searchController.text.isEmpty &&
@@ -678,13 +678,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                             }).toList(),
                           ),
                         ),
-                        const SizedBox(height: 14),
                       ],
                     ),
                   )
                 else
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 2, 16, 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -717,12 +716,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     ),
                   ),
 
-                const SizedBox(height: 10),
+                const SizedBox(height: 14),
 
                 // 2-Column Responsive Movie Poster Grid (HTML grid-cols-2 gap-3.5)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: GridView.builder(
+                    padding: EdgeInsets.zero,
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
