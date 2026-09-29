@@ -5,6 +5,8 @@ services:
     image: postgres:16-alpine
     container_name: liveeuy-postgres
     restart: unless-stopped
+    profiles:
+      - local-db
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password123
@@ -18,11 +20,15 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - liveeuy-network
 
   redis:
     image: redis:7-alpine
     container_name: liveeuy-redis
     restart: unless-stopped
+    profiles:
+      - local-db
     ports:
       - "6379:6379"
     volumes:
@@ -32,6 +38,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - liveeuy-network
 
   auth-service:
     build:
@@ -41,40 +49,16 @@ services:
     restart: unless-stopped
     ports:
       - "8080:8080"
+    env_file:
+      - ./auth-service/.env
     environment:
       - PORT=8080
-      - DATABASE_URL=postgres://postgres:password123@postgres:5432/authdb?sslmode=disable
-      - REDIS_URL=redis://redis:6379
-      - JWT_PRIVATE_KEY_PATH=/app/certs/private.pem
-      - JWT_PUBLIC_KEY_PATH=/app/certs/public.pem
-      - JWT_KEY_ID=liveeuy-auth-key-1
-      - JWT_EXPIRATION_MS=900000
       - RUNNING_IN_DOCKER=true
     volumes:
       - auth_certs:/app/certs
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-
-  nginx:
-    build:
-      context: ./nginx
-      dockerfile: Dockerfile
-    container_name: liveeuy-nginx
-    restart: unless-stopped
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-    depends_on:
-      - auth-service
-      - catalog-service
-      - trending-service
     networks:
       - liveeuy-network
-      
+
   catalog-service:
     build:
       context: ./catalog-service
@@ -107,6 +91,26 @@ services:
       - CATALOG_SERVICE_URL=http://catalog-service:8081/api/v1/media/batch
     depends_on:
       - catalog-service
+    networks:
+      - liveeuy-network
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: liveeuy-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      auth-service:
+        condition: service_started
+      catalog-service:
+        condition: service_started
+      trending-service:
+        condition: service_started
     networks:
       - liveeuy-network
 
