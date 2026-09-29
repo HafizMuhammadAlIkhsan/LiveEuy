@@ -42,6 +42,16 @@ public class MediaServiceImpl implements MediaService {
     private static final String SORT_BY_NEWEST = "newest";
 
     @Override
+    public MediaResponseDTO getFeaturedMedia() {
+        Pageable topOne = PageRequest.of(0, 1, Sort.by(Sort.Direction.DESC, "releaseYear"));
+        List<Media> topList = mediaRepository.findAll(topOne).getContent();
+        if (topList.isEmpty()) {
+            return null;
+        }
+        return mediaMapper.toDTO(topList.get(0));
+    }
+
+    @Override
     public Page<MediaResponseDTO> getAllMedia(String type, String genre, String search, String sortBy, int page, int size) {
         Sort sort = Sort.unsorted();
         if (SORT_BY_RATING.equalsIgnoreCase(sortBy)) {
