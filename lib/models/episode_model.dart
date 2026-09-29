@@ -22,12 +22,24 @@ class Episode {
   });
 
   factory Episode.fromJson(Map<String, dynamic> json) {
+    String formattedDuration = json['duration'] as String? ?? '';
+    if (formattedDuration.isEmpty && json['durationSeconds'] is num) {
+      final sec = (json['durationSeconds'] as num).toInt();
+      final hours = sec ~/ 3600;
+      final minutes = (sec % 3600) ~/ 60;
+      if (hours > 0) {
+        formattedDuration = '$hours Jam ${minutes > 0 ? '$minutes Min' : ''}'.trim();
+      } else {
+        formattedDuration = '$minutes Menit';
+      }
+    }
+
     return Episode(
       id: json['id'] as String? ?? '',
       episodeNumber: (json['episodeNumber'] as num?)?.toInt() ?? 1,
       seasonNumber: (json['seasonNumber'] as num?)?.toInt() ?? 1,
       title: json['title'] as String? ?? '',
-      duration: json['duration'] as String? ?? '',
+      duration: formattedDuration,
       synopsis:
           json['synopsis'] as String? ?? json['overview'] as String? ?? '',
       thumbnailUrl: json['thumbnailUrl'] as String? ??

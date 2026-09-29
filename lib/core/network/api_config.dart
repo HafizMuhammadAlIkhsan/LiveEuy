@@ -2,46 +2,81 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 
 class ApiConfig {
-  /// Default backend port
+  /// Default backend ports
   static const int defaultPort = 8080;
+  static const int authPort = 8080;
+  static const int catalogPort = 8081;
 
   /// Custom URL override if set programmatically
   static String? _customBaseUrl;
+  static String? _customAuthBaseUrl;
+  static String? _customCatalogBaseUrl;
 
   /// Set a custom base URL at runtime (e.g. for testing with physical devices or staging server)
   static void setBaseUrl(String? url) {
     _customBaseUrl = url;
   }
 
-  /// Determines the base URL dynamically based on environment, platform, or override.
-  /// - Priority 1: Runtime custom base URL override (`ApiConfig.setBaseUrl(...)`)
-  /// - Priority 2: Compile-time environment variable (`--dart-define=API_BASE_URL=...`)
-  /// - Priority 3: Android Emulator default (`http://10.0.2.2:8080/api/v1`)
-  /// - Priority 4: Web / iOS Simulator / Desktop default (`http://localhost:8080/api/v1`)
-  static String get baseUrl {
+  /// Set custom base URL for auth-service
+  static void setAuthBaseUrl(String? url) {
+    _customAuthBaseUrl = url;
+  }
+
+  /// Set custom base URL for catalog-service
+  static void setCatalogBaseUrl(String? url) {
+    _customCatalogBaseUrl = url;
+  }
+
+  /// Determines the auth-service base URL (Port 8080 by default)
+  static String get authBaseUrl {
+    if (_customAuthBaseUrl != null && _customAuthBaseUrl!.isNotEmpty) {
+      return _customAuthBaseUrl!;
+    }
     if (_customBaseUrl != null && _customBaseUrl!.isNotEmpty) {
       return _customBaseUrl!;
     }
 
-    const envBaseUrl = String.fromEnvironment('API_BASE_URL');
-    if (envBaseUrl.isNotEmpty) {
-      return envBaseUrl;
-    }
+    const envAuthUrl = String.fromEnvironment('AUTH_API_BASE_URL');
+    if (envAuthUrl.isNotEmpty) return envAuthUrl;
 
-    if (kIsWeb) {
-      return 'http://localhost:$defaultPort/api/v1';
-    }
+    const envBaseUrl = String.fromEnvironment('API_BASE_URL');
+    if (envBaseUrl.isNotEmpty) return envBaseUrl;
+
+    if (kIsWeb) return 'http://localhost:$authPort/api/v1';
 
     try {
-      if (Platform.isAndroid) {
-        return 'http://10.0.2.2:$defaultPort/api/v1';
-      }
-    } catch (_) {
-      // In case Platform check is unsupported on a specific platform
+      if (Platform.isAndroid) return 'http://10.0.2.2:$authPort/api/v1';
+    } catch (_) {}
+
+    return 'http://localhost:$authPort/api/v1';
+  }
+
+  /// Determines the catalog-service base URL (Port 8081 by default)
+  static String get catalogBaseUrl {
+    if (_customCatalogBaseUrl != null && _customCatalogBaseUrl!.isNotEmpty) {
+      return _customCatalogBaseUrl!;
+    }
+    if (_customBaseUrl != null && _customBaseUrl!.isNotEmpty) {
+      return _customBaseUrl!;
     }
 
-    return 'http://localhost:$defaultPort/api/v1';
+    const envCatalogUrl = String.fromEnvironment('CATALOG_API_BASE_URL');
+    if (envCatalogUrl.isNotEmpty) return envCatalogUrl;
+
+    const envBaseUrl = String.fromEnvironment('API_BASE_URL');
+    if (envBaseUrl.isNotEmpty) return envBaseUrl;
+
+    if (kIsWeb) return 'http://localhost:$catalogPort/api/v1';
+
+    try {
+      if (Platform.isAndroid) return 'http://10.0.2.2:$catalogPort/api/v1';
+    } catch (_) {}
+
+    return 'http://localhost:$catalogPort/api/v1';
   }
+
+  /// Default base URL for unified/backward compatibility
+  static String get baseUrl => catalogBaseUrl;
 
   /// Request timeout duration
   static const Duration timeout = Duration(seconds: 10);
@@ -94,15 +129,20 @@ class ApiConfig {
   static String watchlistTogglePath(String mediaId) => '/user/watchlist/$mediaId';
   static const String watchlistBatchDeletePath = '/user/watchlist/batch-delete';
 
+  static const String batchMediaPath = '/media/batch';
+
   static const String progressPath = '/user/progress';
   static String reviewsPath(String mediaId) => '/media/$mediaId/reviews';
   static const String settingsPath = '/user/settings';
 
   // Device & Auth Security paths
   static const String loginPath = '/auth/login';
+  static const String demoLoginPath = '/auth/demo-login';
   static const String registerPath = '/auth/register';
   static const String refreshPath = '/auth/refresh';
   static const String mePath = '/auth/me';
+  static const String profilePath = '/auth/profile';
+  static const String changePasswordPath = '/auth/change-password';
   static const String logoutPath = '/auth/logout';
   static const String logoutAllPath = '/auth/logout-all';
   static String revokeDevicePath(String deviceId) => '/auth/devices/$deviceId';

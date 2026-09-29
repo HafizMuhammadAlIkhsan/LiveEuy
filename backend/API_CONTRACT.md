@@ -5,11 +5,20 @@ Semua klien (Web & Mobile) mengonsumsi endpoint yang **sama persis** tanpa dupli
 
 ---
 
-## Base URL
-- **Local Dev (Web React / iOS Sim)**: `http://localhost:8080/api/v1`
-- **Android Emulator**: `http://10.0.2.2:8080/api/v1`
-- **Physical Device (LAN/Wi-Fi)**: `http://<IP_LAN_HOST>:8080/api/v1`
-- **Swagger UI**: `http://localhost:8080/swagger-ui.html`
+## Base URL & Microservices Architecture
+
+Backend LiveEuy dibagi menjadi 2 microservices:
+1. **Auth Service (Go / Gin)**: Menangani autentikasi, registrasi, sesi, OAuth2, dan profil.
+   - **Local Dev (Web React / iOS Sim)**: `http://localhost:8080/api/v1`
+   - **Android Emulator**: `http://10.0.2.2:8080/api/v1`
+   - **Physical Device (LAN/Wi-Fi)**: `http://<IP_LAN_HOST>:8080/api/v1`
+2. **Catalog Service (Spring Boot 3.4.3 / Java 21)**: Menangani katalog media, film, serial TV, seasons, dan episodes.
+   - **Local Dev (Web React / iOS Sim)**: `http://localhost:8081/api/v1`
+   - **Android Emulator**: `http://10.0.2.2:8081/api/v1`
+   - **Physical Device (LAN/Wi-Fi)**: `http://<IP_LAN_HOST>:8081/api/v1`
+   - **Swagger UI**: `http://localhost:8081/swagger-ui.html`
+
+Klien mobile (`liveeuy_mob`) mengonfigurasi kedua Base URL ini secara terpisah pada `lib/core/network/api_config.dart` (`authBaseUrl` dan `catalogBaseUrl`).
 
 ---
 
@@ -32,13 +41,22 @@ Semua endpoint mengembalikan struktur pembungkus JSON standar:
 
 ### 1. Katalog Media & Konten (`/api/v1/media`)
 
-#### a. Ambil Semua Media
+#### a. Ambil Semua Media (Katalog & Pencarian)
 - **Method**: `GET`
 - **Path**: `/api/v1/media`
+- **Query Params** (Opsional):
+  - `type`: Filter tipe media (`MOVIE` atau `TV_SERIES`).
+  - `search`: Kata kunci pencarian judul atau sinopsis.
+  - `page`: Nomor halaman (0-indexed, default `0`).
+  - `size`: Jumlah item per halaman (default `10` atau `30`).
+  - `sort`: Atribut sorting (contoh: `createdAt,desc` atau `rating,desc`).
 - **Digunakan oleh**:
   - Web: Halaman Beranda, MoviesPage, SeriesPage
-  - Mobile: `HomeScreen` & `SearchScreen`
-- **Respon Data**: Array `MediaItem`
+  - Mobile: `HomeScreen` & `SearchScreen` (didukung fallback sinkron lokal)
+- **Respon Data**:
+  - Pada format Spring Boot Pageable: `data: { "content": [...MediaItem], "totalElements": 20, "totalPages": 2 }`
+  - Pada format unpaged list: `data: [...MediaItem]`
+  - Klien mobile `ApiService` & `MediaModel` secara otomatis mendukung kedua variasi ini.
 
 #### b. Detail Media Berdasarkan ID
 - **Method**: `GET`
@@ -54,6 +72,25 @@ Semua endpoint mengembalikan struktur pembungkus JSON standar:
 - **Digunakan oleh**:
   - Web: Baris `TopTenRow` di HomePage
   - Mobile: Carousel Top 10 di `HomeScreen`
+- **Respon Data**: Array `MediaItem` dengan urutan peringkat 1 - 10.
+
+#### d. Batch Fetch Media (`POST /api/v1/media/batch`)
+Mengambil kumpulan data media sekaligus berdasarkan daftar ID unik.
+- **Method**: `POST`
+- **Path**: `/api/v1/media/batch`
+- **Digunakan oleh**:
+  - Web: Halaman koleksi atau rekomendasi batch
+  - Mobile: Sinkronisasi batch koleksi & watchlist
+- **Request Body**:
+  ```json
+  ["m1", "m2", "m3"]
+  ```
+- **Respon Data**: Array `MediaItem`.
+
+#### e. Hirarki Serial TV & Episode (TV Hierarchy)
+- `GET /api/v1/series`: Daftar serial TV
+- `GET /api/v1/series/{seriesId}/seasons`: Daftar musim serial tertentu
+- `GET /api/v1/seasons/{seasonId}/episodes`: Daftar episode pada musim tertentu
 
 ---
 
@@ -305,7 +342,87 @@ Sistem autentikasi LiveEuy mengadopsi standar industri modern (**Short-lived Acc
 
 ---
 
-### c. Refresh Access Token (`POST /api/v1/auth/refresh`)
+### c. Demo Login Persona (`POST /api/v1/auth/demo-login`)
+Digunakan untuk kemudahan pengujian fitur role dan tier akun tanpa registrasi manual.
+- **Method**: `POST`
+- **Path**: `/api/v1/auth/demo-login?persona={tamu|vip|ultra}`
+- **Query Params**:
+  - `persona`: `'tamu'` (Guest), `'vip'` (VIP Standard), atau `'ultra'` (VIP Ultra 4K).
+- **Digunakan oleh**:
+  - Web: Demo login persona buttons di auth modal.
+  - Mobile: Quick Persona buttons di `LoginScreen` (`Tamu 1 Dev`, `VIP 2 Dev`, `Ultra 4 Dev`).
+- **Response Body**:
+  ```json
+  {
+    "success": true,
+    "message": "Demo login berhasil sebagai VIP",
+    "data": {
+      "token": "eyJhbGciOi...",
+      "refreshToken": "eyJhbGciOi...",
+      "tokenType": "Bearer",
+      "user": {
+        "id": "u_vip_demo",
+        "name": "VIP User (Demo)",
+        "email": "vip.demo@liveeuy.id",
+        "role": "VIP",
+        "tier": "VIP_4K",
+        "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120"
+      }
+    }
+  }
+  ```
+
+---
+
+### d. Profil Pengguna (`GET /api/v1/auth/profile`)
+- **Method**: `GET`
+- **Path**: `/api/v1/auth/profile`
+- **Headers**: `Authorization: Bearer <access_token>`
+- **Response Body**:
+  ```json
+  {
+    "success": true,
+    "message": "Profil berhasil diambil",
+    "data": {
+      "user": {
+        "id": "u1",
+        "name": "Aria Pratama",
+        "email": "aria@liveeuy.id",
+        "role": "VIP",
+        "tier": "VIP_4K",
+        "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120",
+        "devices": 2,
+        "watchHours": 48.5,
+        "memberSince": "Jan 2024"
+      }
+    }
+  }
+  ```
+
+---
+
+### e. Ubah Kata Sandi (`PUT /api/v1/auth/change-password`)
+- **Method**: `PUT`
+- **Path**: `/api/v1/auth/change-password`
+- **Headers**: `Authorization: Bearer <access_token>`
+- **Request Body**:
+  ```json
+  {
+    "currentPassword": "oldPassword123",
+    "newPassword": "newSecretPassword456"
+  }
+  ```
+- **Response Body**:
+  ```json
+  {
+    "success": true,
+    "message": "Kata sandi berhasil diperbarui"
+  }
+  ```
+
+---
+
+### f. Refresh Access Token (`POST /api/v1/auth/refresh`)
 - **Method**: `POST`
 - **Path**: `/api/v1/auth/refresh`
 - **Mekanisme Dual-Mode (Web & Mobile)**:

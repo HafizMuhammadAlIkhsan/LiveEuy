@@ -343,6 +343,53 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _showToast('Pemulihan Sandi', 'Tautan pemulihan dikirimkan ke email terdaftar', icon: Icons.mark_email_read_rounded);
   }
 
+  void _handleDemoPersona(String persona) async {
+    setState(() => _isLoading = true);
+    try {
+      final success = await ref.read(authProvider.notifier).demoLogin(persona, rememberMe: _rememberMe);
+      if (mounted) {
+        setState(() => _isLoading = false);
+        if (success) {
+          _showToast(
+            'Demo Login Berhasil',
+            'Masuk sebagai akun $persona',
+            icon: Icons.check_circle_rounded,
+          );
+          Navigator.pop(context);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _showToast('Demo Login Gagal', '$e', icon: Icons.error_outline_rounded);
+      }
+    }
+  }
+
+  Widget _buildDemoPersonaButton(String label, String persona, IconData icon) {
+    return OutlinedButton(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.onSurface,
+        side: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+      onPressed: _isLoading ? null : () => _handleDemoPersona(persona),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: persona == 'ultra' ? AppColors.accentGold : AppColors.primary),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -729,6 +776,43 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
             ),
           ),
+        ),
+        const SizedBox(height: 16),
+
+        // Demo Persona Switcher (Backend Multi-Device Testing)
+        Row(
+          children: [
+            const Expanded(child: Divider(color: AppColors.outlineVariant, height: 1)),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Text(
+                'ATAU UJI DEMO PERSONA',
+                style: GoogleFonts.outfit(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.onSurfaceVariant,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+            const Expanded(child: Divider(color: AppColors.outlineVariant, height: 1)),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildDemoPersonaButton('Tamu (1 Dev)', 'free', Icons.person_outline_rounded),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildDemoPersonaButton('VIP (2 Dev)', 'standard', Icons.star_border_rounded),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildDemoPersonaButton('Ultra (4 Dev)', 'ultra', Icons.diamond_outlined),
+            ),
+          ],
         ),
       ],
     );

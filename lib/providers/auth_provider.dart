@@ -65,16 +65,21 @@ class UserProfile {
           .map((m) => DeviceSession.fromJson(m))
           .toList();
     }
-    final isVipVal = json['isVip'] as bool? ?? false;
+    final membershipTier = json['membershipTier'] as String? ??
+        json['tier'] as String? ??
+        'REGULAR';
+    final isVipVal = json['isVip'] as bool? ??
+        membershipTier.toUpperCase().contains('VIP') ||
+        membershipTier.toUpperCase().contains('ULTRA');
     return UserProfile(
       name: json['name'] as String? ?? 'User',
       email: json['email'] as String? ?? '',
       avatarUrl: json['avatarUrl'] as String? ??
+          json['avatar'] as String? ??
           'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80',
       isLoggedIn: json['isLoggedIn'] as bool? ?? false,
       isVip: isVipVal,
-      membershipTier: json['membershipTier'] as String? ??
-          (isVipVal ? 'VIP Cinema Ultra' : 'REGULAR'),
+      membershipTier: membershipTier,
       rememberMe: json['rememberMe'] as bool? ?? true,
       deviceType: json['deviceType'] as String? ?? 'Mobile',
       currentDeviceName: json['currentDeviceName'] as String? ?? 'Smartphone (Android)',
@@ -103,7 +108,7 @@ class AuthNotifier extends StateNotifier<UserProfile> {
   final ApiClient _apiClient;
 
   AuthNotifier([this._storageService, ApiClient? apiClient])
-      : _apiClient = apiClient ?? ApiClient(),
+      : _apiClient = apiClient ?? ApiClient(baseUrl: ApiConfig.authBaseUrl),
         super(const UserProfile(
           name: 'Hafiz Muhammad',
           email: 'hafiz@streamflix.id',
@@ -393,7 +398,95 @@ class AuthNotifier extends StateNotifier<UserProfile> {
     return true;
   }
 
-  Future<bool> register(String name, String email, String password) async {
+  /// Demo Login cepat menggunakan persona ('free', 'standard', 'ultra')
+  Future<bool> demoLogin(String persona, {bool rememberMe = true}) async {
+    AuthData? authData;
+    try {
+      final res = await _apiClient.post<AuthData>(
+        ApiConfig.demoLoginPath,
+        body: {'persona': persona},
+        fromJson: (data) => AuthData.fromJson(data as Map<String, dynamic>),
+      );
+      authData = res.data;
+    } on DioException catch (dioErr) {
+      if (kDebugMode) {
+        debugPrint('[AuthNotifier] Demo login error (${dioErr.message}), beralih ke mode offline.');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[AuthNotifier] Demo login network error: $e, beralih ke mode offline.');
+      }
+    }
+
+    final isVipUser = authData?.user?.isVip ?? (persona == 'standard' || persona == 'ultra');
+    final userTier = authData?.user?.membershipTier ??
+        (persona == 'ultra'
+            ? 'VIP Cinema Ultra'
+            : (persona == 'standard' ? 'VIP Standard' : 'Free Guest'));
+    final userName = (authData?.user?.name != null && authData!.user!.name.isNotEmpty)
+        ? authData.user!.name
+        : 'Demo ${persona.toUpperCase()}';
+    final userEmail = (authData?.user?.email != null && authData!.user!.email.isNotEmpty)
+        ? authData.user!.email
+        : '$persona@demo.liveeuy.id';
+    final userAvatar = (authData?.user?.avatarUrl != null && authData!.user!.avatarUrl.isNotEmpty)
+        ? authData.user!.avatarUrl
+        : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80';
+
+    final deviceName = 'Smartphone (Android)';
+    final sessions = [
+      DeviceSession(
+        sessionId: 'sess-mob-current',
+        deviceName: deviceName,
+        deviceType: DeviceType.mobile,
+        os: 'Android 14',
+        browserOrApp: 'LiveEuy Mobile App v2.4',
+        ipAddress: '182.253.14.82',
+        location: 'Jakarta Selatan, Indonesia',
+        lastActive: 'Aktif Sekarang',
+        isCurrentDevice: true,
+      ),
+    ];
+
+    final profile = UserProfile(
+      name: userName,
+      email: userEmail,
+      avatarUrl: userAvatar,
+      isLoggedIn: true,
+      isVip: isVipUser,
+      membershipTier: userTier,
+      rememberMe: rememberMe,
+      deviceType: 'Mobile',
+      currentDeviceName: deviceName,
+      activeSessions: sessions,
+    );
+
+    state = profile;
+
+    final accessToken = (authData?.accessToken != null && authData!.accessToken.isNotEmpty)
+        ? authData.accessToken
+        : 'liveeuy_jwt_demo_${DateTime.now().millisecondsSinceEpoch}';
+    final refreshToken = (authData?.refreshToken != null && authData!.refreshToken.isNotEmpty)
+        ? authData.refreshToken
+        : 'liveeuy_refresh_demo_${DateTime.now().millisecondsSinceEpoch}';
+
+    if (_storageService != null) {
+      await _storageService.setRememberMe(rememberMe);
+      if (rememberMe) {
+        await _storageService.saveAuthTokens(
+          accessToken: accessToken,
+          refreshToken: refreshToken,
+        );
+        await _storageService.saveUserSession(profile.toJson());
+      } else {
+        await _storageService.clearAuth();
+      }
+    }
+
+    return true;
+  }
+
+  Future<bool> register(String name, String email, String password, [String tier = 'VIP Standard']) async {
     AuthData? authData;
     try {
       final res = await _apiClient.post<AuthData>(
@@ -402,6 +495,7 @@ class AuthNotifier extends StateNotifier<UserProfile> {
           'name': name,
           'email': email,
           'password': password,
+          'tier': tier,
         },
         fromJson: (data) => AuthData.fromJson(data as Map<String, dynamic>),
       );

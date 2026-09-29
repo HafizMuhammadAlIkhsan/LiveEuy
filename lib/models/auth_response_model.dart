@@ -4,6 +4,10 @@ class UserData {
   final String email;
   final String avatarUrl;
   final String membershipTier;
+  final String role;
+  final int devices;
+  final double watchHours;
+  final String memberSince;
 
   const UserData({
     required this.id,
@@ -11,10 +15,15 @@ class UserData {
     required this.email,
     required this.avatarUrl,
     this.membershipTier = 'REGULAR',
+    this.role = 'user',
+    this.devices = 2,
+    this.watchHours = 0.0,
+    this.memberSince = '',
   });
 
   bool get isVip =>
       membershipTier.toUpperCase().contains('VIP') ||
+      membershipTier.toUpperCase().contains('ULTRA') ||
       email.toLowerCase().contains('hafiz') ||
       email.toLowerCase().contains('vip');
 
@@ -24,8 +33,15 @@ class UserData {
       name: json['name'] as String? ?? '',
       email: json['email'] as String? ?? '',
       avatarUrl: json['avatarUrl'] as String? ??
+          json['avatar'] as String? ??
           'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80',
-      membershipTier: json['membershipTier'] as String? ?? 'REGULAR',
+      membershipTier: json['membershipTier'] as String? ??
+          json['tier'] as String? ??
+          'REGULAR',
+      role: json['role'] as String? ?? 'user',
+      devices: (json['devices'] as num?)?.toInt() ?? 2,
+      watchHours: (json['watchHours'] as num?)?.toDouble() ?? 0.0,
+      memberSince: json['memberSince'] as String? ?? '',
     );
   }
 
@@ -36,6 +52,10 @@ class UserData {
       'email': email,
       'avatarUrl': avatarUrl,
       'membershipTier': membershipTier,
+      'role': role,
+      'devices': devices,
+      'watchHours': watchHours,
+      'memberSince': memberSince,
     };
   }
 }
@@ -57,10 +77,18 @@ class AuthData {
 
   factory AuthData.fromJson(Map<String, dynamic> json) {
     return AuthData(
-      accessToken: json['accessToken'] as String? ?? '',
-      refreshToken: json['refreshToken'] as String? ?? '',
-      tokenType: json['tokenType'] as String? ?? 'Bearer',
-      expiresIn: json['expiresIn'] as int? ?? 900,
+      accessToken: json['accessToken'] as String? ??
+          json['access_token'] as String? ??
+          '',
+      refreshToken: json['refreshToken'] as String? ??
+          json['refresh_token'] as String? ??
+          '',
+      tokenType: json['tokenType'] as String? ??
+          json['token_type'] as String? ??
+          'Bearer',
+      expiresIn: (json['expiresIn'] as num?)?.toInt() ??
+          (json['expires_in'] as num?)?.toInt() ??
+          900,
       user: json['user'] is Map<String, dynamic>
           ? UserData.fromJson(json['user'] as Map<String, dynamic>)
           : null,

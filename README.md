@@ -72,17 +72,17 @@ Klien mobile streaming film dan serial televisi berbasis Flutter (Android dan iO
 - Penyimpanan Kredensial dan Data: `flutter_secure_storage` (Android Keystore / iOS Keychain) dan `shared_preferences`
 - Tema Tampilan: Dark mode (`#0F0E17`) dengan aksen glassmorphic
 
-### Layanan Backend
-- Framework: Spring Boot 3.3.4 (Java 17)
-- Dokumentasi API: SpringDoc OpenAPI dan Swagger UI
-- Endpoint Utama:
-  - `GET /api/v1/media`: Katalog tayangan dan daftar Top 10
-  - `GET /api/v1/media/{id}`: Detail tayangan dan daftar episode
-  - `GET /api/v1/media/{id}/reviews` dan `POST`: Pengambilan dan pengiriman ulasan
-  - `GET /api/v1/user/watchlist` dan `POST`: Sinkronisasi daftar simpan pengguna
-  - `POST /api/v1/user/progress`: Pembaruan progres tontonan terakhir
-- Swagger UI lokal: `http://localhost:8080/swagger-ui.html`
-- OpenAPI JSON: `http://localhost:8080/api-docs`
+### Layanan Backend (Microservices)
+Arsitektur backend LiveEuy (`dev-backend`) mengadopsi pola microservices terpisah:
+1. **`auth-service` (Port 8080)**:
+   - Framework: Go 1.22 + Gin Web Framework
+   - Basis Data & Cache: PostgreSQL 16 & Redis 7
+   - Endpoint: `/api/v1/auth/*` (Login, Register, Demo Persona Login, Refresh Token Rotation, Profil, Ubah Sandi, Perangkat Terhubung)
+2. **`catalog-service` (Port 8081)**:
+   - Framework: Spring Boot 3.4.3 (Java 21)
+   - Basis Data: PostgreSQL (JPA / Hibernate)
+   - Dokumentasi API: SpringDoc OpenAPI & Swagger UI (`http://localhost:8081/swagger-ui.html`)
+   - Endpoint: `/api/v1/media/*` (Katalog Pageable, Pencarian, Top 10, Batch Media, Serial TV & Episodes)
 
 ### Lapisan Jaringan dan Penanganan Error (Dio)
 - Arsitektur jaringan mengimplementasikan spesifikasi Dio 5.x dengan hirarki `DioException`.
@@ -192,24 +192,52 @@ Pengguna dapat membuka menu **"Perangkat Terhubung & Sesi"** pada tab Akun untuk
 
 ---
 
-## Integrasi API Backend
+## Integrasi API Backend (Microservices Alignment)
 
 Pemetaan endpoint backend (`origin/dev-backend`) dengan klien mobile:
 
 | Fitur Mobile | Status Backend (`dev-backend`) | Penanganan di Klien Mobile |
 | :--- | :--- | :--- |
-| Katalog dan Detail Media | Tersedia (`catalog-service`) | Klien memetakan skema Spring Page `data: {"content": [...]}` dan `durationSeconds`. |
-| Login dan Registrasi | Tersedia (`auth-service`) | Klien menyimpan token JWT di `FlutterSecureStorage` dan mendukung refresh token. |
-| User Watchlist | Dalam pengembangan | Dikelola offline-first melalui `LocalStorageService`; disinkronkan saat backend siap. |
-| Continue Watching | Dalam pengembangan | Progres durasi tontonan disimpan di `SharedPreferences` dan disinkronkan saat online. |
-| Pengaturan Pengguna | Dalam pengembangan | Preferensi kualitas streaming, auto skip intro, dan unduh Wi-Fi disimpan di lokal. |
-| Notifikasi | Belum ada service terpisah | Dikelola oleh `NotificationService` lokal dengan persistensi data dan deep link dispatcher. |
+| **Katalog Media & Pencarian** | Tersedia (`catalog-service` :8081) | Klien memetakan skema Spring Page `data: {"content": [...]}` dan `durationSeconds` dengan query parameter `type`, `search`, `size`. |
+| **Detail & Episode** | Tersedia (`catalog-service` :8081) | Memetakan Season & Episode DTO lengkap beserta durasi tayang. |
+| **Batch Fetch Media** | Tersedia (`catalog-service` :8081) | Mengambil daftar tayangan sekaligus via `POST /api/v1/media/batch`. |
+| **Login, Register & Refresh** | Tersedia (`auth-service` :8080) | Klien menyimpan token JWT di `FlutterSecureStorage` dan mendukung refresh token otomatis. |
+| **Persona Demo Login** | Tersedia (`auth-service` :8080) | Tombol cepat persona di `LoginScreen` (`Tamu 1 Dev`, `VIP 2 Dev`, `Ultra 4 Dev`). |
+| **Profil & Ganti Sandi** | Tersedia (`auth-service` :8080) | Sinkronisasi metrik `devices`, `watchHours`, `memberSince`, dan update kata sandi. |
+| **Sesi & Keamanan Perangkat**| Tersedia (`auth-service` :8080) | Mengirimkan header `X-Device-Type: Mobile` dan mengelola multi-sesi via `DeviceSecuritySheet`. |
+| **User Watchlist** | Fallback offline-first | Disimpan lokal di `LocalStorageService`; disinkronkan saat endpoint user service aktif. |
+| **Continue Watching** | Fallback offline-first | Disimpan di `SharedPreferences` dan disinkronkan otomatis saat online. |
+| **Pengaturan Pengguna** | Fallback offline-first | Preferensi kualitas streaming, auto skip intro, dan unduh Wi-Fi disimpan di lokal. |
+| **Notifikasi** | Layanan lokal | Dikelola oleh `NotificationService` lokal dengan persistensi data dan deep link dispatcher. |
 
 ---
 
 ## Panduan Memulai
 
-### 1. Menjalankan Klien Mobile (Flutter)
+### 1. Menjalankan Layanan Backend Lokal (Docker)
+
+Backend LiveEuy membutuhkan PostgreSQL dan Redis. Anda dapat menjalankannya dengan mudah menggunakan Docker.
+
+#### Instalasi Docker di CachyOS (Arch Linux)
+Bagi pengguna **CachyOS**, gunakan skrip otomatis yang telah disediakan di repositori:
+```bash
+# Jalankan skrip instalasi (memerlukan hak akses sudo)
+sudo ./scripts/install_docker_cachyos.sh
+
+# Aktifkan grup docker di terminal saat ini:
+newgrp docker
+```
+
+#### Menjalankan Kontainer PostgreSQL & Redis
+```bash
+# Jalankan container di latar belakang
+docker compose -f backend/docker-compose.yml up -d
+
+# Cek container yang berjalan
+docker compose -f backend/docker-compose.yml ps
+```
+
+### 2. Menjalankan Klien Mobile (Flutter)
 
 Prasyarat: Flutter SDK versi 3.22.0 atau lebih baru.
 
@@ -224,14 +252,21 @@ flutter devices
 flutter run
 ```
 
-Konfigurasi alamat endpoint backend:
-- Android Emulator: `http://10.0.2.2:8080/api/v1` (karena `localhost` merujuk ke internal emulator).
-- Perangkat Fisik: `http://<IP-LOKAL-KOMPUTER>:8080/api/v1` (komputer dan perangkat berada pada jaringan Wi-Fi yang sama).
-- iOS Simulator: `http://localhost:8080/api/v1`.
+Konfigurasi alamat endpoint backend (`lib/core/network/api_config.dart`):
+- **Android Emulator**:
+  - Auth Service: `http://10.0.2.2:8080/api/v1`
+  - Catalog Service: `http://10.0.2.2:8081/api/v1`
+- **iOS Simulator / Desktop**:
+  - Auth Service: `http://localhost:8080/api/v1`
+  - Catalog Service: `http://localhost:8081/api/v1`
+- **Perangkat Fisik (Wi-Fi)**:
+  - Auth Service: `http://<IP-LOKAL-KOMPUTER>:8080/api/v1`
+  - Catalog Service: `http://<IP-LOKAL-KOMPUTER>:8081/api/v1`
 
-### 2. Integrasi Backend & Dokumentasi Kontrak
+### 3. Integrasi Backend & Dokumentasi Kontrak
 
 Aplikasi mobile terhubung ke backend services LiveEuy (`auth-service` dan `catalog-service`). Kontrak API, spesifikasi otentikasi token, dan referensi skema database dapat dilihat pada:
+- [`backend/README.md`](backend/README.md): Panduan umum backend microservices & docker compose.
 - [`backend/API_CONTRACT.md`](backend/API_CONTRACT.md): Definisi endpoint, format JSON request/response, dan skema Dio exception.
 - [`backend/AUTHENTICATION_AND_SECURITY.md`](backend/AUTHENTICATION_AND_SECURITY.md): Panduan refresh token rotation dan keamanan sesi.
 - [`backend/DATABASE_GUIDELINES.md`](backend/DATABASE_GUIDELINES.md): Pedoman skema database dan diagram ERD.

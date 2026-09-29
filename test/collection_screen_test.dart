@@ -230,10 +230,10 @@ void main() {
       await tester.pump(const Duration(milliseconds: 200));
 
       // Watchlist default has 2 items ('m1' and 'm3')
-      expect(find.text('2 dipilih'), findsWidgets);
+      expect(find.text('2 dipilih'), findsOneWidget);
       expect(find.byKey(const Key('batch_delete_action_button')), findsOneWidget);
 
-      // 5. Tap "Hapus (2)" on floating action bar
+      // 5. Tap delete button on top right app bar
       await tester.tap(find.byKey(const Key('batch_delete_action_button')));
       await tester.pump(const Duration(milliseconds: 200));
 
@@ -277,7 +277,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 200));
 
       // Verify selection mode entered with 1 item selected
-      expect(find.text('1 dipilih'), findsWidgets);
+      expect(find.text('1 dipilih'), findsOneWidget);
 
       // Tap cancel selection mode button
       await tester.tap(find.byKey(const Key('cancel_selection_mode_button')));

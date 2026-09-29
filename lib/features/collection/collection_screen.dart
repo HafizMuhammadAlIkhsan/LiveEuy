@@ -534,8 +534,6 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
       displayedWatchlist = watchlistItems;
     }
 
-    final bottomOffset = widget.onNavigateTab != null ? 76.0 : 20.0;
-
     return PopScope(
       canPop: !_isSelectionMode,
       onPopInvokedWithResult: (didPop, result) {
@@ -546,62 +544,60 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
       },
       child: Scaffold(
         backgroundColor: AppColors.background,
-        body: Stack(
-          children: [
-            CustomScrollView(
-              physics: const BouncingScrollPhysics(),
-              slivers: [
-                // 1. Top App Bar terpadu (Logo LiveEuy, Cast, Notifikasi, Avatar Profil / Multi-select bar)
-                SliverAppBar(
-                  floating: true,
-                  pinned: true,
-                  backgroundColor: AppColors.background.withValues(alpha: 0.85),
-                  elevation: 0,
-                  automaticallyImplyLeading: false,
-                  leading: _isSelectionMode
-                      ? IconButton(
-                          key: const Key('cancel_selection_mode_button'),
-                          icon: const Icon(Icons.close_rounded, color: AppColors.onSurface),
-                          tooltip: 'Batal pilih',
-                          onPressed: _exitSelectionMode,
-                        )
-                      : null,
-                  titleSpacing: _isSelectionMode ? 0 : 16,
-                  title: _isSelectionMode
-                      ? Text(
-                          '${_selectedMediaIds.length} dipilih',
-                          style: GoogleFonts.outfit(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.onSurface,
-                          ),
-                        )
-                      : const StreamFlixLogo(fontSize: 20),
-                  actions: _isSelectionMode
-                      ? [
-                          IconButton(
-                            key: const Key('toggle_select_all_button'),
-                            icon: Icon(
-                              _selectedMediaIds.length == displayedWatchlist.length && displayedWatchlist.isNotEmpty
-                                  ? Icons.deselect_rounded
-                                  : Icons.select_all_rounded,
-                              color: AppColors.onSurface,
-                            ),
-                            tooltip: _selectedMediaIds.length == displayedWatchlist.length && displayedWatchlist.isNotEmpty
-                                ? 'Batal semua'
-                                : 'Pilih semua',
-                            onPressed: () => _toggleSelectAll(displayedWatchlist),
-                          ),
-                          if (_selectedMediaIds.isNotEmpty)
-                            IconButton(
-                              key: const Key('appbar_delete_selected_button'),
-                              icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
-                              tooltip: 'Hapus terpilih',
-                              onPressed: () => _confirmBatchDelete(_selectedMediaIds.toList(), allMovies),
-                            ),
-                          const SizedBox(width: 8),
-                        ]
-                      : [
+        body: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            // 1. Top App Bar terpadu (Logo LiveEuy, Cast, Notifikasi, Avatar Profil / Multi-select bar)
+            SliverAppBar(
+              floating: true,
+              pinned: true,
+              backgroundColor: AppColors.background.withValues(alpha: 0.85),
+              elevation: 0,
+              automaticallyImplyLeading: false,
+              leading: _isSelectionMode
+                  ? IconButton(
+                      key: const Key('cancel_selection_mode_button'),
+                      icon: const Icon(Icons.close_rounded, color: AppColors.onSurface),
+                      tooltip: 'Batal pilih',
+                      onPressed: _exitSelectionMode,
+                    )
+                  : null,
+              titleSpacing: _isSelectionMode ? 0 : 16,
+              title: _isSelectionMode
+                  ? Text(
+                      '${_selectedMediaIds.length} dipilih',
+                      style: GoogleFonts.outfit(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.onSurface,
+                      ),
+                    )
+                  : const StreamFlixLogo(fontSize: 20),
+              actions: _isSelectionMode
+                  ? [
+                      IconButton(
+                        key: const Key('toggle_select_all_button'),
+                        icon: Icon(
+                          _selectedMediaIds.length == displayedWatchlist.length && displayedWatchlist.isNotEmpty
+                              ? Icons.deselect_rounded
+                              : Icons.select_all_rounded,
+                          color: AppColors.onSurface,
+                        ),
+                        tooltip: _selectedMediaIds.length == displayedWatchlist.length && displayedWatchlist.isNotEmpty
+                            ? 'Batal semua'
+                            : 'Pilih semua',
+                        onPressed: () => _toggleSelectAll(displayedWatchlist),
+                      ),
+                      if (_selectedMediaIds.isNotEmpty)
+                        IconButton(
+                          key: const Key('batch_delete_action_button'),
+                          icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
+                          tooltip: 'Hapus terpilih',
+                          onPressed: () => _confirmBatchDelete(_selectedMediaIds.toList(), allMovies),
+                        ),
+                      const SizedBox(width: 8),
+                    ]
+                  : [
                           IconButton(
                             tooltip: 'Cast Screen',
                             icon: const Icon(Icons.cast_rounded, color: AppColors.onSurface, size: 22),
@@ -749,44 +745,34 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            if (watchlistItems.isNotEmpty)
+                            if (!_isSelectionMode && watchlistItems.isNotEmpty)
                               GestureDetector(
                                 key: const Key('toggle_selection_mode_button'),
-                                onTap: () {
-                                  if (_isSelectionMode) {
-                                    _exitSelectionMode();
-                                  } else {
-                                    _enterSelectionMode();
-                                  }
-                                },
+                                onTap: _enterSelectionMode,
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                                   decoration: BoxDecoration(
-                                    color: _isSelectionMode
-                                        ? AppColors.primaryContainer.withValues(alpha: 0.2)
-                                        : AppColors.surfaceContainerLowest,
+                                    color: AppColors.surfaceContainerLowest,
                                     borderRadius: BorderRadius.circular(10),
                                     border: Border.all(
-                                      color: _isSelectionMode
-                                          ? AppColors.primary
-                                          : AppColors.outlineVariant.withValues(alpha: 0.25),
+                                      color: AppColors.outlineVariant.withValues(alpha: 0.25),
                                     ),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(
-                                        _isSelectionMode ? Icons.close_rounded : Icons.checklist_rounded,
+                                      const Icon(
+                                        Icons.checklist_rounded,
                                         size: 14,
-                                        color: _isSelectionMode ? AppColors.primary : AppColors.onSurfaceVariant,
+                                        color: AppColors.onSurfaceVariant,
                                       ),
                                       const SizedBox(width: 5),
                                       Text(
-                                        _isSelectionMode ? 'Selesai' : 'Pilih',
+                                        'Pilih',
                                         style: GoogleFonts.outfit(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w600,
-                                          color: _isSelectionMode ? AppColors.primary : AppColors.onSurfaceVariant,
+                                          color: AppColors.onSurfaceVariant,
                                         ),
                                       ),
                                     ],
@@ -845,82 +831,12 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                     ),
                   ),
 
-                // Jarak bawah agar tidak terpotong bottom navigation bar atau floating bar
-                SliverToBoxAdapter(
-                  child: SizedBox(height: _isSelectionMode ? 160 : 110),
+                // Jarak bawah agar tidak terpotong bottom navigation bar
+                const SliverToBoxAdapter(
+                  child: SizedBox(height: 110),
                 ),
               ],
             ),
-            if (_isSelectionMode)
-              Positioned(
-                left: 16,
-                right: 16,
-                bottom: bottomOffset,
-                child: _buildFloatingBottomBar(allMovies),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Floating Action Bar di bagian bawah saat dalam Mode Pemilihan (Multiple Select)
-  Widget _buildFloatingBottomBar(List<Movie> allMovies) {
-    final count = _selectedMediaIds.length;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerHigh.withValues(alpha: 0.96),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.glassBorder),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.4),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            key: const Key('floating_cancel_selection_button'),
-            icon: const Icon(Icons.close_rounded, color: AppColors.onSurfaceVariant, size: 20),
-            tooltip: 'Batal pilih',
-            onPressed: _exitSelectionMode,
-          ),
-          const SizedBox(width: 4),
-          Expanded(
-            child: Text(
-              count == 0 ? 'Pilih tayangan' : '$count dipilih',
-              style: GoogleFonts.outfit(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.onSurface,
-              ),
-            ),
-          ),
-          ElevatedButton.icon(
-            key: const Key('batch_delete_action_button'),
-            icon: const Icon(Icons.delete_outline_rounded, size: 18),
-            label: Text(
-              'Hapus ($count)',
-              style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 13),
-            ),
-            onPressed: count > 0
-                ? () => _confirmBatchDelete(_selectedMediaIds.toList(), allMovies)
-                : null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: Colors.white,
-              disabledBackgroundColor: AppColors.surfaceContainerHighest,
-              disabledForegroundColor: AppColors.outline,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          ),
-        ],
       ),
     );
   }
