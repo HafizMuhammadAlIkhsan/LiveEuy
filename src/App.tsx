@@ -2,6 +2,9 @@ import React, { Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { WatchProvider, useWatch } from './context/WatchContext';
 import { Navbar } from './components/Navbar';
+import { TopMarqueeAd } from './components/TopMarqueeAd';
+import { FloatingStickyAd } from './components/FloatingStickyAd';
+import { PopunderInterceptor } from './components/PopunderInterceptor';
 import { DetailModal } from './components/DetailModal';
 import { AuthModal } from './components/AuthModal';
 import { MobileSyncModal } from './components/MobileSyncModal';
@@ -59,7 +62,12 @@ const MainContent: React.FC = () => {
   return (
     <div className={`min-h-screen bg-[#08090d] flex flex-col justify-between ${isAdminView ? 'pb-0' : 'pb-16 md:pb-0'}`}>
       <div>
-        {!isAdminView && <Navbar />}
+        {!isAdminView && (
+          <>
+            <TopMarqueeAd />
+            <Navbar />
+          </>
+        )}
 
         {/* Route-level Error Boundary with Suspense & Shimmer Skeletons */}
         <ErrorBoundary 
@@ -94,6 +102,14 @@ const MainContent: React.FC = () => {
       </div>
 
       {!isAdminView && <Footer />}
+
+      {/* Floating Sticky Bottom Banner & Popunder Interstitial */}
+      {!isAdminView && (
+        <>
+          <FloatingStickyAd />
+          <PopunderInterceptor />
+        </>
+      )}
 
       {/* Global Modals */}
       <DetailModal />

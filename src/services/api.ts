@@ -466,6 +466,96 @@ class LiveEuyApiService {
     return items;
   }
 
+  /**
+   * AJAX Live Search with AbortSignal support
+   */
+  async ajaxSearchMedia(
+    query: string,
+    signal?: AbortSignal,
+    options?: {
+      limit?: number;
+      type?: 'all' | 'movie' | 'tv';
+      genre?: string;
+      minRating?: number;
+      sortBy?: 'relevance' | 'rating' | 'newest';
+    }
+  ): Promise<{ items: MediaItem[]; total: number }> {
+    const trimmed = query.trim().toLowerCase();
+    if (!trimmed) {
+      return { items: [], total: 0 };
+    }
+
+    const catalogBase = await this.resolveCatalogUrl();
+    if (catalogBase) {
+      try {
+        const params = new URLSearchParams({ search: trimmed });
+        if (options?.type && options.type !== 'all') params.append('type', options.type);
+        if (options?.genre && options.genre !== 'Semua Genre') params.append('genre', options.genre);
+        if (options?.limit) params.append('limit', String(options.limit));
+
+        const res = await fetch(`${catalogBase}/media?${params.toString()}`, { signal });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.data && Array.isArray(json.data)) {
+            const data: MediaItem[] = json.data;
+            return {
+              items: options?.limit ? data.slice(0, options.limit) : data,
+              total: data.length
+            };
+          }
+        }
+      } catch (err: any) {
+        if (err.name === 'AbortError') throw err;
+      }
+    }
+
+    if (signal?.aborted) {
+      throw new DOMException('Aborted', 'AbortError');
+    }
+
+    // Micro async tick to simulate real asynchronous AJAX lifecycle
+    await new Promise(resolve => setTimeout(resolve, 80));
+
+    if (signal?.aborted) {
+      throw new DOMException('Aborted', 'AbortError');
+    }
+
+    let sourceItems = [...MOCK_MEDIA];
+    try {
+      const saved = localStorage.getItem('liveeuy_custom_media');
+      if (saved) sourceItems = JSON.parse(saved);
+    } catch {
+      // ignore
+    }
+
+    let filtered = sourceItems.filter(item => {
+      if (options?.type && options.type !== 'all' && item.type !== options.type) return false;
+      if (options?.genre && options.genre !== 'all' && options.genre !== 'Semua Genre' && !item.genres.includes(options.genre)) return false;
+      if (options?.minRating && options.minRating > 0 && item.rating < options.minRating) return false;
+
+      const titleMatch = item.title.toLowerCase().includes(trimmed);
+      const origMatch = item.originalTitle?.toLowerCase().includes(trimmed);
+      const genreMatch = item.genres.some(g => g.toLowerCase().includes(trimmed));
+      const castMatch = item.cast.some(c => c.toLowerCase().includes(trimmed));
+      const directorMatch = item.director?.toLowerCase().includes(trimmed);
+      const overviewMatch = item.overview?.toLowerCase().includes(trimmed);
+
+      return Boolean(titleMatch || origMatch || genreMatch || castMatch || directorMatch || overviewMatch);
+    });
+
+    if (options?.sortBy === 'rating') {
+      filtered.sort((a, b) => b.rating - a.rating);
+    } else if (options?.sortBy === 'newest') {
+      filtered.sort((a, b) => b.releaseYear - a.releaseYear);
+    } else {
+      filtered.sort((a, b) => (a.topRank || 99) - (b.topRank || 99));
+    }
+
+    const total = filtered.length;
+    const items = options?.limit ? filtered.slice(0, options.limit) : filtered;
+    return { items, total };
+  }
+
   async getMediaById(id: string): Promise<MediaItem | null> {
     const catalogBase = await this.resolveCatalogUrl();
     if (catalogBase) {
@@ -666,3 +756,4 @@ class LiveEuyApiService {
 }
 
 export const apiService = new LiveEuyApiService();
+export const LiveEuyApi = apiService;

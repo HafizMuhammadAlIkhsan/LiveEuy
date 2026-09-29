@@ -23,10 +23,12 @@ import {
   Radio,
   Smartphone,
   Laptop,
-  ShieldAlert
+  ShieldAlert,
+  Loader2
 } from 'lucide-react';
 import { useWatch } from '../context/WatchContext';
 import { ViewTab } from '../types';
+import { useAjaxSearch } from '../hooks/useAjaxSearch';
 
 export const Navbar: React.FC = () => {
   const { 
@@ -107,13 +109,32 @@ export const Navbar: React.FC = () => {
     };
   }, []);
 
-  const searchResults = searchQuery.trim()
-    ? allMedia.filter(m =>
-        m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        m.genres.some(g => g.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        m.cast.some(c => c.toLowerCase().includes(searchQuery.toLowerCase()))
-      ).slice(0, 5)
-    : [];
+  const highlightMatch = (text: string, query: string) => {
+    if (!query.trim()) return text;
+    const escaped = query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(${escaped})`, 'gi');
+    const parts = text.split(regex);
+    return parts.map((part, i) =>
+      regex.test(part) ? (
+        <span key={i} className="text-amber-400 font-extrabold underline decoration-amber-400/50">
+          {part}
+        </span>
+      ) : (
+        part
+      )
+    );
+  };
+
+  const {
+    results: ajaxSearchResults,
+    total: ajaxTotalFound,
+    isLoading: isAjaxSearching,
+    hasSearched: hasAjaxSearched
+  } = useAjaxSearch(searchQuery, {
+    debounceMs: 200,
+    limit: 6,
+    enabled: isSearchOpen
+  });
 
   const navItems: { tab: ViewTab; path: string; label: string; tabletLabel?: string; icon: React.ReactNode }[] = [
     { tab: 'home', path: '/', label: 'Beranda', icon: <Play className="w-4 h-4" /> },
@@ -266,19 +287,23 @@ export const Navbar: React.FC = () => {
             {/* Right Controls: Search, Notifications, Profile / Login */}
             <div className="flex items-center gap-1.5 sm:gap-2 md:gap-2 lg:gap-3.5 xl:gap-4 flex-shrink-0">
               
-              {/* Search Bar (Expandable) */}
+              {/* Search Bar (Expandable) with AJAX Live Autocomplete */}
               <div className="relative">
                 {isSearchOpen ? (
-                  <div className="flex items-center bg-[#10121a] rounded-full px-2.5 sm:px-3 py-1.5 w-44 xs:w-56 sm:w-64 md:w-44 md:focus-within:w-56 lg:w-64 lg:focus-within:w-72 xl:w-80 shadow-xl border border-white/15 focus-within:border-brand-500/50 transition-all duration-200">
-                    <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 mr-1.5 sm:mr-2 flex-shrink-0" />
+                  <div className="flex items-center bg-[#10121a] rounded-full px-2.5 sm:px-3 py-1.5 w-48 xs:w-56 sm:w-64 md:w-52 lg:w-72 xl:w-80 shadow-xl border border-white/15 focus-within:border-brand-500/60 transition-all duration-200">
+                    {isAjaxSearching ? (
+                      <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-brand-400 animate-spin mr-1.5 sm:mr-2 flex-shrink-0" />
+                    ) : (
+                      <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 mr-1.5 sm:mr-2 flex-shrink-0" />
+                    )}
                     <input
                       ref={searchInputRef}
                       type="text"
                       value={searchQuery}
                       onChange={e => {
                         setSearchQuery(e.target.value);
-                        if (e.target.value && location.pathname !== '/search') {
-                          navigate(`/search?q=${encodeURIComponent(e.target.value)}`);
+                        if (location.pathname === '/search') {
+                          navigate(`/search${e.target.value ? `?q=${encodeURIComponent(e.target.value)}` : ''}`, { replace: true });
                         }
                       }}
                       onKeyDown={e => {
@@ -291,7 +316,7 @@ export const Navbar: React.FC = () => {
                           setIsSearchOpen(false);
                         }
                       }}
-                      placeholder="Cari judul film, serial..."
+                      placeholder="Cari film, serial, aktor..."
                       className="w-full bg-transparent text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none"
                     />
                     {searchQuery && (
@@ -319,49 +344,124 @@ export const Navbar: React.FC = () => {
                 ) : (
                   <button
                     onClick={() => setIsSearchOpen(true)}
-                    className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full text-slate-300 hover:text-white hover:bg-white/5 active:bg-white/10 transition-colors"
+                    className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full text-slate-300 hover:text-white hover:bg-white/5 active:bg-white/10 transition-colors cursor-pointer"
                     aria-label="Cari Film"
                   >
                     <Search className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
                 )}
 
-                {/* Instant Search Results Dropdown */}
-                {isSearchOpen && searchResults.length > 0 && (
-                  <div className="absolute top-full right-0 mt-2 w-72 sm:w-80 md:w-84 lg:w-96 max-w-[calc(100vw-2rem)] rounded-xl bg-[#10121a]/95 backdrop-blur-xl border border-white/10 p-2 shadow-2xl z-50 animate-fade-in max-h-80 overflow-y-auto custom-scrollbar">
-                    <div className="px-3 py-1.5 text-[10px] sm:text-[11px] font-semibold tracking-wider text-slate-400 uppercase flex items-center justify-between border-b border-white/5 pb-2 mb-1">
-                      <span>Hasil Pencarian</span>
-                      <span className="text-brand-400 font-bold">{searchResults.length} ditemukan</span>
+                {/* Instant AJAX Search Results Dropdown */}
+                {isSearchOpen && searchQuery.trim().length > 0 && (
+                  <div className="absolute top-full right-0 mt-2 w-80 sm:w-96 md:w-[420px] max-w-[calc(100vw-2rem)] rounded-2xl bg-[#0c0d14]/95 backdrop-blur-2xl border border-white/10 p-3 shadow-2xl z-50 animate-fade-in max-h-[85vh] overflow-y-auto custom-scrollbar">
+                    <div className="px-2 py-1.5 text-[11px] font-semibold tracking-wider text-slate-400 uppercase flex items-center justify-between border-b border-white/10 pb-2 mb-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-brand-400 animate-pulse" />
+                        <span className="text-white font-bold">Live AJAX Search</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {isAjaxSearching ? (
+                          <span className="text-[10px] text-brand-400 flex items-center gap-1 font-mono">
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            Mencari...
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            {ajaxTotalFound} ditemukan
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="divide-y divide-white/5">
-                      {searchResults.map(item => (
-                        <div
-                          key={item.id}
-                          onClick={() => {
-                            openDetail(item);
-                            setIsSearchOpen(false);
-                          }}
-                          className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 cursor-pointer transition-colors group"
-                        >
-                          <img
-                            src={item.posterUrl}
-                            alt={item.title}
-                            className="w-10 h-14 object-cover rounded-md flex-shrink-0 shadow"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <h4 className="text-xs sm:text-sm font-semibold text-white group-hover:text-brand-400 transition-colors truncate">
-                              {item.title}
-                            </h4>
-                            <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mt-0.5">
-                              <span>{item.releaseYear}</span>
-                              <span>•</span>
-                              <span className="capitalize">{item.type === 'movie' ? 'Film' : 'Serial'}</span>
-                              <span>•</span>
-                              <span className="text-amber-400 font-medium">★ {item.rating}</span>
+
+                    {/* SKELETON LOADING STATE */}
+                    {isAjaxSearching && ajaxSearchResults.length === 0 && (
+                      <div className="space-y-2 py-2">
+                        {[1, 2, 3].map(n => (
+                          <div key={n} className="flex items-center gap-3 p-2 rounded-xl bg-white/[0.02] animate-pulse">
+                            <div className="w-11 h-16 bg-white/10 rounded-lg flex-shrink-0" />
+                            <div className="flex-1 space-y-2">
+                              <div className="h-3.5 bg-white/10 rounded w-3/4" />
+                              <div className="h-2.5 bg-white/5 rounded w-1/2" />
                             </div>
                           </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* RESULTS LIST */}
+                    {ajaxSearchResults.length > 0 && (
+                      <div className="divide-y divide-white/5 space-y-1">
+                        {ajaxSearchResults.map(item => (
+                          <div
+                            key={item.id}
+                            onClick={() => {
+                              openDetail(item);
+                              setIsSearchOpen(false);
+                            }}
+                            className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/10 cursor-pointer transition-all group"
+                          >
+                            <img
+                              src={item.posterUrl}
+                              alt={item.title}
+                              className="w-11 h-16 object-cover rounded-lg flex-shrink-0 shadow border border-white/10 group-hover:border-brand-500/50 transition-colors"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <h4 className="text-xs sm:text-sm font-semibold text-white group-hover:text-brand-400 transition-colors truncate">
+                                  {highlightMatch(item.title, searchQuery)}
+                                </h4>
+                                <span className="px-1.5 py-0.2 rounded text-[9px] font-black uppercase bg-white/10 text-slate-300">
+                                  {item.type === 'movie' ? 'Film' : 'Serial'}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mt-1">
+                                <span>{item.releaseYear}</span>
+                                <span>•</span>
+                                <span className="text-amber-400 font-medium">★ {item.rating}</span>
+                                <span>•</span>
+                                <span className="truncate max-w-[140px]">{item.genres.slice(0, 2).join(', ')}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* EMPTY STATE */}
+                    {hasAjaxSearched && !isAjaxSearching && ajaxSearchResults.length === 0 && (
+                      <div className="p-6 text-center space-y-2">
+                        <p className="text-xs text-slate-400">
+                          Tidak ada film atau serial untuk kata kunci <span className="text-white font-bold">"{searchQuery}"</span>.
+                        </p>
+                        <div className="pt-2 flex flex-wrap justify-center gap-1.5">
+                          <span className="text-[10px] text-slate-500 block w-full mb-1">Coba kata kunci populer:</span>
+                          {['Cyberpunk', 'Joko Anwar', 'Anime', '4K UHD', 'Horor'].map(kw => (
+                            <button
+                              key={kw}
+                              type="button"
+                              onClick={() => setSearchQuery(kw)}
+                              className="px-2 py-0.5 rounded-full bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white text-[10px] cursor-pointer"
+                            >
+                              {kw}
+                            </button>
+                          ))}
                         </div>
-                      ))}
+                      </div>
+                    )}
+
+                    {/* BOTTOM ACTION: Go to full search page */}
+                    <div className="mt-2 pt-2 border-t border-white/10">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+                          setIsSearchOpen(false);
+                        }}
+                        className="w-full py-2 px-3 rounded-xl bg-brand-600/30 hover:bg-brand-600 text-brand-300 hover:text-white text-xs font-bold transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <span>Lihat Semua Hasil ({ajaxTotalFound}) di Halaman Pencarian</span>
+                        <span>→</span>
+                      </button>
                     </div>
                   </div>
                 )}

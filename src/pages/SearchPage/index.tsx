@@ -19,8 +19,10 @@ import {
   Smile,
   Palette,
   Sword,
-  Heart
+  Heart,
+  Loader2
 } from 'lucide-react';
+import { useAjaxSearch } from '../../hooks/useAjaxSearch';
 
 export const SearchPage: React.FC = () => {
   const { allMedia, searchQuery, setSearchQuery } = useWatch();
@@ -54,40 +56,41 @@ export const SearchPage: React.FC = () => {
     { name: 'Drama Mendalam', genre: 'Drama', icon: Heart, gradient: 'from-rose-600 to-red-800' },
   ];
 
-  // Search filtering logic
+  // AJAX Live Search Hook with Debounce & AbortController
+  const {
+    results: ajaxSearchResults,
+    total: ajaxTotalFound,
+    isLoading: isAjaxSearching,
+    hasSearched: hasAjaxSearched
+  } = useAjaxSearch(searchQuery, {
+    debounceMs: 250,
+    type: selectedFormat,
+    genre: selectedGenre,
+    minRating,
+    sortBy,
+    enabled: Boolean(searchQuery.trim())
+  });
+
+  // Displayed search results (AJAX results if query present, or catalog filter if browsing)
   const searchResults = useMemo(() => {
+    if (searchQuery.trim()) {
+      return ajaxSearchResults;
+    }
+
     return allMedia.filter(item => {
       // Format
       if (selectedFormat !== 'all' && item.type !== selectedFormat) return false;
-
       // Min rating
       if (minRating > 0 && item.rating < minRating) return false;
-
       // Genre
       if (selectedGenre !== 'all' && !item.genres.includes(selectedGenre)) return false;
-
-      // Query
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        const matchTitle = item.title.toLowerCase().includes(query);
-        const matchOrig = item.originalTitle?.toLowerCase().includes(query);
-        const matchGenre = item.genres.some(g => g.toLowerCase().includes(query));
-        const matchCast = item.cast.some(c => c.toLowerCase().includes(query));
-        const matchDirector = item.director.toLowerCase().includes(query);
-        const matchOverview = item.overview.toLowerCase().includes(query);
-
-        if (!matchTitle && !matchOrig && !matchGenre && !matchCast && !matchDirector && !matchOverview) {
-          return false;
-        }
-      }
-
       return true;
     }).sort((a, b) => {
       if (sortBy === 'rating') return b.rating - a.rating;
       if (sortBy === 'newest') return b.releaseYear - a.releaseYear;
       return (a.topRank || 99) - (b.topRank || 99);
     });
-  }, [allMedia, searchQuery, selectedFormat, minRating, selectedGenre, sortBy]);
+  }, [allMedia, searchQuery, ajaxSearchResults, selectedFormat, minRating, selectedGenre, sortBy]);
 
   // Fallback recommendations if 0 results
   const recommendations = useMemo(() => {
@@ -111,7 +114,11 @@ export const SearchPage: React.FC = () => {
         {/* Large Search Box */}
         <div className="relative mt-2">
           <div className="flex items-center bg-surface-800/90 border-2 border-white/10 focus-within:border-brand-500 rounded-2xl px-4 py-3.5 shadow-2xl transition-all">
-            <Search className="w-5 h-5 text-slate-400 mr-3 flex-shrink-0" />
+            {isAjaxSearching ? (
+              <Loader2 className="w-5 h-5 text-brand-400 animate-spin mr-3 flex-shrink-0" />
+            ) : (
+              <Search className="w-5 h-5 text-slate-400 mr-3 flex-shrink-0" />
+            )}
             <input
               type="text"
               value={searchQuery}
@@ -264,14 +271,28 @@ export const SearchPage: React.FC = () => {
 
         {/* Active search result stats */}
         <div className="flex items-center justify-between text-xs text-slate-400 pt-1 border-t border-white/5">
-          <span>
+          <span className="flex items-center gap-2">
             {searchQuery.trim() ? (
-              <>Hasil pencarian untuk <strong className="text-white">"{searchQuery}"</strong></>
+              <>
+                <span>Hasil pencarian untuk <strong className="text-white">"{searchQuery}"</strong></span>
+                <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-brand-500/20 text-brand-300 border border-brand-500/30">
+                  AJAX Live
+                </span>
+              </>
             ) : (
               <>Katalog Eksplorasi Keseluruhan</>
             )}
           </span>
-          <span className="font-mono text-brand-400 font-semibold">{searchResults.length} Judul Ditemukan</span>
+          <span className="font-mono text-brand-400 font-semibold">
+            {isAjaxSearching ? (
+              <span className="flex items-center gap-1.5 text-brand-400">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                Mencari via AJAX...
+              </span>
+            ) : (
+              `${searchResults.length} Judul Ditemukan`
+            )}
+          </span>
         </div>
       </section>
 
@@ -281,7 +302,19 @@ export const SearchPage: React.FC = () => {
       {/* ========================================================
           4. RESULTS GRID
           ======================================================== */}
-      {searchResults.length > 0 ? (
+      {isAjaxSearching && searchResults.length === 0 ? (
+        <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-8 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map(n => (
+            <div key={n} className="rounded-2xl bg-surface-800/60 border border-white/5 overflow-hidden animate-pulse">
+              <div className="aspect-[2/3] bg-white/10" />
+              <div className="p-3 space-y-2">
+                <div className="h-3.5 bg-white/10 rounded w-3/4" />
+                <div className="h-2.5 bg-white/5 rounded w-1/2" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : searchResults.length > 0 ? (
         <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 3xl:grid-cols-8 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
           {searchResults.map(item => (
             <MediaCard key={item.id} item={item} layout="grid" />

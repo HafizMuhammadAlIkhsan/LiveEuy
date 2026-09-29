@@ -721,9 +721,10 @@ export const AdminPage: React.FC = () => {
   };
 
   // ==========================================
-  // AD MANAGEMENT (IDLIX DUAL BILLBOARD SYNC)
+  // AD MANAGEMENT (IDLIX DUAL BILLBOARD & NEW FORMATS SYNC)
   // ==========================================
-  const [adFilterLayer, setAdFilterLayer] = useState<'all' | 'billboard_feed' | 'video_preroll' | 'hero_spotlight'>('billboard_feed');
+  const [adFilterLayer, setAdFilterLayer] = useState<'all' | 'billboard_feed' | 'floating_bottom' | 'top_marquee' | 'popunder_interstitial' | 'video_preroll' | 'hero_spotlight'>('all');
+  const [adPreviewTab, setAdPreviewTab] = useState<'billboard_feed' | 'floating_bottom' | 'top_marquee' | 'popunder_interstitial'>('billboard_feed');
   const [isAdModalOpen, setIsAdModalOpen] = useState(false);
   const [editingAdId, setEditingAdId] = useState<string | null>(null);
   const [adFormData, setAdFormData] = useState<Partial<AdCampaign>>({
@@ -735,13 +736,28 @@ export const AdminPage: React.FC = () => {
     headline: '',
     description: '',
     badge: 'SPONSOR UTAMA',
+    ctaText: 'Kunjungi Sponsor',
     category: 'Entertainment & Gaming',
     budget: 10000000,
     isActive: true,
+    tickerText: '',
+    frequencyCapMinutes: 15,
   });
 
   const activeBillboardFeedAds = useMemo(() => {
     return ads.filter(a => a.layer === 'billboard_feed');
+  }, [ads]);
+
+  const activeStickyAds = useMemo(() => {
+    return ads.filter(a => a.layer === 'floating_bottom' && a.isActive);
+  }, [ads]);
+
+  const activeMarqueeAds = useMemo(() => {
+    return ads.filter(a => a.layer === 'top_marquee' && a.isActive);
+  }, [ads]);
+
+  const activePopunderAds = useMemo(() => {
+    return ads.filter(a => a.layer === 'popunder_interstitial' && a.isActive);
   }, [ads]);
 
   const filteredAds = useMemo(() => {
@@ -760,9 +776,12 @@ export const AdminPage: React.FC = () => {
       headline: '',
       description: '',
       badge: 'SPONSOR UTAMA',
+      ctaText: 'Kunjungi Sponsor',
       category: 'Entertainment & Gaming',
       budget: 10000000,
       isActive: true,
+      tickerText: '',
+      frequencyCapMinutes: 15,
     });
     setIsAdModalOpen(true);
   };
@@ -778,9 +797,12 @@ export const AdminPage: React.FC = () => {
       headline: ad.headline || '',
       description: ad.description || '',
       badge: ad.badge || 'SPONSOR UTAMA',
+      ctaText: ad.ctaText || 'Kunjungi Sponsor',
       category: ad.category || 'Entertainment & Gaming',
       budget: ad.budget || 10000000,
       isActive: ad.isActive,
+      tickerText: ad.tickerText || '',
+      frequencyCapMinutes: ad.frequencyCapMinutes || 15,
     });
     setIsAdModalOpen(true);
   };
@@ -802,9 +824,12 @@ export const AdminPage: React.FC = () => {
         headline: adFormData.headline?.trim() || adFormData.title.trim(),
         description: adFormData.description?.trim() || '',
         badge: adFormData.badge?.trim() || 'SPONSOR',
+        ctaText: adFormData.ctaText?.trim() || 'Kunjungi Sponsor',
         category: (adFormData.category as any) || 'Entertainment & Gaming',
         budget: Number(adFormData.budget) || 10000000,
         isActive: adFormData.isActive ?? true,
+        tickerText: adFormData.tickerText?.trim() || '',
+        frequencyCapMinutes: Number(adFormData.frequencyCapMinutes) || 15,
       });
       showToast('Iklan sponsor berhasil diperbarui!');
     } else {
@@ -826,7 +851,9 @@ export const AdminPage: React.FC = () => {
         startDate: new Date().toISOString().split('T')[0],
         endDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         isActive: adFormData.isActive ?? true,
-        ctaText: 'Kunjungi Sponsor'
+        ctaText: 'Kunjungi Sponsor',
+        tickerText: adFormData.tickerText?.trim() || '',
+        frequencyCapMinutes: Number(adFormData.frequencyCapMinutes) || 15,
       });
       showToast('Iklan sponsor baru berhasil ditambahkan!');
     }
@@ -1952,7 +1979,7 @@ export const AdminPage: React.FC = () => {
         {/* ========================================================
             RIGHT MAIN CONTENT AREA
             ======================================================== */}
-        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 2xl:p-10 space-y-6 cinema-layout-container overflow-y-auto">
+        <main className="flex-1 min-w-0 p-4 pb-24 md:pb-8 sm:p-6 lg:p-8 2xl:p-10 space-y-6 cinema-layout-container overflow-y-auto">
 
           {/* Active Module Header Banner */}
           <section className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-surface-900 via-surface-800 to-indigo-950/40 border border-white/10 p-5 sm:p-6 shadow-2xl">
@@ -2938,61 +2965,208 @@ export const AdminPage: React.FC = () => {
             </div>
           </div>
 
-          {/* LIVE PREVIEW BOX: Pratinjau Nyata di Beranda (IDLIX Dual Banner) */}
-          <div className="bg-surface-800/60 p-5 rounded-3xl border border-white/5 space-y-3">
-            <div className="flex items-center justify-between">
+          {/* LIVE PREVIEW BOX: Pratinjau Nyata Format Iklan */}
+          <div className="bg-surface-800/60 p-5 rounded-3xl border border-white/5 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <Eye className="w-4 h-4 text-amber-400" />
-                <h3 className="font-bold text-white text-sm">Pratinjau Nyata di Beranda (IDLIX Dual Banner)</h3>
+                <h3 className="font-bold text-white text-sm">Pratinjau Live Format Iklan</h3>
               </div>
-              <span className="text-[11px] font-mono text-slate-400">
-                Lebar presisi flush layout container
-              </span>
+
+              {/* Preview Format Switcher */}
+              <div className="flex items-center gap-1 bg-surface-900 p-1 rounded-xl border border-white/10 text-xs overflow-x-auto scrollbar-none">
+                {[
+                  { id: 'billboard_feed', label: 'IDLIX Dual Billboard' },
+                  { id: 'floating_bottom', label: 'Sticky Bawah' },
+                  { id: 'top_marquee', label: 'Marquee Atas' },
+                  { id: 'popunder_interstitial', label: 'Popunder Tab' },
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setAdPreviewTab(tab.id as any)}
+                    className={`px-3 py-1 rounded-lg font-medium transition-colors cursor-pointer whitespace-nowrap ${
+                      adPreviewTab === tab.id
+                        ? 'bg-amber-500 text-slate-950 font-bold shadow'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* Simulated Cinema Layout Container */}
-            <div className="p-3 sm:p-4 rounded-2xl bg-black/60 border border-white/10 space-y-2">
-              <div className="text-[10px] text-slate-400 flex items-center justify-between px-1">
-                <span>[ Layer Film Atas ]</span>
-                <span className="text-amber-400 font-mono">Status: {activeBillboardFeedAds.filter(a => a.isActive).length > 0 ? 'Tayang Aktif' : 'Iklan Dinonaktifkan'}</span>
-              </div>
-
-              {/* The Live Billboard Render */}
-              {activeBillboardFeedAds.filter(a => a.isActive).length > 0 ? (
-                <div className="grid grid-cols-2 gap-2 sm:gap-3 items-center w-full">
-                  {/* Left */}
-                  <div
-                    className="w-full aspect-[866/78] rounded-xl overflow-hidden border border-white/10 shadow-md bg-black/40 flex items-center justify-center"
-                    style={{ aspectRatio: '866 / 78' }}
-                  >
-                    <img
-                      src={activeBillboardFeedAds.filter(a => a.isActive)[0]?.bannerUrl || '/ads/banner-liveeuy-vip.svg'}
-                      alt="Banner Kiri"
-                      className="w-full h-full object-contain block"
-                    />
-                  </div>
-                  {/* Right */}
-                  <div
-                    className="w-full aspect-[866/78] rounded-xl overflow-hidden border border-white/10 shadow-md bg-black/40 flex items-center justify-center"
-                    style={{ aspectRatio: '866 / 78' }}
-                  >
-                    <img
-                      src={activeBillboardFeedAds.filter(a => a.isActive)[1]?.bannerUrl || activeBillboardFeedAds.filter(a => a.isActive)[0]?.bannerUrl || '/ads/banner-liveeuy-mobile.svg'}
-                      alt="Banner Kanan"
-                      className="w-full h-full object-contain block"
-                    />
-                  </div>
+            {/* TAB 1: IDLIX Dual Billboard */}
+            {adPreviewTab === 'billboard_feed' && (
+              <div className="p-3 sm:p-4 rounded-2xl bg-black/60 border border-white/10 space-y-2">
+                <div className="text-[10px] text-slate-400 flex items-center justify-between px-1">
+                  <span>[ Layer Film Atas ]</span>
+                  <span className="text-amber-400 font-mono">Status: {activeBillboardFeedAds.filter(a => a.isActive).length > 0 ? 'Tayang Aktif' : 'Iklan Dinonaktifkan'}</span>
                 </div>
-              ) : (
-                <div className="p-6 text-center text-slate-500 text-xs bg-surface-900/50 rounded-xl border border-dashed border-white/10">
-                  Semua iklan billboard feed sedang nonaktif. Tidak ada iklan yang ditampilkan di beranda.
-                </div>
-              )}
 
-              <div className="text-[10px] text-slate-400 px-1 pt-1">
-                <span>[ Layer Film Bawah (Trending / Aksi / Drama) ]</span>
+                {activeBillboardFeedAds.filter(a => a.isActive).length > 0 ? (
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3 items-center w-full">
+                    {/* Left */}
+                    <div
+                      className="w-full aspect-[866/78] rounded-xl overflow-hidden border border-white/10 shadow-md bg-black/40 flex items-center justify-center"
+                      style={{ aspectRatio: '866 / 78' }}
+                    >
+                      <img
+                        src={activeBillboardFeedAds.filter(a => a.isActive)[0]?.bannerUrl || '/ads/banner-liveeuy-vip.svg'}
+                        alt="Banner Kiri"
+                        className="w-full h-full object-contain block"
+                      />
+                    </div>
+                    {/* Right */}
+                    <div
+                      className="w-full aspect-[866/78] rounded-xl overflow-hidden border border-white/10 shadow-md bg-black/40 flex items-center justify-center"
+                      style={{ aspectRatio: '866 / 78' }}
+                    >
+                      <img
+                        src={activeBillboardFeedAds.filter(a => a.isActive)[1]?.bannerUrl || activeBillboardFeedAds.filter(a => a.isActive)[0]?.bannerUrl || '/ads/banner-liveeuy-mobile.svg'}
+                        alt="Banner Kanan"
+                        className="w-full h-full object-contain block"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-6 text-center text-slate-500 text-xs bg-surface-900/50 rounded-xl border border-dashed border-white/10">
+                    Semua iklan billboard feed sedang nonaktif. Tidak ada iklan yang ditampilkan di beranda.
+                  </div>
+                )}
+
+                <div className="text-[10px] text-slate-400 px-1 pt-1">
+                  <span>[ Layer Film Bawah (Trending / Aksi / Drama) ]</span>
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* TAB 2: Floating Sticky Bottom */}
+            {adPreviewTab === 'floating_bottom' && (
+              <div className="p-3 sm:p-4 rounded-2xl bg-black/60 border border-white/10 space-y-3">
+                <div className="text-[10px] text-slate-400 flex items-center justify-between px-1">
+                  <span>Simulasi Tampilan Mengambang di Bagian Bawah Layar Desktop & HP</span>
+                  <span className="text-amber-400 font-mono">
+                    Status: {activeStickyAds.length > 0 ? 'Tayang Aktif' : 'Iklan Dinonaktifkan'}
+                  </span>
+                </div>
+
+                {activeStickyAds.length > 0 ? (
+                  <div className="p-2 sm:p-3 rounded-2xl bg-surface-900/90 border border-amber-500/30 backdrop-blur-md shadow-2xl flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-12 h-10 rounded-lg overflow-hidden border border-white/10 flex-shrink-0 bg-black/40">
+                        <img
+                          src={activeStickyAds[0].bannerUrl}
+                          alt="Thumbnail"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                            {activeStickyAds[0].badge || 'SPONSOR'}
+                          </span>
+                          <span className="text-xs font-bold text-white truncate">
+                            {activeStickyAds[0].headline || activeStickyAds[0].title}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-300 truncate hidden sm:block">
+                          {activeStickyAds[0].description}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="px-3 py-1.5 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs">
+                        {activeStickyAds[0].ctaText || 'Lihat Sekarang'}
+                      </span>
+                      <div className="w-6 h-6 rounded-lg bg-surface-800 text-slate-400 flex items-center justify-center text-xs">
+                        ✕
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-6 text-center text-slate-500 text-xs bg-surface-900/50 rounded-xl border border-dashed border-white/10">
+                    Tidak ada kampanye floating bottom aktif. Tambahkan atau aktifkan kampanye di layer ini.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* TAB 3: Top Marquee Ticker */}
+            {adPreviewTab === 'top_marquee' && (
+              <div className="p-3 sm:p-4 rounded-2xl bg-black/60 border border-white/10 space-y-3">
+                <div className="text-[10px] text-slate-400 flex items-center justify-between px-1">
+                  <span>Simulasi Ticker Pengumuman Atas (Tepat di Atas Navbar LiveEuy)</span>
+                  <span className="text-amber-400 font-mono">
+                    Status: {activeMarqueeAds.length > 0 ? 'Tayang Aktif' : 'Iklan Dinonaktifkan'}
+                  </span>
+                </div>
+
+                {activeMarqueeAds.length > 0 ? (
+                  <div className="w-full bg-gradient-to-r from-amber-600/90 via-amber-500/95 to-amber-600/90 text-slate-950 px-3 py-2 rounded-xl flex items-center justify-between gap-3 text-xs shadow-lg">
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <span className="px-1.5 py-0.5 rounded bg-slate-950/20 text-slate-950 text-[10px] font-black uppercase tracking-wider flex-shrink-0">
+                        {activeMarqueeAds[0].badge || 'PROMO'}
+                      </span>
+                      <span className="font-bold truncate text-[11px] sm:text-xs">
+                        {activeMarqueeAds[0].tickerText || activeMarqueeAds[0].headline}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="font-extrabold underline text-[11px] sm:text-xs">
+                        {activeMarqueeAds[0].ctaText || 'Klaim Sekarang →'}
+                      </span>
+                      <div className="w-4 h-4 rounded-full bg-slate-950/20 flex items-center justify-center text-[10px] font-bold">
+                        ✕
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-6 text-center text-slate-500 text-xs bg-surface-900/50 rounded-xl border border-dashed border-white/10">
+                    Tidak ada kampanye marquee ticker aktif. Tambahkan atau aktifkan kampanye di layer ini.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* TAB 4: Popunder Interstitial */}
+            {adPreviewTab === 'popunder_interstitial' && (
+              <div className="p-3 sm:p-4 rounded-2xl bg-black/60 border border-white/10 space-y-3">
+                <div className="text-[10px] text-slate-400 flex items-center justify-between px-1">
+                  <span>Simulasi Interseptor Popunder (Buka Tab Sponsor di Klik Interaksi Pertama)</span>
+                  <span className="text-amber-400 font-mono">
+                    Status: {activePopunderAds.length > 0 ? 'Aktif Menunggu Klik' : 'Dinonaktifkan'}
+                  </span>
+                </div>
+
+                {activePopunderAds.length > 0 ? (
+                  <div className="p-4 rounded-2xl bg-surface-900 border border-purple-500/30 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                        POPUNDER TAB SPONSOR
+                      </span>
+                      <span className="text-xs text-slate-400 font-mono">
+                        Cooldown: {activePopunderAds[0].frequencyCapMinutes || 15} Menit
+                      </span>
+                    </div>
+                    <h4 className="text-white text-sm font-bold">{activePopunderAds[0].title}</h4>
+                    <p className="text-xs text-slate-300">{activePopunderAds[0].description}</p>
+                    <div className="text-[11px] text-brand-400 font-mono flex items-center gap-1.5 pt-1">
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>URL Target: {activePopunderAds[0].targetUrl}</span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 pt-1 border-t border-white/5">
+                      Catatan: Popunder otomatis diabaikan untuk admin dan member VIP, serta memiliki cooldown berbasis localStorage agar penonton tidak terganggu.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="p-6 text-center text-slate-500 text-xs bg-surface-900/50 rounded-xl border border-dashed border-white/10">
+                    Tidak ada kampanye popunder aktif.
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Ad Campaigns List */}
@@ -3009,17 +3183,20 @@ export const AdminPage: React.FC = () => {
               </div>
 
               {/* Layer Filter Tabs */}
-              <div className="flex items-center gap-1 bg-surface-900 p-1 rounded-xl border border-white/10 text-xs">
+              <div className="flex items-center gap-1 bg-surface-900 p-1 rounded-xl border border-white/10 text-xs overflow-x-auto scrollbar-none">
                 {[
+                  { id: 'all', label: 'Semua Layer' },
                   { id: 'billboard_feed', label: 'Billboard Feed' },
+                  { id: 'floating_bottom', label: 'Sticky Bawah' },
+                  { id: 'top_marquee', label: 'Marquee Atas' },
+                  { id: 'popunder_interstitial', label: 'Popunder' },
                   { id: 'video_preroll', label: 'Video Pre-roll' },
                   { id: 'hero_spotlight', label: 'Hero Spotlight' },
-                  { id: 'all', label: 'Semua Layer' },
                 ].map(tab => (
                   <button
                     key={tab.id}
                     onClick={() => setAdFilterLayer(tab.id as any)}
-                    className={`px-3 py-1 rounded-lg font-medium transition-colors cursor-pointer ${
+                    className={`px-3 py-1 rounded-lg font-medium transition-colors cursor-pointer whitespace-nowrap ${
                       adFilterLayer === tab.id
                         ? 'bg-brand-600 text-white font-bold'
                         : 'text-slate-400 hover:text-white'
@@ -3202,11 +3379,78 @@ export const AdminPage: React.FC = () => {
                       onChange={e => setAdFormData({ ...adFormData, layer: e.target.value as any })}
                       className="w-full bg-surface-800 border border-white/10 focus:border-amber-400 rounded-xl px-3 py-2 text-white focus:outline-none cursor-pointer"
                     >
-                      <option value="billboard_feed">Billboard Feed (Bawah Baris Film Beranda)</option>
+                      <option value="billboard_feed">Billboard Feed (Bawah Baris Film - IDLIX Dual Banner)</option>
+                      <option value="floating_bottom">Floating Sticky Bottom (Bawah Layar Mengambang)</option>
+                      <option value="top_marquee">Top Marquee Ticker (Pengumuman Berjalan Atas Navbar)</option>
+                      <option value="popunder_interstitial">Popunder Interstitial (Tab Sponsor saat Klik Pertama)</option>
                       <option value="video_preroll">Video Pre-roll (Sebelum Film Diputar)</option>
                       <option value="hero_spotlight">Hero Spotlight</option>
-                      <option value="top_marquee">Top Marquee</option>
                     </select>
+                  </div>
+
+                  {/* Marquee Ticker Text input if layer === 'top_marquee' */}
+                  {adFormData.layer === 'top_marquee' && (
+                    <div>
+                      <label className="font-semibold text-slate-300 block mb-1">Teks Marquee / Ticker Berjalan *</label>
+                      <input
+                        type="text"
+                        value={adFormData.tickerText || ''}
+                        onChange={e => setAdFormData({ ...adFormData, tickerText: e.target.value })}
+                        placeholder="Contoh: 🔥 PROMO LIVEEUY VIP: Diskon 50% langganan tahunan! Akses 4K tanpa jeda."
+                        className="w-full bg-surface-800 border border-white/10 focus:border-amber-400 rounded-xl px-3 py-2 text-white focus:outline-none"
+                      />
+                    </div>
+                  )}
+
+                  {/* Popunder Frequency Cap input if layer === 'popunder_interstitial' */}
+                  {adFormData.layer === 'popunder_interstitial' && (
+                    <div>
+                      <label className="font-semibold text-slate-300 block mb-1">Batas Frekuensi Popunder (Menit)</label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={1440}
+                        value={adFormData.frequencyCapMinutes || 15}
+                        onChange={e => setAdFormData({ ...adFormData, frequencyCapMinutes: Number(e.target.value) })}
+                        placeholder="15"
+                        className="w-full bg-surface-800 border border-white/10 focus:border-amber-400 rounded-xl px-3 py-2 text-white focus:outline-none"
+                      />
+                      <p className="text-[10px] text-slate-400 mt-1">Popunder hanya akan muncul 1 kali per interval menit ini untuk setiap penonton.</p>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="font-semibold text-slate-300 block mb-1">Headline Singkat</label>
+                      <input
+                        type="text"
+                        value={adFormData.headline || ''}
+                        onChange={e => setAdFormData({ ...adFormData, headline: e.target.value })}
+                        placeholder="Contoh: Akses Streaming 4K Ultra VIP"
+                        className="w-full bg-surface-800 border border-white/10 focus:border-amber-400 rounded-xl px-3 py-2 text-white focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-semibold text-slate-300 block mb-1">Teks Tombol CTA</label>
+                      <input
+                        type="text"
+                        value={adFormData.ctaText || ''}
+                        onChange={e => setAdFormData({ ...adFormData, ctaText: e.target.value })}
+                        placeholder="Contoh: Klaim Promo →"
+                        className="w-full bg-surface-800 border border-white/10 focus:border-amber-400 rounded-xl px-3 py-2 text-white focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="font-semibold text-slate-300 block mb-1">Deskripsi Singkat</label>
+                    <input
+                      type="text"
+                      value={adFormData.description || ''}
+                      onChange={e => setAdFormData({ ...adFormData, description: e.target.value })}
+                      placeholder="Contoh: Langganan bulanan tanpa buffering dengan resolusi tajam."
+                      className="w-full bg-surface-800 border border-white/10 focus:border-amber-400 rounded-xl px-3 py-2 text-white focus:outline-none"
+                    />
                   </div>
 
                   {/* Preset Banner Quick Selection */}

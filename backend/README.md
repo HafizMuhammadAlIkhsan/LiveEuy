@@ -6,6 +6,8 @@ Backend ini dirancang khusus untuk melayani dua klien utama tanpa duplikasi logi
 1. **Frontend Web**: React 18, TypeScript, Tailwind CSS, Vite.
 2. **Mobile Client**: Flutter 3.x (Android & iOS), Riverpod State Management.
 
+> 📚 **Dokumentasi Lengkap**: Baca panduan teknis mendalam di [**BACKEND_DOCUMENTATION.md**](./BACKEND_DOCUMENTATION.md) yang mencakup diagram ERD, skema PostgreSQL, alur keamanan JWT/RTR, dan katalog lengkap REST API.
+
 ---
 
 ## 🚀 Cara Menjalankan Backend

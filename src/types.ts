@@ -128,7 +128,7 @@ export interface AdminAuditLog {
   ipAddress?: string;
 }
 
-export type AdPlacementLayer = 'billboard_feed' | 'video_preroll' | 'hero_spotlight' | 'top_marquee';
+export type AdPlacementLayer = 'billboard_feed' | 'floating_bottom' | 'top_marquee' | 'video_preroll' | 'hero_spotlight' | 'popunder_interstitial';
 
 export interface AdCampaign {
   id: string;
@@ -151,6 +151,9 @@ export interface AdCampaign {
   endDate: string;
   isActive: boolean;
   skipAfterSeconds?: number;
+  tickerText?: string;
+  autoDismissSeconds?: number;
+  frequencyCapMinutes?: number;
 }
 
 export interface AdInquiry {

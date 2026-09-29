@@ -8,7 +8,18 @@ export default defineConfig({
     port: 3000,
     open: true,
     host: true,
-    allowedHosts: true
+    allowedHosts: true,
+    watch: {
+      ignored: [
+        '**/build/**',
+        '**/android/**',
+        '**/ios/**',
+        '**/.dart_tool/**',
+        '**/backend/**',
+        '**/auth-service/**',
+        '**/catalog-service/**'
+      ]
+    }
   },
   build: {
     chunkSizeWarningLimit: 600,
