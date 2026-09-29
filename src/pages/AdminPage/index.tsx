@@ -3014,7 +3014,7 @@ export const AdminPage: React.FC = () => {
                       <img
                         src={activeBillboardFeedAds.filter(a => a.isActive)[0]?.bannerUrl || '/ads/banner-liveeuy-vip.svg'}
                         alt="Banner Kiri"
-                        className="w-full h-full object-contain block"
+                        className="w-full h-full object-cover block"
                       />
                     </div>
                     {/* Right */}
@@ -3025,7 +3025,7 @@ export const AdminPage: React.FC = () => {
                       <img
                         src={activeBillboardFeedAds.filter(a => a.isActive)[1]?.bannerUrl || activeBillboardFeedAds.filter(a => a.isActive)[0]?.bannerUrl || '/ads/banner-liveeuy-mobile.svg'}
                         alt="Banner Kanan"
-                        className="w-full h-full object-contain block"
+                        className="w-full h-full object-cover block"
                       />
                     </div>
                   </div>

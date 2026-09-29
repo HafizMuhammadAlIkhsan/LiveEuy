@@ -59,7 +59,7 @@ export const BillboardAd: React.FC<BillboardAdProps> = ({ placementIndex = 0, cl
         <img
           src={ad.bannerUrl}
           alt={ad.title}
-          className={`w-full h-full ${isSvgOrFormatted ? 'object-cover sm:object-contain' : 'object-cover'} object-center block select-none`}
+          className="w-full h-full object-cover object-center block select-none"
           onError={(e) => {
             (e.target as HTMLImageElement).src = fallbackSvg;
           }}
@@ -102,13 +102,10 @@ export const BillboardAd: React.FC<BillboardAdProps> = ({ placementIndex = 0, cl
 
   return (
     <div className={`${fluid ? 'w-full' : 'cinema-layout-container'} my-2 sm:my-3 lg:my-3.5 ${className}`}>
-      {/* Inner wrapper matching MediaRow carousel px-1 horizontal alignment */}
-      <div className="px-0.5 sm:px-1">
-        {/* Dual Horizontal Banners: Responsive 1 col on mobile, 2 cols on tablet/desktop */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 lg:gap-4 items-center w-full">
-          {renderBannerCard(leftAd, '/ads/banner-liveeuy-vip.svg', 'hover:border-cyan-500/40')}
-          {renderBannerCard(rightAd, '/ads/banner-liveeuy-mobile.svg', 'hover:border-blue-500/40')}
-        </div>
+      {/* Dual Horizontal Banners: Responsive 1 col on mobile, 2 cols on tablet/desktop */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 lg:gap-4 items-center w-full">
+        {renderBannerCard(leftAd, '/ads/banner-liveeuy-vip.svg', 'hover:border-cyan-500/40')}
+        {renderBannerCard(rightAd, '/ads/banner-liveeuy-mobile.svg', 'hover:border-blue-500/40')}
       </div>
     </div>
   );
