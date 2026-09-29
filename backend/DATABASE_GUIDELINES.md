@@ -1,249 +1,180 @@
-# 🛡️ Panduan Arsitektur & Manajemen Database Tim Backend (Anti-Conflict Database Guidelines)
+# LiveEuy: Arsitektur Database dan Pedoman Migrasi
 
-Dokumen ini adalah **pedoman wajib** bagi seluruh engineer backend LiveEuy untuk menjamin integritas data, mencegah konflik skema saat *merge request/pull request*, mengeliminasi *race conditions*, dan menstandarisasi migrasi database di seluruh lingkungan (*Local*, *Staging*, dan *Production*).
-
----
-
-## 📌 1. Mengapa Database Tim Sering Bentrok? (Akar Masalah)
-
-Konflik database di tim software biasanya terjadi karena 5 kebiasaan buruk:
-1. **Manual DDL Execution**: Developer mengeksekusi `ALTER TABLE` atau `CREATE TABLE` manual di database development bersama tanpa ada pencatatan di Git.
-2. **Hibernate `ddl-auto: update`**: Hibernate secara otomatis mengubah tipe kolom, menambah constraint acak, atau mengunci tabel di latar belakang tanpa persetujuan tim.
-3. **Tabrakan Nomor Versi Migrasi**: Dua developer sama-sama membuat file `V2__add_media.sql` di branch masing-masing, menyebabkan Flyway *checksum mismatch* atau error saat merge ke `main`.
-4. **Race Condition & Duplikasi Data**: Request simultan (misalnya dari aplikasi mobile dan website secara bersamaan saat sync tontonan) membuat data terduplikasi karena tidak adanya *Composite Unique Constraints*.
-5. **Shared Remote Dev Database**: Seluruh tim backend menghubungkan aplikasi lokalnya ke satu database remote yang sama, sehingga perubahan schema dari satu orang langsung merusak pekerjaan orang lain.
+Panduan ini ditujukan bagi tim backend dan full-stack untuk menjaga konsistensi skema database, mencegah konflik migrasi, dan memastikan integritas data saat bekerja bersama dalam repository ini.
 
 ---
 
-## 🚀 2. Solusi 1: Isolasi Database Lokal (Docker Compose)
+## Prinsip Utama (Core Principles)
 
-> **ATURAN WAJIB**: Setiap developer **WAJIB** menjalankan database PostgreSQL lokal mereka sendiri di mesin masing-masing. Dilarang menggunakan remote database bersama untuk proses coding harian!
-
-Telah disediakan konfigurasi container terisolasi di [`backend/docker-compose.yml`](./docker-compose.yml).
-
-### Cara Menjalankan:
-```bash
-cd backend
-docker compose up -d postgres
-```
-
-- **Host**: `localhost`
-- **Port**: `5432`
-- **Database**: `liveeuy_db`
-- **Username**: `liveeuy_user`
-- **Password**: `liveeuy_password`
-
-Jika ingin menggunakan GUI Web pgAdmin:
-```bash
-docker compose up -d
-```
-Buka browser: `http://localhost:5050` (Email: `admin@liveeuy.id`, Password: `admin`).
+1. **Database-as-Code**: Semua perubahan skema DDL wajib tercatat dalam berkas migrasi di `backend/migrations/` (atau migrasi resmi backend service). Tidak ada perubahan langsung via GUI tool (DBeaver/pgAdmin) di lingkungan bersama.
+2. **Immutability of Migrations**: Berkas migrasi yang sudah pernah di-*merge* ke branch utama tidak boleh diedit atau dihapus. Buat berkas migrasi baru untuk perbaikan atau perubahan.
+3. **Idempotensi & Anti Race-Condition**: Gunakan pola `ON CONFLICT` (UPSERT) untuk operasi seperti *Watch Progress* dan *Watchlist* agar aman dari konkurensi multi-device.
 
 ---
 
-## 📦 3. Solusi 2: Single Source of Truth dengan Flyway Migration
+## Konvensi Penamaan Berkas Migrasi Flyway
 
-Skema database tidak dikelola secara manual atau oleh Hibernate, melainkan melalui script SQL versioned di:
-📁 `backend/src/main/resources/db/migration/`
-
-### 3.1. Standar Penamaan Script Migrasi (Anti-Tabrakan)
-
-Jangan gunakan penomoran sekuensial sederhana seperti `V1__`, `V2__`, `V3__` karena jika Developer A dan Developer B sama-sama membuat `V3__` di fiturnya masing-masing, saat merge ke `main` akan terjadi tabrakan fatal!
-
-**Format yang Wajib Digunakan**:
-```
-V{YYYYMMDD_HHMM}__{deskripsi_singkat_snake_case}.sql
+Format nama berkas:
+```text
+V<YYYYMMDD>_<Sequence>__<deskripsi_singkat>.sql
 ```
 
-**Contoh Riwayat yang Benar**:
-```
-src/main/resources/db/migration/
-├── V20260924_01__init_schema.sql             # Skema tabel dasar lengkap
-├── V20260925_1030__add_user_phone_number.sql  # Tambah kolom telepon oleh Dev A
-├── V20260925_1415__create_coupon_table.sql   # Fitur kupon oleh Dev B
-└── R__seed_dev_media.sql                     # Repeatable seed data (hanya dev)
-```
+Contoh:
+- `V20260924_01__init_schema.sql`
+- `V20260925_01__add_user_biometric_key.sql`
+- `V20260925_02__index_media_title_trgm.sql`
 
-### 3.2. Aturan Emas Migrasi Flyway (The Golden Rules)
-1. **DILARANG MENGEDIT SCRIPT YANG SUDAH DIMERGE KE `main`**:
-   - Flyway menyimpan hash *checksum* SHA-256 dari setiap file SQL di tabel `flyway_schema_history`.
-   - Mengubah 1 karakter saja pada file yang sudah ter-deploy akan menyebabkan aplikasi gagal *booting* (`FlywayException: Validate failed: checksum mismatch`).
-   - Jika ada kolom yang salah atau ingin diubah, **BUAT SCRIPT MIGRASI BARU** (misal: `V20260926_0900__fix_user_column.sql`).
-2. **Script Harus Bersifat Idempotent**:
-   - Gunakan `CREATE TABLE IF NOT EXISTS ...`
-   - Gunakan `CREATE INDEX IF NOT EXISTS ...`
-3. **Pemisahan Migrasi DDL dan Data DML**:
-   - File `V...` hanya untuk DDL struktur tabel dan data master penting.
-   - Data *dummy* untuk testing lokal ditempatkan di `R__...` atau dimuat via profil Spring `@Profile("dev")`.
+Aturan:
+- Gunakan tanggal hari ini (`YYYYMMDD`).
+- Sequence `01`, `02`, dst.
+- Dua garis bawah (`__`) memisahkan versi dan deskripsi.
+- Deskripsi menggunakan huruf kecil dipisah garis bawah (`snake_case`).
 
 ---
 
-## ⚙️ 4. Solusi 3: Konfigurasi Spring Boot Bebas Konflik
-
-Pada file `application.yml` (atau `application.properties`), pastikan konfigurasi berikut diterapkan:
-
-```yaml
-spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/liveeuy_db
-    username: liveeuy_user
-    password: liveeuy_password
-    driver-class-name: org.postgresql.Driver
-
-  jpa:
-    open-in-view: false
-    hibernate:
-      # PENTING: Wajib 'validate' pada tahap dev & staging.
-      # DILARANG MENGGUNAKAN 'update' ATAU 'create-drop'!
-      ddl-auto: validate
-    properties:
-      hibernate:
-        format_sql: true
-        jdbc:
-          batch_size: 25
-
-  flyway:
-    enabled: true
-    baseline-on-migrate: true
-    locations: classpath:db/migration
-```
-
-> **Mengapa `ddl-auto: validate`?**
-> Karena opsi ini memaksa Hibernate hanya **memvalidasi** apakah struktur class entity Java sudah cocok dengan skema yang dibuat oleh script Flyway. Jika ada ketidaksesuaian tipe data atau kolom yang hilang, Spring Boot akan memberikan pesan error yang jelas sebelum aplikasi aktif, bukan mengubah database secara sepihak.
-
----
-
-## 📊 5. Entity-Relationship Diagram (ERD LiveEuy)
-
-Berikut relasi tabel yang telah dirancang untuk mendukung fitur frontend LiveEuy (termasuk diferensiasi akun VIP dan mode Tamu):
+## Entity Relationship Diagram (ERD)
 
 ```mermaid
 erDiagram
-    USERS ||--o{ WATCHLISTS : "menyimpan"
-    USERS ||--o{ WATCH_HISTORY : "memiliki riwayat"
-    USERS ||--o{ REVIEWS : "menulis"
-    USERS ||--o{ REFRESH_TOKENS : "memiliki sesi"
-    USERS ||--|| USER_SETTINGS : "mengatur"
+    USERS ||--o{ WATCHLIST : owns
+    USERS ||--o{ WATCH_PROGRESS : tracks
+    USERS ||--o{ REVIEWS : writes
+    USERS ||--o{ REFRESH_TOKENS : issues
+    USERS ||--|| USER_SETTINGS : configures
     
-    MEDIA ||--o{ MEDIA_GENRES : "memiliki"
-    MEDIA ||--o{ MEDIA_CAST : "dibintangi"
-    MEDIA ||--o{ SEASONS : "memiliki"
-    MEDIA ||--o{ WATCHLISTS : "disimpan di"
-    MEDIA ||--o{ WATCH_HISTORY : "ditonton di"
-    MEDIA ||--o{ REVIEWS : "diulas"
-
-    SEASONS ||--o{ EPISODES : "terdiri dari"
-    EPISODES ||--o{ WATCH_HISTORY : "progres episode"
-
+    MEDIA_ITEMS ||--o{ SEASONS : has
+    MEDIA_ITEMS ||--o{ REVIEWS : receives
+    MEDIA_ITEMS ||--o{ WATCHLIST : contained_in
+    MEDIA_ITEMS ||--o{ WATCH_PROGRESS : tracked_in
+    
+    SEASONS ||--o{ EPISODES : contains
+    
     USERS {
-        string id PK "usr-uuid"
-        string name
-        string email UK
-        string password_hash
-        string tier "Free Guest | VIP Standard | VIP Cinema Ultra"
-        numeric watch_hours
-        int max_devices
-        timestamp created_at
+        VARCHAR(64) id PK
+        VARCHAR(128) name
+        VARCHAR(128) email UK
+        VARCHAR(255) password_hash
+        VARCHAR(255) avatar_url
+        VARCHAR(32) membership_tier
+        TIMESTAMP created_at
+        TIMESTAMP updated_at
     }
 
     USER_SETTINGS {
-        string user_id PK_FK
-        string streaming_quality
-        boolean spatial_audio
-        boolean auto_skip_intro
-        boolean wifi_only_download
-        string download_quality
-        boolean notifications
-        bigint cache_size_bytes
-        timestamp updated_at
+        VARCHAR(64) user_id PK_FK
+        VARCHAR(32) streaming_quality
+        BOOLEAN spatial_audio
+        BOOLEAN auto_skip_intro
+        BOOLEAN wifi_only_download
+        VARCHAR(32) download_quality
+        BOOLEAN notifications
+        BIGINT cache_size_bytes
+        TIMESTAMP updated_at
     }
 
     REFRESH_TOKENS {
-        string id PK
-        string user_id FK
-        string token_hash UK
-        timestamp expires_at
-        boolean is_revoked
-        string replaced_by_token
-        timestamp created_at
-        timestamp revoked_at
+        VARCHAR(64) id PK
+        VARCHAR(64) user_id FK
+        VARCHAR(255) token_hash UK
+        TIMESTAMP expires_at
+        BOOLEAN is_revoked
+        VARCHAR(255) replaced_by_token
+        TIMESTAMP created_at
+        TIMESTAMP revoked_at
     }
 
-    MEDIA {
-        string id PK "slug: cyberpunk-neo-nusantara"
-        string title
-        string type "movie | tv"
-        numeric rating "1.0 - 10.0"
-        int release_year
-        string quality "4K UHD | Dolby Vision | HD"
-        string audio "Dolby Atmos | 5.1 | Stereo"
-        boolean is_trending
-        int top_rank
+    MEDIA_ITEMS {
+        VARCHAR(64) id PK
+        VARCHAR(255) title
+        TEXT synopsis
+        VARCHAR(512) poster_url
+        VARCHAR(512) backdrop_url
+        VARCHAR(512) video_url
+        DECIMAL match_score
+        VARCHAR(16) age_rating
+        TEXT resolution_badges
+        VARCHAR(64) genre
+        VARCHAR(64) duration_or_seasons
+        INTEGER release_year
+        VARCHAR(128) director
+        TEXT cast_members
+        BOOLEAN is_top10
+        INTEGER top10_rank
+        DECIMAL user_rating
+        TIMESTAMP created_at
     }
 
-    WATCHLISTS {
-        bigserial id PK
-        string user_id FK "Composite UK(user_id, media_id)"
-        string media_id FK
-        timestamp created_at
+    SEASONS {
+        VARCHAR(64) id PK
+        VARCHAR(64) media_id FK
+        INTEGER season_number
+        VARCHAR(128) title
+        TIMESTAMP created_at
     }
 
-    WATCH_HISTORY {
-        bigserial id PK
-        string user_id FK "Composite UK(user_id, media_id, episode_id)"
-        string media_id FK
-        string episode_id FK
-        int current_time_seconds
-        int duration_seconds
-        int percentage
-        timestamp last_watched_at
+    EPISODES {
+        VARCHAR(64) id PK
+        VARCHAR(64) season_id FK
+        INTEGER episode_number
+        VARCHAR(255) title
+        TEXT synopsis
+        VARCHAR(512) thumbnail_url
+        VARCHAR(512) video_url
+        VARCHAR(32) duration
+        TIMESTAMP created_at
     }
 
     REVIEWS {
-        string id PK
-        string media_id FK "Composite UK(user_id, media_id)"
-        string user_id FK
-        int rating "1 - 10"
-        text comment
-        timestamp created_at
+        VARCHAR(64) id PK
+        VARCHAR(64) media_id FK
+        VARCHAR(64) user_id FK
+        DECIMAL rating
+        TEXT comment
+        INTEGER likes_count
+        TIMESTAMP created_at
+    }
+
+    WATCHLIST {
+        VARCHAR(64) id PK
+        VARCHAR(64) user_id FK
+        VARCHAR(64) media_id FK
+        TIMESTAMP created_at
+    }
+
+    WATCH_PROGRESS {
+        VARCHAR(64) id PK
+        VARCHAR(64) user_id FK
+        VARCHAR(64) media_id FK
+        DECIMAL progress
+        VARCHAR(64) last_episode_id
+        TIMESTAMP updated_at
     }
 ```
 
 ---
 
-## 🔒 6. Solusi 4: Anti-Race Condition & Idempotent Upsert
+## Pola Anti-Konflik & Race Condition
 
-### 6.1. Watchlist Toggle Idempotency
-Untuk mencegah duplikasi baris saat pengguna menekan tombol *Watchlist* berulang kali secara cepat, tabel `watchlists` menerapkan:
-```sql
-CONSTRAINT uq_user_media_watchlist UNIQUE (user_id, media_id)
-```
-Pada Repository Spring Data JPA:
-```java
-@Modifying
-@Query(value = """
-    INSERT INTO watchlists (user_id, media_id, created_at)
-    VALUES (:userId, :mediaId, CURRENT_TIMESTAMP)
-    ON CONFLICT (user_id, media_id) DO NOTHING
-""", nativeQuery = true)
-void addToWatchlistSafe(@Param("userId") String userId, @Param("mediaId") String mediaId);
-```
+### 1. UPSERT untuk Watch Progress
+Untuk menghindari race condition saat aplikasi mobile mengirim *progress sync* berkala:
 
-### 6.2. Watch History Progress Sync (Upsert)
-Frontend mengirim progres tontonan setiap 10 detik. Jika beberapa request masuk bersamaan, gunakan pola **UPSERT** agar tidak terjadi deadlock / record ganda:
 ```sql
-INSERT INTO watch_history (
-    user_id, media_id, episode_id, current_time_seconds, duration_seconds, percentage, last_watched_at
-)
-VALUES (
-    :userId, :mediaId, :episodeId, :currentTime, :duration, :percentage, CURRENT_TIMESTAMP
-)
-ON CONFLICT (user_id, media_id, episode_id)
+INSERT INTO watch_progress (id, user_id, media_id, progress, updated_at)
+VALUES (?, ?, ?, ?, NOW())
+ON CONFLICT (user_id, media_id)
 DO UPDATE SET
-    current_time_seconds = EXCLUDED.current_time_seconds,
-    duration_seconds = EXCLUDED.duration_seconds,
-    percentage = EXCLUDED.percentage,
-    last_watched_at = CURRENT_TIMESTAMP;
+    progress = EXCLUDED.progress,
+    updated_at = NOW();
+```
+
+### 2. Idempotent Watchlist Toggle
+Untuk mencegah duplikasi item dalam koleksi:
+
+```sql
+-- Tambah ke watchlist (abaikan jika sudah ada)
+INSERT INTO watchlist (id, user_id, media_id, created_at)
+VALUES (?, ?, ?, NOW())
+ON CONFLICT (user_id, media_id) DO NOTHING;
 ```
 
 ### 3. Refresh Token Rotation (RTR) & Anti-Replay Detection
@@ -270,7 +201,7 @@ Sinkronisasi preferensi pemutar secara idempotensial:
 
 ```sql
 INSERT INTO user_settings (
-    user_id, streaming_quality, spatial_audio, auto_skip_intro,
+    user_id, streaming_quality, spatial_audio, auto_skip_intro, 
     wifi_only_download, download_quality, notifications, cache_size_bytes, updated_at
 )
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
@@ -286,21 +217,45 @@ DO UPDATE SET
     updated_at = NOW();
 ```
 
+### 5. Pola Batch Deletion Watchlist (Aman, Efisien, & Idempotent)
+Untuk mendukung multi-selection delete dari aplikasi mobile tanpa menimbulkan N+1 delete queries atau table lock:
+
+```sql
+-- Batch delete sejumlah media dari watchlist pengguna secara atomik
+DELETE FROM watchlist
+WHERE user_id = :userId
+  AND media_id = ANY(:mediaIds);
+
+-- Alternatif kueri IN clause:
+-- DELETE FROM watchlist WHERE user_id = :userId AND media_id IN ('m1', 'm3', 'top_2');
+```
+
+**Karakteristik & Integritas:**
+- **Indeks Efisien:** Menggunakan indeks komposit `(user_id, media_id)` atau indeks tunggal `idx_watchlist_user_id` sehingga kueri langsung melakukan index-scan tanpa scan penuh (*table-scan*).
+- **Idempotensi Antar Perangkat:** Jika pengguna membuka Web dan Mobile bersamaan lalu salah satu item telah dihapus dari Web, eksekusi batch delete di Mobile tetap sukses tanpa error constraint (`affected rows` mengindikasikan item yang benar-benar dihapus).
+- **Batas Batching:** Rekomendasi maksimal 100 ID per batch request untuk menjaga latensi kueri di bawah 15ms.
+
 ---
 
-## 📝 7. Checklist Pull Request (PR) Tim Backend
+## Menjalankan Database PostgreSQL Lokal Terisolasi
 
-Sebelum melakukan *Pull Request* atau *Merge* kode yang melibatkan database ke branch utama (`dev-backend` / `main`), pastikan memeriksa poin-poin berikut:
+```bash
+# Menjalankan PostgreSQL lokal via Docker Compose
+docker compose up -d postgres
 
-- [ ] **Tidak ada DDL manual**: Seluruh perubahan skema ada di dalam file SQL di folder `src/main/resources/db/migration/`.
-- [ ] **Penamaan file migrasi**: Mengikuti format timestamp `VYYYYMMDD_HHMM__deskripsi.sql`.
-- [ ] **Tidak mengubah file migrasi lama**: File migrasi yang sudah pernah dimerge tidak boleh diedit isinya.
-- [ ] **Hibernate ddl-auto**: Tetap disetel `validate` (bukan `update`).
-- [ ] **Foreign Key & Cascade**: Relasi anak (seperti `media_genres`, `media_cast`, `episodes`) memiliki `ON DELETE CASCADE` yang sesuai.
-- [ ] **Index pada Kolom Pencarian**: Kolom yang sering difilter (seperti `type`, `release_year`, `rating`, `user_id`) telah diberi indeks.
-- [ ] **Uji Migrasi Maju & Mundur**: Aplikasi berhasil dijalankan dari database kosong (`mvn spring-boot:run`) tanpa error migrasi.
-- [ ] **Kesesuaian Tipe Data dengan Frontend**: Sesuai dengan spesifikasi [`API_CONTRACT.md`](../API_CONTRACT.md) dan model [`src/types.ts`](../src/types.ts).
+# Memeriksa log database
+docker compose logs -f postgres
+
+# Masuk ke psql CLI
+docker compose exec postgres psql -U postgres -d liveeuy
+```
 
 ---
 
-> Dokumen ini dikelola bersama oleh Tim Engineering LiveEuy. Pertanyaan dan usulan arsitektur database dapat didiskusikan di kanal internal tim.
+## Checklist Sebelum Mengajukan Pull Request (PR)
+
+- [ ] Skema baru memiliki tipe data yang efisien (`VARCHAR` dengan panjang wajar, `TEXT` untuk deskripsi panjang).
+- [ ] Foreign Key dilengkapi indeks untuk relasi yang sering di-*join*.
+- [ ] Constraint unik (`UNIQUE (user_id, media_id)`) diterapkan pada tabel relasi `watchlist` dan `watch_progress`.
+- [ ] Script migrasi telah diuji jalankan dari kondisi database bersih (`docker compose down -v && docker compose up -d postgres`).
+- [ ] Tidak ada berkas migrasi lama yang dimodifikasi.

@@ -1,148 +1,113 @@
-# LiveEuy — Spring Boot 3 & Swagger RESTful Backend
+# LiveEuy: Dokumentasi Kontrak & Spesifikasi API Backend
 
-Aplikasi backend terpadu (*Unified Backend API Service*) untuk platform streaming video **LiveEuy**, dibangun dengan **Spring Boot 3.3.4**, **Java 17**, **PostgreSQL**, **Flyway**, dan **SpringDoc OpenAPI (Swagger UI)**.
+Direktori ini berisi dokumentasi spesifikasi teknis, kontrak API, panduan keamanan token, dan referensi skema database untuk integrasi klien mobile (**LiveEuy Mobile Flutter**).
 
-Backend ini dirancang khusus untuk melayani dua klien utama tanpa duplikasi logika:
-1. **Frontend Web**: React 18, TypeScript, Tailwind CSS, Vite.
-2. **Mobile Client**: Flutter 3.x (Android & iOS), Riverpod State Management.
+Layanan backend resmi dikembangkan dalam arsitektur **microservices**:
+1. **`auth-service` (Port 8080)**: Layanan autentikasi, registrasi, sesi perangkat, persona demo, profil, dan token JWT RSA-256 (Golang Gin & Redis & PostgreSQL).
+2. **`catalog-service` (Port 8081)**: Layanan katalog media, film, serial TV, seasons, episodes, pagination Spring Boot, dan batch fetch (Java 21 + Spring Boot 3.4.3).
 
 > 📚 **Dokumentasi Lengkap**: Baca panduan teknis mendalam di [**BACKEND_DOCUMENTATION.md**](./BACKEND_DOCUMENTATION.md) yang mencakup diagram ERD, skema PostgreSQL, alur keamanan JWT/RTR, dan katalog lengkap REST API.
 
 ---
 
-## 🚀 Cara Menjalankan Backend
+## Struktur Berkas Direktori
 
-### Prasyarat
-- **Java 17** atau lebih baru (`openjdk@17` / Eclipse Temurin)
-- **Apache Maven 3.8+** (opsional jika menggunakan Docker)
-- **Docker & Docker Compose** (opsional untuk lingkungan kontainer)
+```
+backend/
+├── API_CONTRACT.md                  # Spesifikasi payload JSON request/response, query params, & error code
+├── AUTHENTICATION_AND_SECURITY.md   # Panduan refresh token rotation, HttpOnly cookies, & Dio interceptor
+├── DATABASE_GUIDELINES.md           # Pedoman arsitektur database, diagram ERD, indeks, & aturan UPSERT
+├── docker-compose.yml               # Konfigurasi container lokal (PostgreSQL 16 & Redis 7)
+├── migrations/                      # Referensi skema SQL DDL untuk tabel LiveEuy
+│   ├── V20260924_01__init_schema.sql
+│   ├── V20260925_01__create_refresh_tokens_table.sql
+│   └── V20260925_02__create_user_settings_table.sql
+└── README.md                        # Ringkasan dokumentasi & daftar endpoint
+```
 
-### Opsi 1: Menjalankan Langsung dengan Maven
+---
+
+## Ringkasan Endpoint API
+
+### 1. Auth Service (`http://localhost:8080/api/v1/auth`)
+
+| Method | Path Endpoint | Autentikasi | Deskripsi |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/v1/auth/register` | Publik | Registrasi akun baru dengan pilihan membership tier |
+| `POST` | `/api/v1/auth/login` | Publik | Login email & password, mengembalikan access token & refresh token |
+| `POST` | `/api/v1/auth/demo-login?persona={tamu\|vip\|ultra}` | Publik | Login instan menggunakan persona demo pengujian |
+| `POST` | `/api/v1/auth/refresh` | Cookie / Body | Rotasi token JWT sesi aktif |
+| `POST` | `/api/v1/auth/logout` | Publik | Logout sesi perangkat saat ini |
+| `POST` | `/api/v1/auth/logout-all` | Bearer Token | Logout seluruh sesi atau sesi lain |
+| `GET` | `/api/v1/auth/profile` | Bearer Token | Mengambil detail profil dan metrik akun |
+| `PUT` | `/api/v1/auth/change-password` | Bearer Token | Mengganti kata sandi akun |
+| `GET` | `/api/v1/auth/devices` | Bearer Token | Mengambil daftar sesi perangkat terdaftar |
+| `DELETE` | `/api/v1/auth/devices/{id}` | Bearer Token | Mencabut sesi perangkat tertentu |
+
+### 2. Catalog Service (`http://localhost:8081/api/v1/media`)
+
+| Method | Path Endpoint | Query Params | Deskripsi |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/media` | `type`, `search`, `page`, `size`, `sort` | Katalog tayangan & pencarian dengan Spring Pageable |
+| `GET` | `/api/v1/media/{id}` | - | Detail film atau serial lengkap beserta episode |
+| `GET` | `/api/v1/media/top10` | - | Daftar 10 tayangan terpopuler |
+| `POST` | `/api/v1/media/batch` | - | Mengambil data beberapa media sekaligus via ID |
+| `GET` | `/api/v1/series` | `page`, `size` | Daftar serial TV |
+| `GET` | `/api/v1/series/{id}/seasons` | - | Daftar musim dari serial tertentu |
+| `GET` | `/api/v1/seasons/{id}/episodes` | - | Daftar episode dari musim tertentu |
+
+---
+
+## Panduan Menjalankan Backend Lokal (Docker)
+
+### Prasyarat: Instalasi Docker di CachyOS (Arch Linux)
+Apabila sistem Anda menggunakan **CachyOS**, jalankan skrip pembantu atau perintah berikut:
+
 ```bash
-cd backend
-mvn clean spring-boot:run
-```
-Aplikasi akan aktif di port default `8080` (`http://localhost:8080`).
+# Opsi 1: Jalankan skrip pembantu otomatis
+sudo ./scripts/install_docker_cachyos.sh
 
-### Opsi 2: Menjalankan dengan Docker Compose (Backend + PostgreSQL)
-Menjalankan PostgreSQL dan backend dalam lingkungan terisolasi:
+# Opsi 2: Perintah manual via pacman
+sudo pacman -Sy --noconfirm docker docker-compose
+sudo systemctl enable --now docker.service
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+### Menjalankan Layanan Basis Data Lokal
 ```bash
-cd backend
-docker compose up -d
-```
+# Jalankan PostgreSQL dan Redis di latar belakang
+docker compose -f backend/docker-compose.yml up -d
 
-### Opsi 3: Membangun & Menjalankan Kontainer Docker Mandiri
-```bash
-cd backend
-docker build -t liveeuy-backend .
-docker run -p 8080:8080 liveeuy-backend
+# Periksa status kontainer
+docker compose -f backend/docker-compose.yml ps
 ```
 
 ---
 
-## 📖 Akses Dokumentasi Swagger UI & OpenAPI
+## Arsitektur Keamanan dan Refresh Token
 
-Saat backend berjalan, tim pengembang dapat mencoba seluruh endpoint secara langsung melalui GUI interaktif:
-* **Swagger UI Interaktif**: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
-* **OpenAPI 3.0 JSON Spec**: [http://localhost:8080/api-docs](http://localhost:8080/api-docs)
-
----
-
-## 🏛️ Arsitektur Paket (Package Architecture)
-```
-com.liveeuy.backend/
-├── LiveEuyBackendApplication.java    # Main Entry Point Spring Boot
-├── config/
-│   ├── OpenApiConfig.java            # Konfigurasi Swagger UI, JWT Bearer Scheme, & Info API
-│   └── CorsConfig.java               # Konfigurasi CORS (allowCredentials=true untuk Cookie HttpOnly)
-├── model/
-│   ├── User.java                     # Entitas Profil Pengguna & Membership Tier
-│   ├── UserSettings.java             # Entitas Preferensi Pengguna, Kualitas Streaming, & Cache
-│   ├── MediaItem.java                # Entitas Film & Serial TV
-│   ├── Season.java                   # Entitas Musim Serial
-│   ├── Episode.java                  # Entitas Episode
-│   ├── Review.java                   # Entitas Ulasan Penonton & Rating
-│   └── WatchProgress.java            # Entitas Durasi Tontonan & Episode Terakhir
-├── dto/
-│   ├── ApiResponse.java              # Standard Envelope Wrapper JSON {success, message, data, timestamp}
-│   ├── LoginRequest.java             # DTO Login {email, password, rememberMe}
-│   ├── RegisterRequest.java          # DTO Registrasi {name, email, password}
-│   ├── RefreshTokenRequest.java      # DTO Mobile Refresh Token {refreshToken}
-│   ├── AuthResponse.java             # DTO Respons Sesi {accessToken, refreshToken, expiresIn, user}
-│   ├── UserSettingsRequest.java      # DTO Pembaruan Pengaturan {streamingQuality, spatialAudio, dll}
-│   ├── ReviewRequest.java            # DTO Kirim Ulasan {rating, comment, userName}
-│   └── WatchProgressRequest.java     # DTO Sinkronisasi Progres {mediaId, progress, lastEpisodeId}
-├── security/
-│   ├── JwtTokenProvider.java         # Generator & Validator HMAC-SHA256 JWT (Access & Refresh Tokens)
-│   └── CookieUtil.java               # Utility Pembuatan & Penghapusan Cookie HttpOnly SameSite=Lax
-├── service/
-│   ├── AuthService.java              # Logika Autentikasi, Refresh Token Rotation, & Replay Attack Defense
-│   └── MediaService.java             # Logika Katalog Media, Top 10, Watchlist, Progres, & Pengaturan
-└── controller/
-    ├── AuthController.java           # Endpoints Autentikasi & Device Management /api/v1/auth/*
-    ├── UserSettingsController.java   # Endpoints Preferensi & Streaming /api/v1/user/settings
-    ├── MediaController.java          # Endpoints Katalog /api/v1/media/*
-    ├── WatchlistController.java      # Endpoints Koleksi Pengguna /api/v1/user/watchlist/*
-    ├── WatchProgressController.java  # Endpoints Lanjutkan Menonton /api/v1/user/progress/*
-    └── ReviewController.java         # Endpoints Ulasan /api/v1/media/{mediaId}/reviews/*
-```
+Sistem autentikasi menerapkan model token ganda (**Dual-Token**):
+1. **Access Token (Masa Berlaku 15 Menit)**:
+   - Digunakan untuk otorisasi request endpoint privat melalui header `Authorization: Bearer <token>`.
+   - Disimpan di memori runtime klien.
+2. **Refresh Token (Masa Berlaku 7 Hari)**:
+   - Digunakan untuk menerbitkan access token baru tanpa meminta pengguna login ulang.
+   - **Refresh Token Rotation (RTR)**: setiap rotasi token, token lama dicabut dan diganti dengan pasangan token baru.
+   - **Deteksi Replay Attack**: jika token yang telah dicabut dikirimkan kembali, seluruh token aktif milik pengguna tersebut dinonaktifkan.
+3. **Strategi Penyimpanan Klien**:
+   - **Web (React)**: Refresh token dikirimkan melalui cookie HttpOnly (`SameSite=Lax`, `Path=/api/v1/auth`) untuk memitigasi risiko pembacaan token via script XSS di browser.
+   - **Mobile (Flutter)**: Token disimpan terenkripsi menggunakan `flutter_secure_storage` (Android Keystore dan Apple Keychain), menghindari penyimpanan plain-text di `shared_preferences`.
 
 ---
 
-## 🛡️ Panduan Database & Anti-Konflik
-Untuk mencegah terjadinya konflik skema database antar tim backend, silakan baca dan patuhi panduan berikut:
-- 📖 [**DATABASE_GUIDELINES.md**](./DATABASE_GUIDELINES.md): Pedoman arsitektur skema, Flyway migrations, ERD Mermaid, UPSERT anti race-condition, dan checklist PR.
-- 🐳 [**docker-compose.yml**](./docker-compose.yml): Menjalankan PostgreSQL lokal terisolasi via `docker compose up -d postgres`.
-- 📜 [**V20260924_01__init_schema.sql**](./src/main/resources/db/migration/V20260924_01__init_schema.sql): Script DDL Flyway awal siap pakai.
+## Referensi Dokumentasi
 
----
-
-## 📋 Matriks Ringkasan API Endpoints Terpadu
-
-Semua endpoint diawali dengan prefix `/api/v1`:
-
-| Kategori | Method | Endpoint Path | Autentikasi | Pengguna Klien | Deskripsi |
-|---|---|---|---|---|---|
-| **Auth** | `POST` | `/api/v1/auth/login` | Publik | Web & Mobile | Login pengguna, menerbitkan AT + RT |
-| **Auth** | `POST` | `/api/v1/auth/register` | Publik | Web & Mobile | Pendaftaran akun baru |
-| **Auth** | `POST` | `/api/v1/auth/refresh` | Cookie / Body | Web & Mobile | Silent refresh token rotation |
-| **Auth** | `POST` | `/api/v1/auth/logout` | Publik | Web & Mobile | Menghapus refresh token & cookie |
-| **Auth** | `GET` | `/api/v1/auth/me` | Bearer Token | Web & Mobile | Mengambil profil user aktif |
-| **Settings** | `GET` | `/api/v1/user/settings` | Publik / User | Web & Mobile | Mengambil preferensi & kualitas streaming |
-| **Settings** | `PUT` | `/api/v1/user/settings` | Publik / User | Web & Mobile | Memperbarui kualitas, audio, & cache |
-| **Media** | `GET` | `/api/v1/media` | Publik | Web & Mobile | Mengambil seluruh katalog film & serial |
-| **Media** | `GET` | `/api/v1/media/{id}` | Publik | Web & Mobile | Mengambil detail tayangan lengkap |
-| **Media** | `GET` | `/api/v1/media/top10` | Publik | Web & Mobile | Mengambil daftar Top 10 Indonesia |
-| **Watchlist** | `GET` | `/api/v1/user/watchlist` | Publik / User | Web & Mobile | Mengambil daftar film tersimpan |
-| **Watchlist** | `GET` | `/api/v1/user/watchlist/ids`| Publik / User | Web & Mobile | Mengambil daftar ID tersimpan |
-| **Watchlist** | `POST` | `/api/v1/user/watchlist/{id}` | Publik / User | Web & Mobile | Toggle simpan/hapus tayangan |
-| **Progress** | `GET` | `/api/v1/user/progress` | Publik / User | Web & Mobile | Riwayat tontonan (Continue Watching) |
-| **Progress** | `POST` | `/api/v1/user/progress` | Publik / User | Web & Mobile | Sinkronisasi durasi tontonan (UPSERT)|
-| **Review** | `GET` | `/api/v1/media/{id}/reviews`| Publik | Web & Mobile | Mengambil daftar ulasan tayangan |
-| **Review** | `POST`| `/api/v1/media/{id}/reviews`| Publik / User | Web & Mobile | Mengirim ulasan & rating baru |
-
----
-
-## 🔐 Arsitektur Keamanan & Refresh Token
-
-Sistem autentikasi mengadopsi standar **Zero Trust Dual-Channel**:
-1. **Short-lived Access Token (15 Menit)**:
-   * Menjaga keamanan data jika token terekspos; masa hidup token sangat singkat.
-2. **Long-lived Refresh Token (7 Hari)**:
-   * Menggunakan **Refresh Token Rotation (RTR)**: token lama otomatis dicabut saat token baru diterbitkan.
-   * **Deteksi Replay Attack**: jika token yang sudah dicabut dikirim ulang, seluruh sesi pengguna langsung dihanguskan.
-3. **Dual-Mode Client Strategy**:
-   * **Web Browser (React)**: Refresh Token dikirim via **HttpOnly Cookie** (`SameSite=Lax`, `Path=/api/v1/auth`). JavaScript tidak dapat membacanya, sehingga **kebal dari serangan XSS**.
-   * **Mobile (Flutter)**: Flutter adalah aplikasi native tanpa sandbox browser. Token **WAJIB** disimpan menggunakan **`flutter_secure_storage`** (Android Keystore AES-256 GCM & iOS Apple Keychain) dan dilarang disimpan di plain `shared_preferences` (OWASP Mobile M1).
-
----
-
-## 📚 Panduan Lengkap & Tautan Terkait
-
-Untuk pemahaman mendalam mengenai arsitektur backend, silakan baca dokumentasi berikut:
-* 📘 [AUTHENTICATION_AND_SECURITY.md](AUTHENTICATION_AND_SECURITY.md): Panduan lengkap autentikasi, refresh token, cookie HttpOnly, deteksi replay attack, dan implementasi interceptor untuk React & Flutter.
-* 📋 [API_CONTRACT.md](API_CONTRACT.md): Kontrak payload request/response JSON terpadu, spesifikasi kualitas streaming, normalisasi model antara Web & Mobile, serta contoh cURL.
-* 📖 [DATABASE_GUIDELINES.md](DATABASE_GUIDELINES.md): Pedoman arsitektur skema PostgreSQL, diagram ERD Mermaid, UPSERT anti race-condition, dan aturan migrasi Flyway.
-* 📜 [V20260924_01__init_schema.sql](src/main/resources/db/migration/V20260924_01__init_schema.sql): Migrasi Flyway DDL awal untuk tabel pengguna, tayangan, musim, episode, ulasan, dan progres.
-* 📜 [V20260925_01__create_refresh_tokens_table.sql](src/main/resources/db/migration/V20260925_01__create_refresh_tokens_table.sql): Migrasi Flyway DDL untuk tabel `refresh_tokens`.
-* 📜 [V20260925_02__create_user_settings_table.sql](src/main/resources/db/migration/V20260925_02__create_user_settings_table.sql): Migrasi Flyway DDL untuk tabel `user_settings` preferensi pemutar & kualitas streaming.
+Dokumentasi pelengkap untuk pengembangan modul backend:
+- [BACKEND_DOCUMENTATION.md](BACKEND_DOCUMENTATION.md): Dokumentasi teknis mendalam arsitektur microservices, JWT/RTR, dan database.
+- [API_CONTRACT.md](API_CONTRACT.md): Kontrak payload JSON request dan response, enum kualitas streaming, dan contoh request cURL.
+- [AUTHENTICATION_AND_SECURITY.md](AUTHENTICATION_AND_SECURITY.md): Panduan teknis autentikasi, refresh token, penanganan cookie HttpOnly, dan interceptor klien.
+- [DATABASE_GUIDELINES.md](DATABASE_GUIDELINES.md): Pedoman skema database PostgreSQL, diagram ERD, pola UPSERT anti race-condition, dan aturan migrasi Flyway.
+- [V20260924_01__init_schema.sql](migrations/V20260924_01__init_schema.sql): Migrasi skema awal tabel pengguna, tayangan, musim, episode, ulasan, dan progres.
+- [V20260925_01__create_refresh_tokens_table.sql](migrations/V20260925_01__create_refresh_tokens_table.sql): Migrasi skema tabel `refresh_tokens`.
+- [V20260925_02__create_user_settings_table.sql](migrations/V20260925_02__create_user_settings_table.sql): Migrasi skema tabel `user_settings`.

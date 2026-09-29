@@ -361,15 +361,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     padding: const EdgeInsets.all(1.5),
                     decoration: const BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [
-                          Color(0xFFF59E0B),
-                          Color(0xFFF43F5E),
-                          Color(0xFF6366F1),
-                        ],
-                        begin: Alignment.bottomLeft,
-                        end: Alignment.topRight,
-                      ),
+                      gradient: AppColors.profileAvatarGradient,
                     ),
                     child: ClipOval(
                       child: CachedNetworkImage(

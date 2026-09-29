@@ -11,17 +11,18 @@ import '../../models/watch_progress_model.dart';
 /// Memisahkan antara data kredensial/token (Secure Storage)
 /// dan data preferensi/state offline aplikasi (SharedPreferences).
 class LocalStorageService {
-  final SharedPreferences _prefs;
+  final SharedPreferences prefs;
   final FlutterSecureStorage _secureStorage;
+
+  SharedPreferences get _prefs => prefs;
 
   // Fallback in-memory map for headless tests where Keystore/Keychain is unavailable
   final Map<String, String> _inMemorySecureFallback = {};
 
   LocalStorageService({
-    required SharedPreferences prefs,
+    required this.prefs,
     FlutterSecureStorage? secureStorage,
-  })  : _prefs = prefs,
-        _secureStorage = secureStorage ?? const FlutterSecureStorage();
+  })  : _secureStorage = secureStorage ?? const FlutterSecureStorage();
 
   // Storage Keys
   static const String _keyAccessToken = 'auth_access_token';

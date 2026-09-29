@@ -49,6 +49,17 @@ class AppColors {
   static const Color tertiaryCyan = Color(0xFF81CFFF);
   static const Color accentGold = Color(0xFFFFB800);
 
+  // Profile Avatar Cinema Gradient (Shared across Beranda, Cari, Koleksi)
+  static const LinearGradient profileAvatarGradient = LinearGradient(
+    colors: [
+      Color(0xFF38BDF8), // Electric Cyan
+      Color(0xFF3B82F6), // Cinema Blue
+      Color(0xFF6366F1), // Electric Indigo / Brand EUY
+    ],
+    begin: Alignment.bottomLeft,
+    end: Alignment.topRight,
+  );
+
   // Text & Foregrounds
   static const Color onSurface = Color(0xFFE3E1F0);
   static const Color textPrimary = Color(0xFFE3E1F0);

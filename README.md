@@ -7,8 +7,9 @@
 * 📱 **Mobile Client**: Flutter (Android & iOS) dengan Riverpod state management & Clean Architecture
 * ⚙️ **Backend Microservices**:
   * **Auth Service**: Golang + Gin + GORM + JWT + Google OAuth
-  * **Catalog Service**: Spring Boot 3.3 + PostgreSQL/Neon DB + Swagger OpenAPI
-  * **Starter Backend**: Spring Boot 3 + Flyway Schema Migrations + Docker Compose
+  * **Catalog Service**: Spring Boot 3.4 + PostgreSQL/Neon DB + Swagger OpenAPI
+  * **Trending Service**: Golang + Redis Aggregation Worker
+  * **Nginx Reverse Proxy**: Gateway API terpadu (Port 80)
 
 ---
 
@@ -74,7 +75,7 @@
 
 ---
 
-## 🛠️ Arsitektur Teknologi
+## Arsitektur Teknologi
 
 ### 1. Web Frontend
 * **Library**: React 18, TypeScript, Tailwind CSS 3.4
@@ -82,147 +83,128 @@
 * **Layer API**: `src/services/api.ts` (Auto-detect backend status dengan fallback mulus ke local mock data)
 * **Icons**: Lucide React
 
-### 2. Mobile Client (Flutter)
-* **Framework**: Flutter 3.22+, Dart 3.4+
-* **State Management**: Flutter Riverpod
-* **Target OS**: Android (API 21+) & iOS (12.0+)
+### 2. Klien Mobile (Flutter)
+- **Framework**: Flutter 3.x, Dart 3 (Sound Null Safety)
+- **State Management**: Flutter Riverpod 2.5 (`StateNotifierProvider` dan `ProviderScope`)
+- **Pemutar Video**: Pustaka `video_player` dengan custom ambient shader
+- **Manajemen Cache Gambar**: `cached_network_image` dengan cache multi-tier (RAM dan disk)
+- **Tipografi & Ikon**: Google Fonts (Outfit untuk judul, Inter untuk teks konten), Material & Cupertino Icons
+- **Penyimpanan Kredensial**: `flutter_secure_storage` (Android Keystore / iOS Keychain) dan `shared_preferences`
+- **Tema Tampilan**: Dark mode (`#08090D` / `#0F0E17`) dengan aksen cinematic glassmorphic
 
-### 3. Backend Microservices & API
-* **Auth Service**: Golang (Gin, GORM, PostgreSQL, JWT, OAuth2) — Port `8080`
-* **Catalog Service**: Spring Boot 3.3.4 (Java 17, JPA, PostgreSQL/Neon, OpenAPI Swagger) — Port `8081`
-* **Monolith / Starter API**: Spring Boot 3.3.4 — Port `8080`
+### 3. Layanan Backend (Microservices)
+Arsitektur backend LiveEuy mengadopsi pola microservices modern:
+1. **`auth-service` (Port 8080)**: Go 1.22 + Gin + PostgreSQL 16 + Redis 7 (Login, Register, Demo Personas, Refresh Token Rotation, JWKS, Device Management).
+2. **`catalog-service` (Port 8081)**: Spring Boot 3.4.3 (Java 21) + PostgreSQL (SpringDoc OpenAPI, Pageable Catalog, Top 10, Batch Media, TV Hierarchy).
+3. **`trending-service` (Port 8082)**: Golang + Redis Aggregation Worker (Real-time trending analytics).
+4. **`nginx` (Port 80)**: Reverse proxy & unified API gateway.
 * **Kontrak API OpenAPI**: [`API_CONTRACT.md`](./API_CONTRACT.md)
 * **Pedoman Database Anti-Konflik**: [`backend/DATABASE_GUIDELINES.md`](./backend/DATABASE_GUIDELINES.md)
 
-### Lapisan Jaringan & Error Handling (Dio & DioException Architecture)
-- **Standar Protokol**: Mengikuti arsitektur **Dio 5.x** dengan penanganan exception menggunakan `DioException` dan `DioExceptionType`.
-- **Klasifikasi Error Jaringan**:
-  - `DioExceptionType.badResponse`: Menangani error 4xx dan 5xx dengan parsing otomatis pesan error JSON dari backend Spring Boot (`e.backendMessage`). Mendukung `BadRequestException` (400, 422), `UnauthorizedException` (401), `ForbiddenException` (403), `NotFoundException` (404), `ConflictException` (409), dan `ServerException` (5xx).
-  - `DioExceptionType.connectionTimeout`, `sendTimeout`, `receiveTimeout`: Menangani kegagalan batas waktu request (`ApiTimeoutException`).
-  - `DioExceptionType.connectionError`: Menangani putusnya sambungan internet / backend offline (`NetworkException`).
-  - `DioExceptionType.badCertificate`: Menangani sertifikat SSL/TLS yang tidak valid.
-  - `DioExceptionType.cancel`: Mendukung pembatalan request oleh navigasi/pengguna.
-  - `DioExceptionType.unknown`: Menangani error tidak terduga lainnya.
-- **Pipeline Interceptor 3-Arah**:
-  - `LoggingInterceptor`: Pelacakan request, status code respon, dan kegagalan jaringan secara real-time.
-  - `AuthInterceptor`: Otomatisasi penyematan `Authorization: Bearer <token>` pada request terproteksi.
-  - `ErrorInterceptor`: Menangkap kegagalan jaringan untuk penanganan dan logging terpusat.
-- **Interoperabilitas Penuh**: Typed exceptions (`BadRequestException`, `UnauthorizedException`, `ForbiddenException`, `NotFoundException`, `ConflictException`, `ServerException`, `NetworkException`, `ApiTimeoutException`) merupakan turunan dari `ApiException` sekaligus mengimplementasikan `DioException` dengan helper boolean ekspresif (`isNotFound`, `isUnauthorized`, `isConflict`, `isServerError`, `isNetworkError`, dll).
+### Lapisan Jaringan dan Penanganan Error (Dio)
+- Arsitektur jaringan mengimplementasikan spesifikasi Dio 5.x dengan hirarki `DioException`.
+- Klasifikasi status jaringan:
+  - `badResponse`: menangani status HTTP 4xx dan 5xx dengan ekstraksi pesan JSON backend (`BadRequestException`, `UnauthorizedException`, `ForbiddenException`, `NotFoundException`, `ConflictException`, `ServerException`).
+  - `connectionTimeout`, `sendTimeout`, `receiveTimeout`: batas waktu request terlampaui (`ApiTimeoutException`).
+  - `connectionError`: koneksi terputus atau host tidak dapat dijangkau (`NetworkException`).
+  - `badCertificate`: sertifikat SSL/TLS tidak valid.
+  - `cancel`: pembatalan request aktif saat pengguna berpindah rute.
+  - `unknown`: kegagalan tak terduga lainnya.
+- Pipeline Interceptor:
+  - `LoggingInterceptor`: mencatat siklus HTTP request, response status, dan error.
+  - `AuthInterceptor`: menyematkan header `Authorization: Bearer <token>` pada request terproteksi.
+  - `ErrorInterceptor`: menangkap exception untuk standarisasi format error pada layer presentasi.
 
 ---
 
-## 🔗 Deep Linking (Arsitektur Tautan Dalam & App Links)
+## Deep Linking
 
-Aplikasi LiveEuy Mobile mendukung navigasi langsung melalui Deep Linking baik dengan **Custom URI Scheme** (`liveeuy://`) maupun **Universal App Links** (`https://liveeuy.id`).
+Aplikasi mendukung navigasi langsung melalui custom URI scheme (`liveeuy://`) dan universal app links (`https://liveeuy.id`).
 
-### 1. Format URL & Rute yang Didukung
-| Rute Deep Link | Format Tautan | Target Halaman & Aksi |
+### Rute yang Didukung
+| Rute Deep Link | Format URL | Target Navigasi |
 | :--- | :--- | :--- |
-| **Detail Konten** | `liveeuy://media/{id}` atau `https://liveeuy.id/media/{id}` | Membuka `ContentDetailScreen` untuk film / serial TV terkait |
-| **Pemutar Video** | `liveeuy://watch/{id}` atau `liveeuy://player/{id}` | Langsung memulai pemutaran di `VideoPlayerScreen` |
-| **Pencarian Cepat** | `liveeuy://search?q={keyword}` | Beralih ke tab Pencarian dengan query otomatis terisi |
-| **Koleksi / Watchlist** | `liveeuy://collection` atau `liveeuy://watchlist` | Beralih ke tab Koleksi tontonan pengguna |
-| **Profil & Pengaturan** | `liveeuy://account` atau `liveeuy://profile` | Beralih ke tab Akun pengguna |
-| **Halaman Masuk** | `liveeuy://login` | Membuka layar login |
+| Detail Konten | `liveeuy://media/{id}` atau `https://liveeuy.id/media/{id}` | Membuka `ContentDetailScreen` untuk film atau serial target |
+| Pemutar Video | `liveeuy://watch/{id}` atau `liveeuy://player/{id}` | Langsung membuka `VideoPlayerScreen` |
+| Pencarian | `liveeuy://search?q={keyword}` | Beralih ke tab Pencarian dengan query terisi |
+| Koleksi / Watchlist | `liveeuy://collection` atau `liveeuy://watchlist` | Membuka tab Koleksi pengguna |
+| Profil dan Pengaturan | `liveeuy://account` atau `liveeuy://profile` | Membuka tab Akun pengguna |
+| Halaman Masuk | `liveeuy://login` | Membuka layar autentikasi |
 
-### 2. Konfigurasi Native Platform
-- **Android (`android/app/src/main/AndroidManifest.xml`)**:
-  - Didaftarkan `<intent-filter>` untuk `android:scheme="liveeuy"` dan `android:host="liveeuy.id"` dengan `android:autoVerify="true"`.
-- **iOS (`ios/Runner/Info.plist`)**:
-  - Didaftarkan `CFBundleURLTypes` dengan `CFBundleURLSchemes` bernilai `liveeuy`.
+### Konfigurasi Native Platform
+- Android (`android/app/src/main/AndroidManifest.xml`): intent-filter untuk `liveeuy` scheme dan host `liveeuy.id`.
+- iOS (`ios/Runner/Info.plist`): registrasi `CFBundleURLTypes` dengan skema URL `liveeuy`.
 
-### 3. Pengujian Deep Link via Terminal (ADB Android)
+### Pengujian via ADB (Android)
 ```bash
-# Buka detail konten film dengan ID 'm1'
+# Buka detail tayangan ID 'm1'
 adb shell am start -a android.intent.action.VIEW -d "liveeuy://media/m1"
 
-# Buka pemutar video langsung untuk tayangan 'm_hero'
+# Buka pemutar video langsung untuk ID 'm_hero'
 adb shell am start -a android.intent.action.VIEW -d "liveeuy://watch/m_hero"
 
 # Buka tab pencarian dengan kata kunci 'cyberpunk'
 adb shell am start -a android.intent.action.VIEW -d "liveeuy://search?q=cyberpunk"
 
-# Buka via Universal Link
+# Buka melalui tautan universal
 adb shell am start -a android.intent.action.VIEW -d "https://liveeuy.id/media/m2"
 ```
 
 ---
 
-## 🔔 Sistem Notifikasi & In-App Dispatcher
+## Sistem Notifikasi
 
-LiveEuy Mobile mengintegrasikan sistem notifikasi bertingkat yang terhubung langsung dengan siklus hidup tayangan streaming dan terintegrasi mulus dengan Deep Linking.
+LiveEuy Mobile mengintegrasikan dispatcher notifikasi lokal yang terhubung dengan siklus tayangan dan navigasi deep link:
+- Episode Baru Rilis (`createNewEpisodeNotification`): memicu tautan ke `liveeuy://media/{mediaId}`.
+- Pengingat Lanjutkan Menonton (`createContinueWatchingReminder`): memicu tautan langsung ke pemutar di `liveeuy://watch/{mediaId}`.
+- Rekomendasi Katalog (`createRecommendationNotification`): rujukan ke tayangan Top 10 atau info langganan VIP.
 
-### 1. Kasus Tontonan (Streaming Notification Triggers)
-- **Episode Baru Rilis (`createNewEpisodeNotification`)**:
-  - Dipicu saat ada serial yang merilis episode baru.
-  - Tautan otomatis: `liveeuy://media/{mediaId}`.
-- **Pengingat Lanjutkan Menonton (`createContinueWatchingReminder`)**:
-  - Mengingatkan pengguna jika ada film/serial yang belum tuntas ditonton.
-  - Tautan otomatis: `liveeuy://watch/{mediaId}` (langsung lompat ke pemutar).
-- **Rekomendasi Trending & Promo VIP (`createRecommendationNotification`)**:
-  - Mengabarkan film masuk daftar Top 10 Indonesia atau promo benefit akun VIP.
-
-### 2. Fitur & Komponen Notifikasi
-- **Floating In-App Banner**: Menampilkan toast melayang interaktif di dalam aplikasi dengan tombol aksi "Lihat" yang mengeksekusi deep link secara instan.
-- **Persistensi Riwayat & Status Baca**: Status `isRead` dan histori notifikasi disimpan persisten di penyimpanan lokal, tidak hilang saat aplikasi dimatikan/di-restart.
-- **Notification Sheet**: Dialog modal bottom-sheet dengan indikator badge titik merah jika terdapat notifikasi yang belum dibaca.
+Komponen antarmuka:
+- In-App Toast Banner: menampilkan pemberitahuan melayang dengan tombol aksi langsung.
+- Lembar Riwayat Notifikasi: modal bottom sheet dengan penanda status belum dibaca (unread dot). Riwayat tersimpan di penyimpanan lokal sehingga tidak hilang saat aplikasi ditutup.
 
 ---
 
-## 💾 Flutter Local Storage (Arsitektur Penyimpanan Ganda Offline-First)
+## Penyimpanan Lokal (Offline-First)
 
-Aplikasi memisahkan penyimpanan data lokal ke dalam 2 tier keamanan (`LocalStorageService`):
+Aplikasi memisahkan penyimpanan data berdasarkan klasifikasi keamanan (`LocalStorageService`):
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     LocalStorageService                         │
-├────────────────────────────────┬────────────────────────────────┤
-│ 🔒 Tier 1: Secure Storage       │ 📦 Tier 2: SharedPreferences   │
-│ (flutter_secure_storage)       │ (shared_preferences)           │
-├────────────────────────────────┼────────────────────────────────┤
-│ • Auth Access Token (JWT)      │ • User Streaming Settings      │
-│ • Auth Refresh Token           │ • Offline Watchlist IDs (Set)  │
-│ • Sesi Login Pengguna (JSON)   │ • Watch Progress List (JSON)   │
-│ • Kredensial Keystore/Keychain │ • Riwayat Notifikasi & Read    │
-└────────────────────────────────┴────────────────────────────────┘
-```
-
-### Karakteristik & Alur Offline-First:
-1. **Boot Cepat & Responsif**: Pengaturan dan koleksi dimuat instan dari cache lokal tanpa menunggu jaringan backend.
-2. **Auto-Restore Sesi**: Jika opsi *Ingat Saya* aktif, token dan profil dipulihkan otomatis saat aplikasi dibuka kembali.
-3. **Penyimpanan Fallback**: Memiliki mekanisme fallback in-memory yang aman sehingga pengujian unit test dan lingkungan headless tetap berjalan tanpa kendala.
-
----
-
-## 🔄 Pemetaan & Sinkronisasi API Backend (`origin/dev-backend`)
-
-Berdasarkan pengecekan cabang `origin/dev-backend`, backend LiveEuy terbagi ke dalam arsitektur microservices:
-
-### 1. `auth-service` (Golang + Gin + JWT + Redis)
-- `POST /register`: Pendaftaran pengguna baru (`username`, `email`, `password`)
-- `POST /login`: Autentikasi pengguna (mengembalikan `access_token`, `refresh_token`, dan objek `user`)
-- `POST /refresh-token`: Rotasi token akses yang kadaluwarsa
-- `GET /api/me`: Mengambil profil pengguna aktif (memerlukan header `Authorization: Bearer <token>`)
-- `PUT /api/me/name` & `PUT /api/me/password`: Pembaruan profil pengguna
-
-### 2. `catalog-service` (Java Spring Boot 3.3.4 + PostgreSQL)
-- **Base Context Path**: `/api/v1` (Port default: `8081`)
-- `GET /api/v1/media`: Katalog tayangan (mendukung pagination `Page<MediaResponseDTO>` dengan field `content: [...]`, filter `type`, `genre`, `search`, `sortBy`)
-- `GET /api/v1/media/{id}`: Detail film / serial TV
-- `POST /api/v1/media/batch`: Mengambil data media secara kolektif
-- `POST /api/v1/media/{tvId}/seasons`: Menambahkan season baru
-- `POST /api/v1/seasons/{seasonId}/episodes`: Menambahkan episode baru
-
-### 3. Analisis Kesiapan API (Gap Analysis) & Penanganan Klien Mobile:
-| Fitur Mobile | Status di Backend (`dev-backend`) | Solusi & Penanganan di Mobile |
+| Tingkat Keamanan | Pustaka | Data yang Disimpan |
 | :--- | :--- | :--- |
-| **Katalog & Detail Media** | ✅ Tersedia (`catalog-service`) | Klien mobile memetakan schema Spring Page `data: {"content": [...]}` & `durationSeconds`. |
-| **Login & Register** | ✅ Tersedia (`auth-service`) | Klien mobile menyimpan token JWT di `FlutterSecureStorage` dan mendukung rotasi token. |
-| **User Watchlist** | ⏳ Belum diimplementasikan | Dikelola secara **Offline-First** melalui `LocalStorageService`, siap disinkronkan ke API saat backend siap. |
-| **Continue Watching** | ⏳ Belum diimplementasikan | Progres tontonan disimpan persisten di `SharedPreferences` dan disinkronkan saat online. |
-| **User Settings** | ⏳ Belum diimplementasikan | Preferensi kualitas streaming, auto skip intro, dan unduh Wi-Fi disimpan persisten di lokal. |
-| **Notification API** | ⏳ Belum ada notification-service | Dikelola mandiri oleh mobile `NotificationService` dengan persistensi lokal dan deep link triggers. |
+| Tier 1: Secure Storage | `flutter_secure_storage` | Access token JWT, refresh token, sesi login pengguna |
+| Tier 2: Preferences Cache | `shared_preferences` | Pengaturan preferensi streaming, set ID koleksi offline, watch progress, riwayat notifikasi |
 
+Data preferensi dan watch progress dimuat lebih awal dari cache lokal sebelum request jaringan selesai. Apabila opsi Ingat Saya aktif, sesi login akan dipulihkan secara otomatis pada saat aplikasi dibuka.
+
+---
+## 🛡️ Manajemen Keamanan Perangkat & Pembedaan Sesi Login (Mobile vs Web)
+
+LiveEuy mengimplementasikan arsitektur pembedaan sesi login perangkat yang terpadu dengan klien web (`dev-frontend`), mobile (`dev-mobile`), dan backend (`auth-service`):
+
+### 1. Identifikasi Klien via HTTP Header
+
+Setiap request dari klien mobile ke backend secara otomatis menginjeksi header identitas perangkat melalui `ApiConfig`:
+- **`User-Agent`**: `LiveEuy-Mobile/2.4.0 (Android; Mobile)` atau `LiveEuy-Mobile/2.4.0 (iOS; Mobile)`.
+- **`X-Device-Type`**: `'Mobile'` (membedakan klien mobile dari web yang bernilai `'Desktop'` atau `'Web'`).
+- **`X-Client-Platform`**: `'Android'` atau `'iOS'`.
+
+### 2. Pembedaan Sesi Login (Mobile vs Web)
+
+| Parameter Sesi | Klien Mobile (`liveeuy_mob`) | Klien Web (`dev-frontend`) |
+| :--- | :--- | :--- |
+| **Tipe Perangkat (`deviceType`)** | `'Mobile'` | `'Desktop'` / `'Tablet'` |
+| **Penyimpanan Kredensial** | `FlutterSecureStorage` (Android Keystore / iOS Keychain) | `HttpOnly` Cookie (`SameSite=Lax`) |
+| **Identitas User-Agent** | `LiveEuy-Mobile/2.4.0` | `Mozilla/5.0... (Browser Web)` |
+| **Antarmuka Manajemen Sesi** | `DeviceSecuritySheet` (Tab Akun) | `DeviceSecurityModal` (Navbar / Profile) |
+| **Status Perangkat Ini** | Ditandai badge hijau `[MOBILE • INI]` | Ditandai badge `[PERANGKAT INI]` |
+
+### 3. Fungsionalitas Lembar Keamanan Perangkat (`DeviceSecuritySheet`)
+
+Pengguna dapat membuka menu **"Perangkat Terhubung & Sesi"** pada tab Akun untuk:
+- Memeriksa sesi perangkat smartphone yang sedang digunakan (IP, OS, lokasi, dan status keaktifan).
+- Melihat daftar sesi aktif dari browser Web (misalnya Google Chrome di Windows, Safari di macOS).
+- **Pencabutan Sesi Tunggal**: Mengeluarkan sesi browser web tertentu dari jarak jauh via `DELETE /api/v1/auth/devices/{deviceId}`.
+- **Pencabutan Sesi Massal**: Menutup seluruh sesi web lain sekaligus via `POST /api/v1/auth/logout-all` (`{"includeCurrent": false}`) tanpa mempengaruhi sesi login mobile saat ini.
 
 ---
 
@@ -260,9 +242,30 @@ Swagger UI: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagge
 
 ### 3. Mobile Client (Flutter)
 ```bash
+# 1. Unduh dependensi proyek
 flutter pub get
+
+# 2. Periksa perangkat atau emulator yang terhubung
+flutter devices
+
+# 3. Jalankan aplikasi pada perangkat target
 flutter run
+
+# 4. Pembuatan Berkas Rilis APK (Android)
+flutter build apk --release
 ```
+Berkas biner Android APK hasil build tersimpan di `build/app/outputs/flutter-apk/app-release.apk`.
+
+Konfigurasi alamat endpoint backend (`lib/core/network/api_config.dart`):
+- **Android Emulator**:
+  - Auth Service: `http://10.0.2.2:8080/api/v1`
+  - Catalog Service: `http://10.0.2.2:8081/api/v1`
+- **iOS Simulator / Desktop**:
+  - Auth Service: `http://localhost:8080/api/v1`
+  - Catalog Service: `http://localhost:8081/api/v1`
+- **Perangkat Fisik (Wi-Fi)**:
+  - Auth Service: `http://<IP-LOKAL-KOMPUTER>:8080/api/v1`
+  - Catalog Service: `http://<IP-LOKAL-KOMPUTER>:8081/api/v1`
 
 ---
 
@@ -273,26 +276,17 @@ LiveEuy/
 ├── index.html
 ├── package.json
 ├── vite.config.ts
+├── docker-compose.yml                 # Orkestrasi microservices (Nginx, Auth, Catalog, Trending, Redis)
 ├── API_CONTRACT.md                    # Dokumentasi & Kontrak Endpoint OpenAPI
-├── AUTH_API_CONTRACT.md               # Kontrak Autentikasi & Security Spec
+├── ADMIN_INTEGRATION_GUIDE.md         # Panduan Integrasi Admin CMS
 │
-├── auth-service/                      # Microservice Autentikasi (Golang)
-│   ├── cmd/server/main.go
-│   ├── internal/                      # Config, Domain, Handlers, Migrations, Repositories
-│   └── Dockerfile
-│
-├── catalog-service/                   # Microservice Katalog Media (Spring Boot)
-│   ├── src/main/java/com/liveeuy/catalog_service/
-│   │   ├── controller/MediaController.java
-│   │   ├── entity/Media.java
-│   │   ├── repository/MediaRepository.java
-│   │   └── service/MediaService.java
-│   └── pom.xml
-│
-├── backend/                           # Backend Starter & Database Guidelines
+├── auth-service/                      # Microservice Autentikasi (Golang + Gin + Redis)
+├── catalog-service/                   # Microservice Katalog Media (Spring Boot 3.4 + Java 21)
+├── trending-service/                  # Microservice Trending Analytics (Golang + Redis)
+├── nginx/                             # Reverse Proxy & Unified API Gateway
+├── backend/                           # Skema Database & Migrasi SQL Flyway
 │   ├── DATABASE_GUIDELINES.md
-│   ├── docker-compose.yml
-│   └── src/main/resources/db/migration/
+│   └── migrations/
 │
 ├── lib/                               # Mobile App Flutter Client
 │   ├── main.dart                      # Titik masuk aplikasi
@@ -312,3 +306,8 @@ LiveEuy/
 │   └── services/api.ts                # Full-Stack API Integration Layer
 └── test/                              # Suite Pengujian Mobile & Backend
 ```
+
+---
+
+## 👥 Kontributor & Lisensi
+Platform LiveEuy dikembangkan bersama oleh Tim Frontend, Mobile, dan Backend.

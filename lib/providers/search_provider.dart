@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/data/mock_data.dart';
+import '../core/network/api_provider.dart';
+import '../core/network/api_service.dart';
 import '../models/movie_model.dart';
 
 class SearchState {
@@ -39,7 +41,9 @@ class SearchState {
 }
 
 class SearchNotifier extends StateNotifier<SearchState> {
-  SearchNotifier() : super(const SearchState()) {
+  final ApiService? apiService;
+
+  SearchNotifier({this.apiService}) : super(const SearchState()) {
     performSearch('');
   }
 
@@ -93,8 +97,7 @@ class SearchNotifier extends StateNotifier<SearchState> {
   }
 
   void performSearch(String searchKey) {
-    state = state.copyWith(isLoading: true);
-
+    // 1. Filter in-memory lokal seketika (optimistic/offline fallback & test friendly)
     var filtered = _allContent.where((item) {
       // Query search
       final matchQuery = searchKey.isEmpty ||
@@ -129,9 +132,43 @@ class SearchNotifier extends StateNotifier<SearchState> {
     }
 
     state = state.copyWith(results: filtered, isLoading: false);
+
+    // 2. Jika apiService tersedia, lakukan fetch asinkron dari backend
+    if (apiService != null) {
+      _fetchFromBackend(searchKey);
+    }
+  }
+
+  Future<void> _fetchFromBackend(String searchKey) async {
+    try {
+      String? backendType;
+      if (state.formatFilter == 'Film') backendType = 'MOVIE';
+      if (state.formatFilter == 'Serial') backendType = 'TV_SERIES';
+
+      String? backendSort;
+      if (state.sortBy == 'Rating Tertinggi') backendSort = 'rating';
+      if (state.sortBy == 'Rilis Terbaru') backendSort = 'newest';
+
+      String? backendGenre = state.selectedGenres.isNotEmpty ? state.selectedGenres.first : null;
+
+      final results = await apiService!.getAllMedia(
+        search: searchKey.isNotEmpty ? searchKey : null,
+        type: backendType,
+        genre: backendGenre,
+        sortBy: backendSort,
+        size: 30,
+      );
+
+      if (results.isNotEmpty) {
+        state = state.copyWith(results: results);
+      }
+    } catch (_) {
+      // Abaikan jika offline
+    }
   }
 }
 
 final searchProvider = StateNotifierProvider<SearchNotifier, SearchState>((ref) {
-  return SearchNotifier();
+  final apiService = ref.watch(apiServiceProvider);
+  return SearchNotifier(apiService: apiService);
 });

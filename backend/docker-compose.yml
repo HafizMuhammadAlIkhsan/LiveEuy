@@ -1,5 +1,10 @@
 version: '3.8'
 
+# ==============================================================================
+# LiveEuy: Local Backend Infrastructure for Mobile & Frontend Development
+# Digunakan untuk menjalankan PostgreSQL, Redis, dan microservices lokal.
+# ==============================================================================
+
 services:
   # Isolated Local PostgreSQL Database for Backend Development
   postgres:
@@ -7,16 +12,30 @@ services:
     container_name: liveeuy-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: liveeuy_db
-      POSTGRES_USER: liveeuy_user
-      POSTGRES_PASSWORD: liveeuy_password
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: authdb
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./src/main/resources/db/migration:/docker-entrypoint-initdb.d:ro
+      - ./migrations:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U liveeuy_user -d liveeuy_db"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d authdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: liveeuy-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -36,4 +55,4 @@ services:
 
 volumes:
   pgdata:
-    driver: local
+  redisdata:

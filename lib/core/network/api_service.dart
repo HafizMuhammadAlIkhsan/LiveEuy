@@ -1,4 +1,5 @@
 import 'api_client.dart';
+import '../../models/auth_response_model.dart';
 import '../../models/movie_model.dart';
 import '../../models/review_model.dart';
 import '../../models/watch_progress_model.dart';
@@ -6,19 +7,46 @@ import '../../models/user_settings_model.dart';
 
 class ApiService {
   final ApiClient _client;
+  final ApiClient _authClient;
+  final ApiClient _catalogClient;
 
-  ApiService({ApiClient? client}) : _client = client ?? ApiClient();
+  ApiService({
+    ApiClient? client,
+    ApiClient? authClient,
+    ApiClient? catalogClient,
+  })  : _client = client ?? ApiClient(),
+        _authClient = authClient ?? client ?? ApiClient(baseUrl: ApiConfig.authBaseUrl),
+        _catalogClient = catalogClient ?? client ?? ApiClient(baseUrl: ApiConfig.catalogBaseUrl);
 
   ApiClient get client => _client;
+  ApiClient get authClient => _authClient;
+  ApiClient get catalogClient => _catalogClient;
 
   // ==========================================
   // 1. Katalog Media & Konten
   // ==========================================
 
   /// Mengambil semua daftar media film dan serial (`GET /api/v1/media`)
-  Future<List<Movie>> getAllMedia() async {
-    final response = await _client.get<List<Movie>>(
+  /// Mendukung filter tipe, genre, search, dan pagination dari backend Spring Boot
+  Future<List<Movie>> getAllMedia({
+    String? type,
+    String? genre,
+    String? search,
+    String? sortBy,
+    int? page,
+    int? size,
+  }) async {
+    final queryParams = <String, dynamic>{};
+    if (type != null && type.isNotEmpty && type != 'Semua') queryParams['type'] = type;
+    if (genre != null && genre.isNotEmpty) queryParams['genre'] = genre;
+    if (search != null && search.isNotEmpty) queryParams['search'] = search;
+    if (sortBy != null && sortBy.isNotEmpty) queryParams['sortBy'] = sortBy;
+    if (page != null) queryParams['page'] = page;
+    if (size != null) queryParams['size'] = size;
+
+    final response = await _catalogClient.get<List<Movie>>(
       ApiConfig.mediaPath,
+      queryParams: queryParams.isNotEmpty ? queryParams : null,
       fromJson: (data) {
         final list = data is List
             ? data
@@ -31,9 +59,25 @@ class ApiService {
     return response.data ?? [];
   }
 
+  /// Mengambil daftar media secara batch berdasarkan daftar ID (`POST /api/v1/media/batch`)
+  Future<List<Movie>> getMediaBatch(List<String> ids) async {
+    if (ids.isEmpty) return [];
+    final response = await _catalogClient.post<List<Movie>>(
+      ApiConfig.batchMediaPath,
+      body: ids,
+      fromJson: (data) {
+        if (data is List) {
+          return data.map((item) => Movie.fromJson(item as Map<String, dynamic>)).toList();
+        }
+        return [];
+      },
+    );
+    return response.data ?? [];
+  }
+
   /// Mengambil detail media berdasarkan ID lengkap dengan musim dan episode (`GET /api/v1/media/{id}`)
   Future<Movie?> getMediaById(String id) async {
-    final response = await _client.get<Movie>(
+    final response = await _catalogClient.get<Movie>(
       ApiConfig.mediaDetailPath(id),
       fromJson: (data) => Movie.fromJson(data as Map<String, dynamic>),
     );
@@ -42,7 +86,7 @@ class ApiService {
 
   /// Mengambil daftar tayangan Top 10 Indonesia (`GET /api/v1/media/top10`)
   Future<List<Movie>> getTop10Media() async {
-    final response = await _client.get<List<Movie>>(
+    final response = await _catalogClient.get<List<Movie>>(
       ApiConfig.top10Path,
       fromJson: (data) => (data as List<dynamic>)
           .map((item) => Movie.fromJson(item as Map<String, dynamic>))
@@ -96,6 +140,26 @@ class ApiService {
           return data['inWatchlist'] as bool? ?? false;
         }
         return false;
+      },
+    );
+    return response.data ?? false;
+  }
+
+  /// Menghapus banyak media dari watchlist sekaligus (`POST /api/v1/user/watchlist/batch-delete`)
+  Future<bool> removeWatchlistBatch(
+    List<String> mediaIds, {
+    String userId = ApiConfig.defaultUserId,
+  }) async {
+    if (mediaIds.isEmpty) return true;
+    final response = await _client.post<bool>(
+      ApiConfig.watchlistBatchDeletePath,
+      queryParams: {'userId': userId},
+      body: {'mediaIds': mediaIds},
+      fromJson: (data) {
+        if (data is Map<String, dynamic>) {
+          return data['success'] as bool? ?? true;
+        }
+        return true;
       },
     );
     return response.data ?? false;
@@ -207,5 +271,133 @@ class ApiService {
     );
     return response.data ?? settings;
   }
+
+  // ==========================================
+  // 6. Autentikasi Pengguna & Keamanan Sesi
+  // ==========================================
+
+  /// Melakukan login pengguna ke sistem (`POST /api/v1/auth/login`)
+  Future<AuthData?> login({
+    required String email,
+    required String password,
+    bool rememberMe = true,
+  }) async {
+    final response = await _authClient.post<AuthData>(
+      ApiConfig.loginPath,
+      body: {
+        'email': email,
+        'password': password,
+        'rememberMe': rememberMe,
+      },
+      fromJson: (data) => AuthData.fromJson(data as Map<String, dynamic>),
+    );
+    return response.data;
+  }
+
+  /// Demo Login cepat menggunakan persona ('free', 'standard', 'ultra') (`POST /api/v1/auth/demo-login`)
+  Future<AuthData?> demoLogin(String persona) async {
+    final response = await _authClient.post<AuthData>(
+      ApiConfig.demoLoginPath,
+      body: {'persona': persona},
+      fromJson: (data) => AuthData.fromJson(data as Map<String, dynamic>),
+    );
+    return response.data;
+  }
+
+  /// Mendaftarkan pengguna baru (`POST /api/v1/auth/register`)
+  Future<AuthData?> register({
+    required String name,
+    required String email,
+    required String password,
+    String tier = 'VIP Standard',
+  }) async {
+    final response = await _authClient.post<AuthData>(
+      ApiConfig.registerPath,
+      body: {
+        'name': name,
+        'email': email,
+        'password': password,
+        'tier': tier,
+      },
+      fromJson: (data) => AuthData.fromJson(data as Map<String, dynamic>),
+    );
+    return response.data;
+  }
+
+  /// Memperbarui token akses dengan refresh token rotasi (`POST /api/v1/auth/refresh`)
+  Future<AuthData?> refreshToken(String refreshToken) async {
+    final response = await _authClient.post<AuthData>(
+      ApiConfig.refreshPath,
+      body: {'refreshToken': refreshToken},
+      fromJson: (data) => AuthData.fromJson(data as Map<String, dynamic>),
+    );
+    return response.data;
+  }
+
+  /// Mengambil data profil pengguna yang sedang login (`GET /api/v1/auth/me`)
+  Future<UserData?> getCurrentUser({String? accessToken}) async {
+    final headers = <String, String>{};
+    if (accessToken != null && accessToken.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $accessToken';
+    }
+    final response = await _authClient.get<UserData>(
+      ApiConfig.mePath,
+      headers: headers.isNotEmpty ? headers : null,
+      fromJson: (data) => UserData.fromJson(data as Map<String, dynamic>),
+    );
+    return response.data;
+  }
+
+  /// Memperbarui nama dan profil pengguna (`PUT /api/v1/auth/profile`)
+  Future<bool> updateProfile(String name, {String? avatar, String? accessToken}) async {
+    final headers = <String, String>{};
+    if (accessToken != null && accessToken.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $accessToken';
+    }
+    final response = await _authClient.put<dynamic>(
+      ApiConfig.profilePath,
+      headers: headers.isNotEmpty ? headers : null,
+      body: {
+        'name': name,
+        'avatar': ?avatar,
+      },
+    );
+    return response.success;
+  }
+
+  /// Mengganti kata sandi pengguna (`PUT /api/v1/auth/change-password`)
+  Future<bool> changePassword({
+    required String oldPassword,
+    required String newPassword,
+    String? accessToken,
+  }) async {
+    final headers = <String, String>{};
+    if (accessToken != null && accessToken.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $accessToken';
+    }
+    final response = await _authClient.put<dynamic>(
+      ApiConfig.changePasswordPath,
+      headers: headers.isNotEmpty ? headers : null,
+      body: {
+        'oldPassword': oldPassword,
+        'newPassword': newPassword,
+      },
+    );
+    return response.success;
+  }
+
+  /// Mengakhiri sesi login pengguna saat ini (`POST /api/v1/auth/logout`)
+  Future<bool> logout({String? accessToken}) async {
+    final headers = <String, String>{};
+    if (accessToken != null && accessToken.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $accessToken';
+    }
+    final response = await _authClient.post<dynamic>(
+      ApiConfig.logoutPath,
+      headers: headers.isNotEmpty ? headers : null,
+    );
+    return response.success;
+  }
 }
+
 

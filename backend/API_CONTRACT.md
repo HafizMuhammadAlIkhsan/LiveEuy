@@ -1,19 +1,28 @@
-# LiveEuy — Spesifikasi Kontrak API (API Contract)
+# LiveEuy: Spesifikasi Kontrak API
 
 Dokumen ini adalah **kontrak resmi (Single Source of Truth)** antara tim **Backend (Spring Boot)**, **Frontend (React)**, dan **Mobile (Flutter)**.  
 Semua klien (Web & Mobile) mengonsumsi endpoint yang **sama persis** tanpa duplikasi di sisi backend.
 
 ---
 
-## 🌐 Base URL
-- **Local Dev (Web React / iOS Sim)**: `http://localhost:8080/api/v1`
-- **Android Emulator**: `http://10.0.2.2:8080/api/v1`
-- **Physical Device (LAN/Wi-Fi)**: `http://<IP_LAN_HOST>:8080/api/v1`
-- **Swagger UI**: `http://localhost:8080/swagger-ui.html`
+## Base URL & Microservices Architecture
+
+Backend LiveEuy dibagi menjadi 2 microservices:
+1. **Auth Service (Go / Gin)**: Menangani autentikasi, registrasi, sesi, OAuth2, dan profil.
+   - **Local Dev (Web React / iOS Sim)**: `http://localhost:8080/api/v1`
+   - **Android Emulator**: `http://10.0.2.2:8080/api/v1`
+   - **Physical Device (LAN/Wi-Fi)**: `http://<IP_LAN_HOST>:8080/api/v1`
+2. **Catalog Service (Spring Boot 3.4.3 / Java 21)**: Menangani katalog media, film, serial TV, seasons, dan episodes.
+   - **Local Dev (Web React / iOS Sim)**: `http://localhost:8081/api/v1`
+   - **Android Emulator**: `http://10.0.2.2:8081/api/v1`
+   - **Physical Device (LAN/Wi-Fi)**: `http://<IP_LAN_HOST>:8081/api/v1`
+   - **Swagger UI**: `http://localhost:8081/swagger-ui.html`
+
+Klien mobile (`liveeuy_mob`) mengonfigurasi kedua Base URL ini secara terpisah pada `lib/core/network/api_config.dart` (`authBaseUrl` dan `catalogBaseUrl`).
 
 ---
 
-## 📦 Standar Format Respon JSON (ApiResponse Wrapper)
+## Standar Format Respon JSON (ApiResponse Wrapper)
 
 Semua endpoint mengembalikan struktur pembungkus JSON standar:
 
@@ -28,17 +37,26 @@ Semua endpoint mengembalikan struktur pembungkus JSON standar:
 
 ---
 
-## 📋 Daftar Endpoint Terpadu (Unified Endpoints)
+## Daftar Endpoint Terpadu (Unified Endpoints)
 
 ### 1. Katalog Media & Konten (`/api/v1/media`)
 
-#### a. Ambil Semua Media
+#### a. Ambil Semua Media (Katalog & Pencarian)
 - **Method**: `GET`
 - **Path**: `/api/v1/media`
+- **Query Params** (Opsional):
+  - `type`: Filter tipe media (`MOVIE` atau `TV_SERIES`).
+  - `search`: Kata kunci pencarian judul atau sinopsis.
+  - `page`: Nomor halaman (0-indexed, default `0`).
+  - `size`: Jumlah item per halaman (default `10` atau `30`).
+  - `sort`: Atribut sorting (contoh: `createdAt,desc` atau `rating,desc`).
 - **Digunakan oleh**:
   - Web: Halaman Beranda, MoviesPage, SeriesPage
-  - Mobile: `HomeScreen` & `SearchScreen`
-- **Respon Data**: Array `MediaItem`
+  - Mobile: `HomeScreen` & `SearchScreen` (didukung fallback sinkron lokal)
+- **Respon Data**:
+  - Pada format Spring Boot Pageable: `data: { "content": [...MediaItem], "totalElements": 20, "totalPages": 2 }`
+  - Pada format unpaged list: `data: [...MediaItem]`
+  - Klien mobile `ApiService` & `MediaModel` secara otomatis mendukung kedua variasi ini.
 
 #### b. Detail Media Berdasarkan ID
 - **Method**: `GET`
@@ -54,6 +72,25 @@ Semua endpoint mengembalikan struktur pembungkus JSON standar:
 - **Digunakan oleh**:
   - Web: Baris `TopTenRow` di HomePage
   - Mobile: Carousel Top 10 di `HomeScreen`
+- **Respon Data**: Array `MediaItem` dengan urutan peringkat 1 - 10.
+
+#### d. Batch Fetch Media (`POST /api/v1/media/batch`)
+Mengambil kumpulan data media sekaligus berdasarkan daftar ID unik.
+- **Method**: `POST`
+- **Path**: `/api/v1/media/batch`
+- **Digunakan oleh**:
+  - Web: Halaman koleksi atau rekomendasi batch
+  - Mobile: Sinkronisasi batch koleksi & watchlist
+- **Request Body**:
+  ```json
+  ["m1", "m2", "m3"]
+  ```
+- **Respon Data**: Array `MediaItem`.
+
+#### e. Hirarki Serial TV & Episode (TV Hierarchy)
+- `GET /api/v1/series`: Daftar serial TV
+- `GET /api/v1/series/{seriesId}/seasons`: Daftar musim serial tertentu
+- `GET /api/v1/seasons/{seasonId}/episodes`: Daftar episode pada musim tertentu
 
 ---
 
@@ -84,6 +121,34 @@ Semua endpoint mengembalikan struktur pembungkus JSON standar:
     "inWatchlist": true
   }
   ```
+
+#### d. Hapus Banyak Media dari Watchlist Sekaligus (Batch / Bulk Delete)
+- **Method**: `POST` (dan didukung `DELETE` dengan request body)
+- **Path**: `/api/v1/user/watchlist/batch-delete` (atau `DELETE /api/v1/user/watchlist`)
+- **Query Params**: `userId` (string, opsional, default: ID pengguna aktif dari token)
+- **Headers**:
+  - `Content-Type`: `application/json`
+  - `Authorization`: `Bearer <access_token>`
+  - `X-Device-Type`: `Mobile` / `Desktop`
+- **Payload Request**:
+  ```json
+  {
+    "mediaIds": ["m1", "m3", "top_2"]
+  }
+  ```
+- **Respon Data**:
+  ```json
+  {
+    "success": true,
+    "deletedCount": 3,
+    "deletedMediaIds": ["m1", "m3", "top_2"],
+    "message": "3 media berhasil dihapus dari koleksi"
+  }
+  ```
+- **Karakteristik & Integritas**:
+  - **Atomik & Idempotent**: Operasi dijalankan dalam satu transaksi database. Jika salah satu ID sudah terhapus di perangkat lain, proses tidak melempar error dan tetap mengembalikan ID yang berhasil diproses.
+  - **Efisiensi Indeks**: Memanfaatkan indeks `(user_id, media_id)` melalui klausa `WHERE user_id = :userId AND media_id = ANY(:mediaIds)` agar eksekusi instan tanpa table locks.
+  - **Status Code**: `200 OK` (sukses), `400 Bad Request` (`mediaIds` kosong atau bukan array), `401 Unauthorized` (sesi habis).
 
 ---
 
@@ -132,7 +197,7 @@ Semua endpoint mengembalikan struktur pembungkus JSON standar:
 
 ---
 
-## 🏷️ Skema Model Data Utama (Data Contract)
+## Skema Model Data Utama (Data Contract)
 
 ### `MediaItem`
 | Field | Tipe | Keterangan |
@@ -159,7 +224,7 @@ Semua endpoint mengembalikan struktur pembungkus JSON standar:
 
 ---
 
-### 🔄 Interoperabilitas & Keselarasan Frontend Web (Universal Compatibility)
+### Interoperabilitas & Keselarasan Frontend Web (Universal Compatibility)
 Untuk menjamin kompatibilitas tanpa *breaking changes* antara **Web (React)** dan **Mobile (Flutter)**:
 
 | Field Standar Backend / Mobile | Alias Kompatibel Web (`src/types.ts`) | Keterangan / Normalisasi |
@@ -175,7 +240,7 @@ Untuk menjamin kompatibilitas tanpa *breaking changes* antara **Web (React)** da
 
 ---
 
-## 🔐 5. Autentikasi, Refresh Token, & Manajemen Cookie (`/api/v1/auth`)
+## 5. Autentikasi, Refresh Token, & Manajemen Cookie (`/api/v1/auth`)
 
 Sistem autentikasi LiveEuy mengadopsi standar industri modern (**Short-lived Access Token** + **Long-lived Refresh Token with Cookie HttpOnly**) yang aman dari celah XSS dan CSRF, serta mendukung klien multiplatform (**Web React** dan **Mobile Flutter**).
 
@@ -277,7 +342,87 @@ Sistem autentikasi LiveEuy mengadopsi standar industri modern (**Short-lived Acc
 
 ---
 
-### c. Refresh Access Token (`POST /api/v1/auth/refresh`)
+### c. Demo Login Persona (`POST /api/v1/auth/demo-login`)
+Digunakan untuk kemudahan pengujian fitur role dan tier akun tanpa registrasi manual.
+- **Method**: `POST`
+- **Path**: `/api/v1/auth/demo-login?persona={tamu|vip|ultra}`
+- **Query Params**:
+  - `persona`: `'tamu'` (Guest), `'vip'` (VIP Standard), atau `'ultra'` (VIP Ultra 4K).
+- **Digunakan oleh**:
+  - Web: Demo login persona buttons di auth modal.
+  - Mobile: Quick Persona buttons di `LoginScreen` (`Tamu 1 Dev`, `VIP 2 Dev`, `Ultra 4 Dev`).
+- **Response Body**:
+  ```json
+  {
+    "success": true,
+    "message": "Demo login berhasil sebagai VIP",
+    "data": {
+      "token": "eyJhbGciOi...",
+      "refreshToken": "eyJhbGciOi...",
+      "tokenType": "Bearer",
+      "user": {
+        "id": "u_vip_demo",
+        "name": "VIP User (Demo)",
+        "email": "vip.demo@liveeuy.id",
+        "role": "VIP",
+        "tier": "VIP_4K",
+        "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120"
+      }
+    }
+  }
+  ```
+
+---
+
+### d. Profil Pengguna (`GET /api/v1/auth/profile`)
+- **Method**: `GET`
+- **Path**: `/api/v1/auth/profile`
+- **Headers**: `Authorization: Bearer <access_token>`
+- **Response Body**:
+  ```json
+  {
+    "success": true,
+    "message": "Profil berhasil diambil",
+    "data": {
+      "user": {
+        "id": "u1",
+        "name": "Aria Pratama",
+        "email": "aria@liveeuy.id",
+        "role": "VIP",
+        "tier": "VIP_4K",
+        "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120",
+        "devices": 2,
+        "watchHours": 48.5,
+        "memberSince": "Jan 2024"
+      }
+    }
+  }
+  ```
+
+---
+
+### e. Ubah Kata Sandi (`PUT /api/v1/auth/change-password`)
+- **Method**: `PUT`
+- **Path**: `/api/v1/auth/change-password`
+- **Headers**: `Authorization: Bearer <access_token>`
+- **Request Body**:
+  ```json
+  {
+    "currentPassword": "oldPassword123",
+    "newPassword": "newSecretPassword456"
+  }
+  ```
+- **Response Body**:
+  ```json
+  {
+    "success": true,
+    "message": "Kata sandi berhasil diperbarui"
+  }
+  ```
+
+---
+
+### f. Refresh Access Token (`POST /api/v1/auth/refresh`)
 - **Method**: `POST`
 - **Path**: `/api/v1/auth/refresh`
 - **Mekanisme Dual-Mode (Web & Mobile)**:
@@ -323,7 +468,52 @@ Sistem autentikasi LiveEuy mengadopsi standar industri modern (**Short-lived Acc
 
 ---
 
-### 💻 Referensi Implementasi Klien Frontend (React 18 + Axios)
+### f. Logout dari Semua Perangkat (`POST /api/v1/auth/logout-all`)
+- **Method**: `POST`
+- **Path**: `/api/v1/auth/logout-all`
+- **Header**: `Authorization: Bearer <accessToken>`
+- **Request Body (Opsional)**:
+  ```json
+  {
+    "includeCurrent": false
+  }
+  ```
+  - `includeCurrent = true`: Mencabut seluruh sesi login termasuk perangkat ini.
+  - `includeCurrent = false`: Mencabut seluruh sesi perangkat lain (Web / Laptop / Tablet) sementara sesi perangkat ini tetap aktif.
+- **Response Body (`200 OK`)**:
+  ```json
+  {
+    "success": true,
+    "message": "Berhasil mengeluarkan seluruh perangkat lain. Sesi pada perangkat ini tetap aktif.",
+    "data": {
+      "revokedSessionsCount": 3,
+      "includeCurrent": false,
+      "timestamp": 1759020000000
+    },
+    "timestamp": "2026-09-28T10:00:00"
+  }
+  ```
+
+---
+
+### g. Keluarkan Perangkat Tertentu (`DELETE /api/v1/auth/devices/{deviceId}`)
+- **Method**: `DELETE`
+- **Path**: `/api/v1/auth/devices/{deviceId}`
+- **Path Parameter**: `deviceId` (misal `sess-web-jkt-01`)
+- **Header**: `Authorization: Bearer <accessToken>`
+- **Response Body (`200 OK`)**:
+  ```json
+  {
+    "success": true,
+    "message": "Perangkat dengan ID sess-web-jkt-01 berhasil dikeluarkan.",
+    "data": null,
+    "timestamp": "2026-09-28T10:00:00"
+  }
+  ```
+
+---
+
+### Referensi Implementasi Klien Frontend (React 18 + Axios)
 
 Berikut adalah referensi implementasi lengkap untuk tim Frontend Web (`src/api/authApi.ts` atau Axios Interceptor):
 
@@ -414,7 +604,7 @@ apiClient.interceptors.response.use(
 
 ---
 
-### 📱 Referensi Implementasi Klien Mobile (Flutter + `flutter_secure_storage`)
+### Referensi Implementasi Klien Mobile (Flutter + `flutter_secure_storage`)
 
 Berikut adalah referensi implementasi lengkap untuk tim Mobile Flutter (`lib/core/storage/token_storage_service.dart` & `ApiClient` retry interceptor):
 
@@ -506,7 +696,7 @@ Future<http.Response> executeWithAutoRefresh(
 
 ---
 
-## ⚙️ 6. Pengaturan Pengguna & Kualitas Streaming (`/api/v1/user/settings`)
+## 6. Pengaturan Pengguna & Kualitas Streaming (`/api/v1/user/settings`)
 
 Endpoint untuk mengelola preferensi pemutar streaming, pemilihan kualitas resolusi video, status audio spasial, dan pemakaian cache.
 
@@ -573,7 +763,7 @@ Endpoint untuk mengelola preferensi pemutar streaming, pemilihan kualitas resolu
 
 ---
 
-### 🎚️ Spesifikasi Enum Nilai Kualitas Streaming (`streamingQuality`)
+### Spesifikasi Enum Nilai Kualitas Streaming (`streamingQuality`)
 
 | Kode Enum | Label Tampilan | Resolusi Video | Estimasi Kuota Data | Kebutuhan Membership |
 |---|---|---|---|---|
@@ -588,7 +778,7 @@ Endpoint untuk mengelola preferensi pemutar streaming, pemilihan kualitas resolu
 
 ---
 
-### 💻 Contoh Pengujian via cURL
+### Contoh Pengujian via cURL
 
 ```bash
 # 1. Mengambil Pengaturan
@@ -602,7 +792,7 @@ curl -X PUT "http://localhost:8080/api/v1/user/settings?userId=user_hafiz" \
 
 ---
 
-## ⚡ Arsitektur Penanganan Kesalahan Klien: Dio & DioException (Mobile & Web)
+## Arsitektur Penanganan Kesalahan Klien: Dio & DioException (Mobile & Web)
 
 Untuk menjamin keandalan dan konsistensi interaksi jaringan antara klien Flutter (`dev-mobile`) dan server Spring Boot (`dev-backend`), seluruh lapisan jaringan HTTP telah distandarisasi menggunakan arsitektur **Dio & DioException** (spesifikasi Dio 5.x).
 

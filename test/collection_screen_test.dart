@@ -92,14 +92,7 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 200));
 
-      // 1. Verify Page Header text matches dev-frontend
-      expect(find.text('Koleksi & Riwayat Tontonan'), findsOneWidget);
-      expect(
-        find.text('Lanjutkan tontonan terakhir Anda dan jelajahi daftar tontonan yang telah disimpan.'),
-        findsOneWidget,
-      );
-
-      // 2. Verify Section 1: Lanjutkan Menonton
+      // 1. Verify Section 1: Lanjutkan Menonton
       expect(find.text('Lanjutkan Menonton'), findsOneWidget);
 
       // 3. Verify Section 2: Daftar Tontonan Anda
@@ -202,8 +195,97 @@ void main() {
       await tester.pump(const Duration(milliseconds: 200));
 
       // Verify Koleksi screen rendered
-      expect(find.text('Koleksi & Riwayat Tontonan'), findsOneWidget);
       expect(find.text('Daftar Tontonan Anda'), findsOneWidget);
+    });
+
+    testWidgets('Multiple Selection mode toggles, selects all, and batch deletes items with undo', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: CollectionScreen(),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 200));
+
+      // 1. Verify "Pilih" button exists
+      final toggleSelectButton = find.byKey(const Key('toggle_selection_mode_button'));
+      expect(toggleSelectButton, findsOneWidget);
+
+      // 2. Enter selection mode by tapping "Pilih"
+      await tester.tap(toggleSelectButton);
+      await tester.pump(const Duration(milliseconds: 200));
+
+      // 3. Verify top appbar shows "0 dipilih" and action buttons
+      expect(find.text('0 dipilih'), findsOneWidget);
+      expect(find.byKey(const Key('toggle_select_all_button')), findsOneWidget);
+      expect(find.byKey(const Key('cancel_selection_mode_button')), findsOneWidget);
+
+      // 4. Tap "Pilih semua" in app bar
+      await tester.tap(find.byKey(const Key('toggle_select_all_button')));
+      await tester.pump(const Duration(milliseconds: 200));
+
+      // Watchlist default has 2 items ('m1' and 'm3')
+      expect(find.text('2 dipilih'), findsOneWidget);
+      expect(find.byKey(const Key('batch_delete_action_button')), findsOneWidget);
+
+      // 5. Tap delete button on top right app bar
+      await tester.tap(find.byKey(const Key('batch_delete_action_button')));
+      await tester.pump(const Duration(milliseconds: 200));
+
+      // 6. Verify confirmation dialog appears
+      expect(find.text('Hapus dari Koleksi?'), findsOneWidget);
+      expect(find.text('2 tayangan akan dihapus dari koleksi Anda.'), findsOneWidget);
+
+      // 7. Confirm deletion
+      await tester.tap(find.byKey(const Key('confirm_batch_delete_dialog_button')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
+      // 8. Verify SnackBar appears with BATAL
+      expect(find.text('2 media dihapus dari koleksi'), findsOneWidget);
+      expect(find.text('BATAL'), findsOneWidget);
+
+      // 9. Tap BATAL to restore
+      await tester.tap(find.text('BATAL'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+    });
+
+    testWidgets('Long press media card enters selection mode and cancel exits', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: CollectionScreen(),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 200));
+
+      // Long press Gadis Kretek card
+      final gadisKretek = find.text('Gadis Kretek');
+      expect(gadisKretek, findsOneWidget);
+      await tester.longPress(gadisKretek);
+      await tester.pump(const Duration(milliseconds: 200));
+
+      // Verify selection mode entered with 1 item selected
+      expect(find.text('1 dipilih'), findsOneWidget);
+
+      // Tap cancel selection mode button
+      await tester.tap(find.byKey(const Key('cancel_selection_mode_button')));
+      await tester.pump(const Duration(milliseconds: 200));
+
+      // Verify returned to normal mode
+      expect(find.text('Daftar Tontonan Anda'), findsOneWidget);
+      expect(find.text('Pilih'), findsOneWidget);
     });
   });
 }

@@ -11,21 +11,22 @@ class NotificationService {
   final DeepLinkService _deepLinkService;
 
   NotificationService({
-    LocalStorageService? storageService,
-    required DeepLinkService deepLinkService,
-  })  : _storageService = storageService,
-        _deepLinkService = deepLinkService;
+    this._storageService,
+    required this._deepLinkService,
+  });
 
   /// Memuat notifikasi tersimpan dari penyimpanan lokal (Offline-First)
   List<NotificationItem> loadSavedNotifications() {
-    if (_storageService == null) return [];
-    return _storageService.getNotifications();
+    final storage = _storageService;
+    if (storage == null) return [];
+    return storage.getNotifications();
   }
 
   /// Menyimpan daftar notifikasi ke penyimpanan lokal
   Future<void> persistNotifications(List<NotificationItem> items) async {
-    if (_storageService == null) return;
-    await _storageService.saveNotifications(items);
+    final storage = _storageService;
+    if (storage == null) return;
+    await storage.saveNotifications(items);
   }
 
   /// Handler saat item notifikasi diklik pengguna (Navigasi via Deep Link)
@@ -155,8 +156,8 @@ class NotificationService {
   }) {
     return NotificationItem(
       id: 'notif_${DateTime.now().millisecondsSinceEpoch}',
-      title: 'Episode Baru: $seriesTitle',
-      message: '$episodeTitle sekarang sudah tayang dalam kualitas Full HD.',
+      title: '$seriesTitle: $episodeTitle',
+      message: 'Episode baru sudah tayang.',
       time: 'Baru saja',
       iconType: 'sparkles',
       targetMediaId: mediaId,
@@ -175,8 +176,8 @@ class NotificationService {
     final percentStr = (progressPercent * 100).toInt();
     return NotificationItem(
       id: 'notif_${DateTime.now().millisecondsSinceEpoch}',
-      title: 'Lanjutkan Menonton: $movieTitle',
-      message: 'Anda baru menonton $percentStr%. Klik di sini untuk melanjutkan.',
+      title: 'Lanjutkan: $movieTitle',
+      message: 'Tersisa ${100 - percentStr}% lagi.',
       time: 'Baru saja',
       iconType: 'flame',
       targetMediaId: mediaId,
@@ -194,8 +195,8 @@ class NotificationService {
   }) {
     return NotificationItem(
       id: 'notif_${DateTime.now().millisecondsSinceEpoch}',
-      title: 'Sedang Hangat di LiveEuy',
-      message: '$title ($genre) masuk jajaran tayangan paling diminati penonton.',
+      title: 'Trending: $title',
+      message: 'Kategori $genre banyak ditonton.',
       time: 'Baru saja',
       iconType: 'flame',
       targetMediaId: mediaId,

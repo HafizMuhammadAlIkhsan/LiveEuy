@@ -15,6 +15,7 @@ import 'providers/user_settings_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/deeplink/deep_link_service.dart';
 import 'core/storage/local_storage_service.dart';
+import 'shared/widgets/device_security_sheet.dart';
 import 'shared/widgets/streamflix_logo.dart';
 
 Future<void> main() async {
@@ -56,6 +57,30 @@ class LiveEuyApp extends ConsumerWidget {
 
 typedef StreamFlixApp = LiveEuyApp;
 
+class _VipPackageInfo {
+  final String title;
+  final String tierName;
+  final String price;
+  final String period;
+  final String badge;
+  final Color badgeBg;
+  final String quality;
+  final String perks;
+  final bool isBestValue;
+
+  const _VipPackageInfo({
+    required this.title,
+    required this.tierName,
+    required this.price,
+    required this.period,
+    required this.badge,
+    required this.badgeBg,
+    required this.quality,
+    required this.perks,
+    this.isBestValue = false,
+  });
+}
+
 class MainNavigationScreen extends ConsumerStatefulWidget {
   const MainNavigationScreen({super.key});
 
@@ -91,7 +116,10 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
     final userProfile = ref.watch(authProvider);
 
     final pages = [
-      HomeScreen(onNavigateTab: _onNavigateTab),
+      HomeScreen(
+        onNavigateTab: _onNavigateTab,
+        isActive: _currentIndex == 0,
+      ),
       SearchScreen(onNavigateTab: _onNavigateTab),
       CollectionScreen(
         onNavigateTab: _onNavigateTab,
@@ -337,38 +365,80 @@ class _AkunTabState extends ConsumerState<_AkunTab> {
       return;
     }
 
-    int selectedPlan = 0; // 0 for Monthly, 1 for Yearly
+    int selectedPlan = 2; // Default to best-value (Tahunan)
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (sheetCtx) => StatefulBuilder(
-        builder: (ctx, setModalState) => Container(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceContainerHigh.withValues(alpha: 0.98),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            border: Border.all(color: AppColors.glassBorder),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceVariant,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        builder: (ctx, setModalState) {
+          final plans = [
+            const _VipPackageInfo(
+              title: 'VIP Standar',
+              tierName: 'VIP Standard',
+              price: 'Rp 49.000',
+              period: '/ bln',
+              badge: 'PALING EFISIEN',
+              badgeBg: Color(0xFF0284C7),
+              quality: 'Full HD 1080p',
+              perks: 'Full HD 1080p • Bebas Iklan • 2 Layar Bersamaan',
+            ),
+            const _VipPackageInfo(
+              title: 'VIP Cinema Ultra',
+              tierName: 'VIP Cinema Ultra',
+              price: 'Rp 89.000',
+              period: '/ bln',
+              badge: 'STUDIO MASTER',
+              badgeBg: Color(0xFFD97706),
+              quality: '4K UHD + Atmos',
+              perks: '4K Ultra HD & Vision • Dolby Atmos • 4 Layar • Unduh Offline',
+            ),
+            const _VipPackageInfo(
+              title: 'VIP Cinema Ultra 1 Tahun',
+              tierName: 'VIP Cinema Ultra',
+              price: 'Rp 399.000',
+              period: '/ thn',
+              badge: 'HEMAT 62%',
+              badgeBg: Color(0xFF059669),
+              quality: 'Best Value 4K',
+              perks: 'Akses 1 Tahun Penuh 4K Ultra HD • Setara Rp 33.250/bln',
+              isBestValue: true,
+            ),
+          ];
+
+          final currentPlan = plans[selectedPlan];
+
+          return Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.90,
+            ),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceContainerHigh.withValues(alpha: 0.98),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              border: Border.all(color: AppColors.glassBorder),
+            ),
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceVariant,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Header with safe flexible wrapping (fixes right-side overflow)
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
                         padding: const EdgeInsets.all(8),
@@ -381,205 +451,233 @@ class _AkunTabState extends ConsumerState<_AkunTab> {
                         child: const Icon(Icons.workspace_premium_rounded, color: Colors.white, size: 20),
                       ),
                       const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Langganan LiveEuy VIP Premium',
-                            style: GoogleFonts.outfit(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.onSurface,
-                            ),
-                          ),
-                          Text(
-                            'Beli paket untuk buka semua fitur premium',
-                            style: GoogleFonts.inter(
-                              fontSize: 12,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close_rounded, color: AppColors.outline),
-                    onPressed: () => Navigator.pop(sheetCtx),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Benefits
-              _buildBenefitRow(Icons.hd_rounded, 'Kualitas Streaming Full HD Jernih'),
-              _buildBenefitRow(Icons.speed_rounded, 'Streaming Cepat Tanpa Batas Buffer'),
-              _buildBenefitRow(Icons.block_rounded, 'Bebas Iklan & Tanpa Batas Nonton'),
-              _buildBenefitRow(Icons.download_for_offline_rounded, 'Download & Tonton Offline'),
-
-              const SizedBox(height: 16),
-
-              // Plan options
-              Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => setModalState(() => selectedPlan = 0),
-                      child: Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: selectedPlan == 0
-                              ? const Color(0xFF433FFE).withValues(alpha: 0.18)
-                              : AppColors.surfaceContainerLowest,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: selectedPlan == 0
-                                ? const Color(0xFF433FFE)
-                                : AppColors.outlineVariant.withValues(alpha: 0.2),
-                            width: selectedPlan == 0 ? 2 : 1,
-                          ),
-                        ),
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Bulanan',
+                              'Langganan LiveEuy VIP Premium',
                               style: GoogleFonts.outfit(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Rp 49.000',
-                              style: GoogleFonts.outfit(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w700,
                                 color: AppColors.onSurface,
                               ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
+                            const SizedBox(height: 2),
                             Text(
-                              '/ bulan',
-                              style: GoogleFonts.inter(fontSize: 10, color: AppColors.outline),
+                              'Pilihan paket sinema fleksibel selaras Web & Mobile',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         ),
                       ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                        icon: const Icon(Icons.close_rounded, color: AppColors.outline),
+                        onPressed: () => Navigator.pop(sheetCtx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Benefits
+                  _buildBenefitRow(Icons.hd_rounded, 'Resolusi Full HD 1080p hingga 4K UHD & Dolby Vision'),
+                  _buildBenefitRow(Icons.surround_sound_rounded, 'Tata Suara Spasial Bioskop Dolby Atmos'),
+                  _buildBenefitRow(Icons.block_rounded, 'Sepenuhnya Bebas Iklan & Tanpa Batas Nonton'),
+                  _buildBenefitRow(Icons.devices_rounded, 'Mendukung hingga 4 Perangkat Aktif & Unduh Offline'),
+
+                  const SizedBox(height: 16),
+
+                  Text(
+                    'PILIH PAKET LANGGANAN',
+                    style: GoogleFonts.outfit(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
+                      color: AppColors.outline,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => setModalState(() => selectedPlan = 1),
-                      child: Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: selectedPlan == 1
-                              ? const Color(0xFF433FFE).withValues(alpha: 0.18)
-                              : AppColors.surfaceContainerLowest,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: selectedPlan == 1
-                                ? const Color(0xFF433FFE)
-                                : AppColors.outlineVariant.withValues(alpha: 0.2),
-                            width: selectedPlan == 1 ? 2 : 1,
+                  const SizedBox(height: 10),
+
+                  // Plan options
+                  ...List.generate(plans.length, (index) {
+                    final p = plans[index];
+                    final isSelected = selectedPlan == index;
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10.0),
+                      child: GestureDetector(
+                        onTap: () => setModalState(() => selectedPlan = index),
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? const Color(0xFF433FFE).withValues(alpha: 0.16)
+                                : AppColors.surfaceContainerLowest,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isSelected
+                                  ? const Color(0xFF433FFE)
+                                  : AppColors.outlineVariant.withValues(alpha: 0.25),
+                              width: isSelected ? 1.8 : 1,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 2.0),
+                                    child: Icon(
+                                      isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+                                      color: isSelected ? const Color(0xFF81CFFF) : AppColors.outline,
+                                      size: 19,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Wrap(
+                                          crossAxisAlignment: WrapCrossAlignment.center,
+                                          spacing: 6,
+                                          runSpacing: 4,
+                                          children: [
+                                            Text(
+                                              p.title,
+                                              style: GoogleFonts.outfit(
+                                                fontSize: 14.5,
+                                                fontWeight: FontWeight.w700,
+                                                color: isSelected ? Colors.white : AppColors.onSurface,
+                                              ),
+                                            ),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: p.badgeBg.withValues(alpha: 0.2),
+                                                borderRadius: BorderRadius.circular(6),
+                                                border: Border.all(color: p.badgeBg.withValues(alpha: 0.4)),
+                                              ),
+                                              child: Text(
+                                                p.badge,
+                                                style: GoogleFonts.outfit(
+                                                  fontSize: 9,
+                                                  fontWeight: FontWeight.w800,
+                                                  letterSpacing: 0.4,
+                                                  color: p.badgeBg == const Color(0xFF059669)
+                                                      ? Colors.greenAccent
+                                                      : p.badgeBg == const Color(0xFFD97706)
+                                                          ? Colors.amberAccent
+                                                          : const Color(0xFF81CFFF),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 5),
+                                        Text(
+                                          p.perks,
+                                          style: GoogleFonts.inter(
+                                            fontSize: 11.5,
+                                            height: 1.35,
+                                            color: isSelected ? AppColors.onSurfaceVariant : AppColors.textSecondary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        p.price,
+                                        style: GoogleFonts.outfit(
+                                          fontSize: 14.5,
+                                          fontWeight: FontWeight.w800,
+                                          color: isSelected ? Colors.white : AppColors.onSurface,
+                                        ),
+                                      ),
+                                      Text(
+                                        p.period,
+                                        style: GoogleFonts.inter(
+                                          fontSize: 11,
+                                          color: AppColors.outline,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      ),
+                    );
+                  }),
+
+                  const SizedBox(height: 14),
+
+                  // Activate CTA Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(sheetCtx);
+                        ref.read(authProvider.notifier).upgradeToVip(currentPlan.tierName);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Row(
                               children: [
-                                Text(
-                                  'Tahunan',
-                                  style: GoogleFonts.outfit(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: Colors.greenAccent.withValues(alpha: 0.2),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
+                                const Icon(Icons.workspace_premium_rounded, color: Colors.amberAccent, size: 20),
+                                const SizedBox(width: 10),
+                                Expanded(
                                   child: Text(
-                                    'HEMAT 32%',
-                                    style: GoogleFonts.outfit(
-                                      fontSize: 8,
-                                      fontWeight: FontWeight.w800,
-                                      color: Colors.greenAccent,
-                                    ),
+                                    'Selamat! Akun Anda kini aktif paket ${currentPlan.title}!',
+                                    style: GoogleFonts.outfit(fontWeight: FontWeight.w600),
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Rp 399.000',
-                              style: GoogleFonts.outfit(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.onSurface,
-                              ),
-                            ),
-                            Text(
-                              '/ tahun',
-                              style: GoogleFonts.inter(fontSize: 10, color: AppColors.outline),
-                            ),
-                          ],
+                            backgroundColor: AppColors.surfaceContainerHighest,
+                            duration: const Duration(seconds: 3),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF433FFE),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        elevation: 6,
+                      ),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'Beli ${currentPlan.title} (${currentPlan.price}${currentPlan.period})',
+                          style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w700),
                         ),
                       ),
                     ),
                   ),
                 ],
               ),
-
-              const SizedBox(height: 20),
-
-              // Activate CTA Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(sheetCtx);
-                    ref.read(authProvider.notifier).upgradeToVip();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Row(
-                          children: [
-                            const Icon(Icons.workspace_premium_rounded, color: Colors.amberAccent, size: 20),
-                            const SizedBox(width: 10),
-                            Text(
-                              'Selamat! Akun Anda kini berstatus LIVEEUY VIP Premium!',
-                              style: GoogleFonts.outfit(fontWeight: FontWeight.w600),
-                            ),
-                          ],
-                        ),
-                        backgroundColor: AppColors.surfaceContainerHighest,
-                        duration: const Duration(seconds: 3),
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF433FFE),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    elevation: 6,
-                  ),
-                  child: Text(
-                    selectedPlan == 0 ? 'Beli VIP Bulanan (Rp 49.000)' : 'Beli VIP Tahunan (Rp 399.000)',
-                    style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w700),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -588,12 +686,15 @@ class _AkunTabState extends ConsumerState<_AkunTab> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, size: 16, color: const Color(0xFF81CFFF)),
           const SizedBox(width: 10),
-          Text(
-            text,
-            style: GoogleFonts.inter(fontSize: 12, color: AppColors.onSurfaceVariant),
+          Expanded(
+            child: Text(
+              text,
+              style: GoogleFonts.inter(fontSize: 12, color: AppColors.onSurfaceVariant),
+            ),
           ),
         ],
       ),
@@ -1204,21 +1305,27 @@ class _AkunTabState extends ConsumerState<_AkunTab> {
                                   ),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.workspace_premium_rounded, color: Colors.white, size: 14),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'LIVEEUY VIP',
-                                      style: GoogleFonts.outfit(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w800,
-                                        letterSpacing: 0.6,
-                                        color: Colors.white,
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.workspace_premium_rounded, color: Colors.white, size: 14),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        user.membershipTier.isNotEmpty && user.membershipTier != 'REGULAR'
+                                            ? user.membershipTier.toUpperCase()
+                                            : 'LIVEEUY VIP',
+                                        maxLines: 1,
+                                        style: GoogleFonts.outfit(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: 0.6,
+                                          color: Colors.white,
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               )
                             else if (user.isLoggedIn)
@@ -1231,21 +1338,25 @@ class _AkunTabState extends ConsumerState<_AkunTab> {
                                     color: AppColors.outlineVariant.withValues(alpha: 0.3),
                                   ),
                                 ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.person_rounded, color: AppColors.outline, size: 14),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'MEMBER STANDAR',
-                                      style: GoogleFonts.outfit(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: 0.6,
-                                        color: AppColors.onSurfaceVariant,
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.person_rounded, color: AppColors.outline, size: 14),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'MEMBER STANDAR',
+                                        maxLines: 1,
+                                        style: GoogleFonts.outfit(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.6,
+                                          color: AppColors.onSurfaceVariant,
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               )
                             else
@@ -1258,21 +1369,25 @@ class _AkunTabState extends ConsumerState<_AkunTab> {
                                     color: AppColors.outlineVariant.withValues(alpha: 0.3),
                                   ),
                                 ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.visibility_outlined, color: AppColors.outline, size: 14),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'MODE TAMU',
-                                      style: GoogleFonts.outfit(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: 0.6,
-                                        color: AppColors.onSurfaceVariant,
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.visibility_outlined, color: AppColors.outline, size: 14),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'MODE TAMU',
+                                        maxLines: 1,
+                                        style: GoogleFonts.outfit(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.6,
+                                          color: AppColors.onSurfaceVariant,
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
                           ],
@@ -1284,19 +1399,18 @@ class _AkunTabState extends ConsumerState<_AkunTab> {
 
                   // Metrics Row
                   Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
                     decoration: BoxDecoration(
                       color: AppColors.surfaceContainerLowest,
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _buildStatItem('28', 'Ditonton'),
+                        Expanded(child: _buildStatItem('28', 'Ditonton')),
                         Container(width: 1, height: 26, color: AppColors.surfaceVariant),
-                        _buildStatItem('${widget.mediaState.watchlistIds.length}', 'Koleksi'),
+                        Expanded(child: _buildStatItem('${widget.mediaState.watchlistIds.length}', 'Koleksi')),
                         Container(width: 1, height: 26, color: AppColors.surfaceVariant),
-                        _buildStatItem('Full HD', 'Kualitas'),
+                        Expanded(child: _buildStatItem('Full HD', 'Kualitas')),
                       ],
                     ),
                   ),
@@ -1514,6 +1628,31 @@ class _AkunTabState extends ConsumerState<_AkunTab> {
               onTap: () => _showAboutDialog(context),
             ),
 
+            const SizedBox(height: 20),
+            _buildSectionHeader('KEAMANAN & PERANGKAT'),
+            _buildSettingsTile(
+              icon: Icons.devices_rounded,
+              title: 'Perangkat Terhubung & Sesi',
+              subtitle: user.isLoggedIn
+                  ? 'Perangkat ini: Mobile • ${user.activeSessions.where((s) => !s.isCurrentDevice).length} sesi Web aktif'
+                  : 'Lihat status sesi dan perangkat login',
+              onTap: () {
+                if (!user.isLoggedIn) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Silakan masuk terlebih dahulu untuk melihat sesi perangkat.',
+                        style: GoogleFonts.outfit(),
+                      ),
+                      backgroundColor: AppColors.surfaceContainerHighest,
+                    ),
+                  );
+                  return;
+                }
+                DeviceSecuritySheet.show(context);
+              },
+            ),
+
             const SizedBox(height: 28),
 
             // Auth CTA Button (Login/Register if guest, Logout if logged in)
@@ -1590,21 +1729,28 @@ class _AkunTabState extends ConsumerState<_AkunTab> {
 
   Widget _buildStatItem(String value, String label) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          value,
-          style: GoogleFonts.outfit(
-            fontSize: 17,
-            fontWeight: FontWeight.w800,
-            color: AppColors.primary,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            value,
+            style: GoogleFonts.outfit(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: AppColors.primary,
+            ),
           ),
         ),
         const SizedBox(height: 2),
-        Text(
-          label,
-          style: GoogleFonts.inter(
-            fontSize: 11,
-            color: AppColors.textSecondary,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 11,
+              color: AppColors.textSecondary,
+            ),
           ),
         ),
       ],

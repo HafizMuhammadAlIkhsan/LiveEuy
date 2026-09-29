@@ -1,10 +1,10 @@
-# LiveEuy — Arsitektur Autentikasi, Refresh Token, & Keamanan Klien
+# LiveEuy: Arsitektur Autentikasi, Refresh Token, dan Keamanan Klien
 
 Dokumen ini merupakan panduan teknis resmi bagi **Tim Backend (Spring Boot)**, **Tim Frontend Web (React)**, dan **Tim Mobile (Flutter)** mengenai desain autentikasi terpadu, manajemen sesi, Refresh Token Rotation, dan strategi penyimpanan token yang aman.
 
 ---
 
-## 📌 Ringkasan Eksekutif & Filosofi Desain
+## Ringkasan Eksekutif & Filosofi Desain
 
 Sistem autentikasi LiveEuy menerapkan standar keamanan modern berbasis **JWT (JSON Web Token)** dengan arsitektur **Dual-Token**:
 1. **Access Token (Short-lived, 15 Menit)**:
@@ -18,15 +18,25 @@ Sistem autentikasi LiveEuy menerapkan standar keamanan modern berbasis **JWT (JS
 
 ---
 
-## 🛡️ Strategi Penyimpanan Token Klien: Web vs Mobile
+## Strategi Penyimpanan Token Klien: Web vs Mobile
 
 | Parameter | Frontend Web (React 18 + Vite) | Mobile Client (Flutter Android & iOS) |
 |---|---|---|
+| **Identitas Header HTTP** | `User-Agent: Mozilla/5.0...` | `User-Agent: LiveEuy-Mobile/2.4.0 (Android/iOS)`, `X-Device-Type: Mobile` |
+| **Tipe Perangkat (`deviceType`)** | `'Desktop'` / `'Tablet'` | `'Mobile'` |
 | **Mekanisme Penyimpanan Refresh Token** | **Cookie HttpOnly** (`SameSite=Lax`, `Path=/api/v1/auth`, `MaxAge=7d`) | **`flutter_secure_storage`** (Hardware-backed Keystore & Keychain) |
 | **Akses JavaScript / Dart** | ❌ **Terisolasi total**: JavaScript di browser tidak bisa membaca cookie (Kebal serangan XSS). | 🔑 Aplikasi membaca secara aman lewat API native OS berenkripsi. |
 | **Penyimpanan Access Token** | Variabel memori (React Context / Zustand / memory variable). | State provider memori (Riverpod `authProvider`). |
 | **Apakah boleh LocalStorage / SharedPreferences?** | ❌ **Dilarang keras**: `localStorage` rentan XSS. | ❌ **Dilarang keras**: `shared_preferences` menyimpan *plaintext* XML/.plist terbuka (Melanggar OWASP M1). |
 | **Alur Refresh Request** | Browser otomatis melampirkan cookie saat menembak POST `/api/v1/auth/refresh` (`withCredentials: true`). | Mobile membaca token dari Secure Storage lalu mengirimkan JSON body `{ "refreshToken": "..." }`. |
+| **Manajemen Keamanan Sesi** | Modal `DeviceSecurityModal` | Bottom sheet `DeviceSecuritySheet` |
+
+> [!IMPORTANT]
+> **Pembedaan Sesi Mobile vs Web pada Backend:**
+> Backend service (Go `auth-service` & Spring Boot) membaca header `User-Agent` dan `X-Device-Type` saat login/registrasi. Token refresh disimpan bersama nama dan tipe perangkat pengguna (`device_name`). Hal ini memungkinkan pencabutan sesi secara granular tanpa logout massal:
+> 1. Pengguna smartphone dapat melihat apakah akun mereka aktif di browser PC (`Google Chrome - Windows`).
+> 2. Pengguna dapat mencabut sesi web yang mencurigakan secara terpisah via `DELETE /api/v1/auth/devices/{deviceId}`.
+> 3. Pengguna dapat keluar dari seluruh perangkat web lain (`POST /api/v1/auth/logout-all` dengan `includeCurrent: false`) tanpa mengganggu sesi mobile aktif.
 
 > [!IMPORTANT]
 > **Mengapa Flutter Tidak Boleh Menggunakan SharedPreferences untuk Token?**
@@ -37,7 +47,7 @@ Sistem autentikasi LiveEuy menerapkan standar keamanan modern berbasis **JWT (JS
 
 ---
 
-## 🔄 Diagram Alur Sesi & Silent Refresh
+## Diagram Alur Sesi & Silent Refresh
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
@@ -83,7 +93,7 @@ Sistem autentikasi LiveEuy menerapkan standar keamanan modern berbasis **JWT (JS
 
 ---
 
-## 🗄️ Endpoints Spesifikasi Backend (`/api/v1/auth`)
+## Endpoints Spesifikasi Backend (`/api/v1/auth`)
 
 ### 1. Registrasi Akun (`POST /api/v1/auth/register`)
 Mendaftarkan akun baru ke platform LiveEuy.
@@ -227,7 +237,7 @@ Endpoint ini mendukung **Dual-Mode**:
 
 ---
 
-## 💻 Referensi Implementasi Klien Mobile (Flutter)
+## Referensi Implementasi Klien Mobile (Flutter)
 
 Berikut adalah implementasi standar produksi untuk Flutter menggunakan `flutter_secure_storage` dan integrasi *silent refresh* pada `ApiClient`:
 
@@ -319,7 +329,7 @@ Future<http.Response> sendWithAutoRefresh(
 
 ---
 
-## 🔒 Konfigurasi CORS & Keamanan Cookie di Backend
+## Konfigurasi CORS & Keamanan Cookie di Backend
 
 Di Spring Boot (`CorsConfig.java`), header `allowCredentials` **wajib diatur ke `true`** agar browser mengizinkan pertukaran cookie lintas domain:
 
@@ -344,7 +354,7 @@ public class CorsConfig {
 
 ---
 
-## 📋 Pengujian via cURL
+## Pengujian via cURL
 
 ### 1. Login
 ```bash
