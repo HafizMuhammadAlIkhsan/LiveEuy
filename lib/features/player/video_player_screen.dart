@@ -1,11 +1,15 @@
 import 'dart:async';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:video_player/video_player.dart';
 import '../../core/theme/app_theme.dart';
+import '../../models/ad_model.dart';
 import '../../models/movie_model.dart';
+import '../../providers/ad_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/player_provider.dart';
 
 class VideoPlayerScreen extends ConsumerStatefulWidget {
@@ -35,6 +39,13 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
   String? _resumeBannerText;
   Timer? _resumeBannerTimer;
 
+  // Pre-roll Sponsor Ad State (Layer: video_preroll)
+  bool _prerollActive = false;
+  int _prerollCountdown = 5;
+  Timer? _prerollTimer;
+  AdCampaign? _activePrerollAd;
+  bool _hasRecordedAdImpression = false;
+
   @override
   void initState() {
     super.initState();
@@ -61,11 +72,23 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
       Uri.parse(widget.movie.videoUrl),
     );
 
+    final user = ref.read(authProvider);
+    final prerollAd = ref.read(adProvider.notifier).getPrerollAd(user.isVip);
+
+    if (prerollAd != null) {
+      _activePrerollAd = prerollAd;
+      _prerollActive = true;
+      _prerollCountdown = prerollAd.skipAfterSeconds;
+      _startPrerollCountdown();
+    }
+
     try {
       await _controller.initialize();
-      setState(() {
-        _isInitialized = true;
-      });
+      if (mounted) {
+        setState(() {
+          _isInitialized = true;
+        });
+      }
 
       if (widget.startPosition != null && widget.startPosition! > Duration.zero) {
         await _controller.seekTo(widget.startPosition!);
@@ -80,8 +103,10 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
         }
       }
 
-      _controller.play();
-      _startHideTimer();
+      if (!_prerollActive) {
+        _controller.play();
+        _startHideTimer();
+      }
     } catch (e) {
       debugPrint('Video init error: $e');
     }
@@ -91,8 +116,63 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
     });
   }
 
+  void _startPrerollCountdown() {
+    if (!_hasRecordedAdImpression && _activePrerollAd != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_hasRecordedAdImpression && _activePrerollAd != null) {
+          ref.read(adProvider.notifier).recordImpression(_activePrerollAd!.id);
+          _hasRecordedAdImpression = true;
+        }
+      });
+    }
+    _prerollTimer?.cancel();
+    _prerollTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_prerollCountdown <= 1) {
+        timer.cancel();
+        setState(() {
+          _prerollCountdown = 0;
+        });
+      } else {
+        setState(() {
+          _prerollCountdown -= 1;
+        });
+      }
+    });
+  }
+
+  void _skipPreroll() {
+    _prerollTimer?.cancel();
+    setState(() {
+      _prerollActive = false;
+    });
+    if (_isInitialized) {
+      _controller.play();
+      _startHideTimer();
+    }
+  }
+
+  void _onPrerollCtaClicked(AdCampaign ad) {
+    ref.read(adProvider.notifier).recordClick(ad.id);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Membuka sponsor: ${ad.partnerName}',
+          style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500),
+        ),
+        backgroundColor: AppColors.surfaceContainerHigh,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
   @override
   void dispose() {
+    _prerollTimer?.cancel();
     _resumeBannerTimer?.cancel();
     _hideControlsTimer?.cancel();
     _controller.dispose();
@@ -354,45 +434,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // 1. Cinematic Ambient Diffuse Glow Backdrop
-          Positioned(
-            top: -30,
-            left: MediaQuery.of(context).size.width * 0.25,
-            child: Container(
-              width: 280,
-              height: 280,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.primaryContainer.withValues(alpha: 0.25),
-              ),
-            ),
-          ),
-          Positioned(
-            top: 140,
-            left: -40,
-            child: Container(
-              width: 220,
-              height: 220,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.secondaryContainer.withValues(alpha: 0.3),
-              ),
-            ),
-          ),
-          Positioned(
-            top: 100,
-            right: -40,
-            child: Container(
-              width: 240,
-              height: 240,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.tertiaryContainer.withValues(alpha: 0.2),
-              ),
-            ),
-          ),
-
-          // 2. Video Player Stage
+          // 1. Video Player Stage
           Center(
             child: _isInitialized
                 ? AspectRatio(
@@ -402,71 +444,16 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
                 : const CircularProgressIndicator(color: AppColors.primaryContainer),
           ),
 
-          // 3. Active Ambient Glow Border Accent (Simulating dynamic perimeter diffusion)
-          IgnorePointer(
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: AppColors.primaryContainer.withValues(alpha: 0.25),
-                  width: 1.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primaryContainer.withValues(alpha: 0.18),
-                    blurRadius: 36,
-                    spreadRadius: 4,
-                  ),
-                ],
-              ),
+          // 2. Gesture Layer to toggle controls
+          if (!_prerollActive)
+            GestureDetector(
+              onTap: _toggleControls,
+              behavior: HitTestBehavior.translucent,
+              child: const SizedBox.expand(),
             ),
-          ),
 
-          // 4. Gesture Layer to toggle controls
-          GestureDetector(
-            onTap: _toggleControls,
-            behavior: HitTestBehavior.translucent,
-            child: const SizedBox.expand(),
-          ),
-
-          // 5. Top Watermark / Stream Quality Pill
-          Positioned(
-            top: 52,
-            left: 16,
-            child: IgnorePointer(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceContainerHighest.withValues(alpha: 0.65),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Row(
-                  children: [
-                    Text(
-                      '${widget.movie.title} (${playerSettings.resolution})',
-                      style: GoogleFonts.outfit(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.tertiaryFixed,
-                        letterSpacing: 0.8,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: const BoxDecoration(
-                        color: AppColors.primaryContainer,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // Resume Floating Banner
-          if (_resumeBannerText != null)
+          // 3. Resume Floating Banner
+          if (!_prerollActive && _resumeBannerText != null)
             Positioned(
               top: 52,
               left: 20,
@@ -507,8 +494,8 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
               ),
             ),
 
-          // 6. Interactive Player Controls (Animated Visibility)
-          if (_showControls) ...[
+          // 4. Interactive Player Controls (Animated Visibility)
+          if (!_prerollActive && _showControls) ...[
             // Top Bar
             Positioned(
               top: 0,
@@ -606,7 +593,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
               ),
             ),
 
-            // Center Gestural Controls (-10s, Big Play/Pause, +10s)
+            // Center Gestural Controls (-10s, Play/Pause, +10s)
             Center(
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -615,27 +602,30 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
                   GestureDetector(
                     onTap: () => _skipSeconds(-10),
                     child: Container(
-                      width: 54,
-                      height: 54,
+                      width: 48,
+                      height: 48,
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceContainerHigh.withValues(alpha: 0.45),
+                        color: Colors.black.withValues(alpha: 0.45),
                         shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.12),
+                        ),
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.replay_10_rounded, color: Colors.white, size: 26),
+                          const Icon(Icons.replay_10_rounded, color: Colors.white, size: 22),
                           Text(
                             '-10s',
-                            style: GoogleFonts.outfit(fontSize: 9, color: Colors.white70, fontWeight: FontWeight.w700),
+                            style: GoogleFonts.outfit(fontSize: 8, color: Colors.white70, fontWeight: FontWeight.w700),
                           ),
                         ],
                       ),
                     ),
                   ),
-                  const SizedBox(width: 24),
+                  const SizedBox(width: 28),
 
-                  // Primary Play/Pause Button with Halo Glow
+                  // Primary Play/Pause Button
                   GestureDetector(
                     onTap: () {
                       if (isPlaying) {
@@ -645,59 +635,45 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
                       }
                       _startHideTimer();
                     },
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Container(
-                          width: 88,
-                          height: 88,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: AppColors.primaryContainer.withValues(alpha: 0.35),
-                          ),
+                    child: Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.black.withValues(alpha: 0.55),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.2),
                         ),
-                        Container(
-                          width: 74,
-                          height: 74,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: AppColors.primaryContainer,
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.primaryContainer.withValues(alpha: 0.6),
-                                blurRadius: 24,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                            color: Colors.white,
-                            size: 42,
-                          ),
-                        ),
-                      ],
+                      ),
+                      child: Icon(
+                        isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                        color: Colors.white,
+                        size: 36,
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 24),
+                  const SizedBox(width: 28),
 
                   // Skip +10s
                   GestureDetector(
                     onTap: () => _skipSeconds(10),
                     child: Container(
-                      width: 54,
-                      height: 54,
+                      width: 48,
+                      height: 48,
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceContainerHigh.withValues(alpha: 0.45),
+                        color: Colors.black.withValues(alpha: 0.45),
                         shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.12),
+                        ),
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.forward_10_rounded, color: Colors.white, size: 26),
+                          const Icon(Icons.forward_10_rounded, color: Colors.white, size: 22),
                           Text(
                             '+10s',
-                            style: GoogleFonts.outfit(fontSize: 9, color: Colors.white70, fontWeight: FontWeight.w700),
+                            style: GoogleFonts.outfit(fontSize: 8, color: Colors.white70, fontWeight: FontWeight.w700),
                           ),
                         ],
                       ),
@@ -861,15 +837,12 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
                               onSelected: playerNotifier.setResolution,
                               color: AppColors.surfaceContainerHighest,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              itemBuilder: (context) => [
-                                '4K UHD',
-                                '1080p',
-                                '720p',
-                                'Auto',
-                              ].map((r) => PopupMenuItem(
-                                    value: r,
-                                    child: Text(r, style: GoogleFonts.outfit(color: Colors.white)),
-                                  )).toList(),
+                              itemBuilder: (context) => availableResolutions
+                                  .map((r) => PopupMenuItem(
+                                        value: r,
+                                        child: Text(r, style: GoogleFonts.outfit(color: Colors.white)),
+                                      ))
+                                  .toList(),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                 decoration: BoxDecoration(
@@ -1009,6 +982,12 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
                 ),
               ),
             ),
+
+          // 8. Pre-Roll Ad Layer (when active)
+          if (_prerollActive && _activePrerollAd != null)
+            Positioned.fill(
+              child: _buildPrerollOverlay(_activePrerollAd!),
+            ),
         ],
       ),
     );
@@ -1033,4 +1012,258 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
       ),
     );
   }
+
+  Widget _buildPrerollOverlay(AdCampaign ad) {
+    final progress = ad.skipAfterSeconds > 0
+        ? ((ad.skipAfterSeconds - _prerollCountdown) / ad.skipAfterSeconds).clamp(0.0, 1.0)
+        : 1.0;
+    final canSkip = _prerollCountdown == 0;
+
+    return Container(
+      color: Colors.black.withValues(alpha: 0.96),
+      child: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 22),
+                        onPressed: () => Navigator.pop(context),
+                        tooltip: 'Kembali',
+                      ),
+                      const SizedBox(width: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceContainerHigh,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: AppColors.glassBorder),
+                        ),
+                        child: Text(
+                          'IKLAN SPONSOR',
+                          style: GoogleFonts.outfit(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                            letterSpacing: 0.6,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: AppColors.tertiaryContainer.withValues(alpha: 0.25),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppColors.tertiary.withValues(alpha: 0.4)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.workspace_premium_rounded, size: 14, color: AppColors.tertiaryFixed),
+                        const SizedBox(width: 5),
+                        Text(
+                          'Bebas Iklan VIP',
+                          style: GoogleFonts.outfit(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.tertiaryFixed,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (ad.bannerUrl.isNotEmpty) ...[
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 200),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: AspectRatio(
+                            aspectRatio: 16 / 9,
+                            child: CachedNetworkImage(
+                              imageUrl: ad.bannerUrl,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => Container(
+                                color: AppColors.surfaceContainer,
+                                child: const Center(
+                                  child: SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryContainer),
+                                  ),
+                                ),
+                              ),
+                              errorWidget: (context, url, error) => Container(
+                                color: AppColors.surfaceContainer,
+                                child: const Icon(Icons.broken_image_rounded, color: AppColors.onSurfaceVariant),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                    ],
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            ad.badge.isNotEmpty ? ad.badge : 'SPONSORED',
+                            style: GoogleFonts.outfit(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white70,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          ad.partnerName,
+                          style: GoogleFonts.outfit(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      ad.headline,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.outfit(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      ad.description,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: AppColors.onSurfaceVariant,
+                        height: 1.3,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    OutlinedButton.icon(
+                      onPressed: () => _onPrerollCtaClicked(ad),
+                      icon: const Icon(Icons.open_in_new_rounded, size: 14, color: Colors.white),
+                      label: Text(
+                        ad.ctaText,
+                        style: GoogleFonts.outfit(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: AppColors.primaryContainer.withValues(alpha: 0.8)),
+                        backgroundColor: AppColors.surfaceContainerHigh.withValues(alpha: 0.6),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [Color(0xF0000000), Colors.transparent],
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(2),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 3,
+                      backgroundColor: AppColors.surfaceBright.withValues(alpha: 0.3),
+                      valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryContainer),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Video segera diputar...',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: AppColors.onSurfaceVariant,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: canSkip ? _skipPreroll : null,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 250),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: canSkip ? Colors.white : AppColors.surfaceContainerHighest.withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: canSkip ? Colors.white : AppColors.glassBorder,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                canSkip ? 'Lewati Iklan' : 'Dapat dilewati dalam ${_prerollCountdown}d',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: canSkip ? Colors.black : Colors.white60,
+                                ),
+                              ),
+                              if (canSkip) ...[
+                                const SizedBox(width: 4),
+                                const Icon(Icons.skip_next_rounded, size: 16, color: Colors.black),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
+

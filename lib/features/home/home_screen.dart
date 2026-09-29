@@ -13,6 +13,7 @@ import '../../shared/widgets/streamflix_logo.dart';
 import '../detail/content_detail_screen.dart';
 import '../player/video_player_screen.dart';
 import 'widgets/hero_showcase_banner.dart';
+import 'widgets/in_feed_sponsor_billboard.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   final Function(int) onNavigateTab;
@@ -716,6 +717,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   _buildTop10Row(filteredTop10),
                   const SizedBox(height: 28),
                 ],
+
+                // In-Feed Sponsor Billboard (Layer: billboard_feed)
+                const InFeedSponsorBillboard(placementIndex: 0),
 
                 // Sedang Populer di Indonesia (PRD 5.4 & README 4)
                 if (filteredPopular.isNotEmpty) ...[

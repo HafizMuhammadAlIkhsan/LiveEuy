@@ -8,8 +8,9 @@ Klien mobile streaming film dan serial televisi berbasis Flutter (Android dan iO
 
 ### 1. Pemutar Video
 - Integrasi pemutaran berkas MP4 menggunakan `video_player`.
-- Ambient glow: shader pencahayaan dinamis di sekeliling pemutar video yang menyesuaikan warna dominan tayangan.
+- Estetika Sinematik Anti-Slop: kontrol sirkular frosted transparan dengan kontras tinggi tanpa ornamen radial glow orbs yang mendistorsi visual tayangan.
 - Slider garis waktu (scrubbing) dengan indikator durasi berjalan, total durasi, dan status buffer.
+- Pemilih resolusi adaptif seluler: `Otomatis`, `1080p FHD`, `720p HD`, dan `480p SD` (mengeliminasi 4K UHD yang tidak realistis untuk ukuran layar seluler).
 - Kontrol layar:
   - Tombol putar dan jeda.
   - Lompat mundur dan maju cepat 10 detik.
@@ -19,33 +20,39 @@ Klien mobile streaming film dan serial televisi berbasis Flutter (Android dan iO
   - Rotasi orientasi layar otomatis dan tombol toggle layar penuh (landscape / portrait).
   - Panel diagnostik pemutaran (Stats for Nerds): menampilkan resolusi aktif, FPS render, perkiraan bitrate, dan kondisi buffer jaringan.
 
-### 2. Gestur dan Navigasi
+### 2. Sistem Iklan Hybrid & Pengecualian VIP
+- Selaras 1:1 dengan arsitektur periklanan multi-layer klien web (`dev-frontend`):
+  - **Video Pre-Roll Sponsor Ad (`video_preroll`)**: Tayang sebelum video utama diputar dengan timer hitung mundur 5 detik, tombol lewati iklan, navigasi keluar aman (back button), serta pencatatan impresi dan klik sponsor secara aman pasca-render.
+  - **In-Feed Sponsor Billboard (`billboard_feed`)**: Kartu promosi sponsor native di antara baris Top 10 dan Sedang Populer pada Beranda dengan proteksi layout anti-overflow pada resolusi layar sempit (320px–360px).
+  - **Pengecualian VIP Penuh (Ad-Free Exemption)**: Seluruh pengguna dengan status VIP (`isVip: true`) otomatis dilepaskan dari seluruh layer iklan; tayangan video langsung diputar seketika dan billboard beranda dikembalikan sebagai `SizedBox.shrink()`.
+
+### 3. Gestur dan Navigasi
 - Ketuk sekali (single tap): membuka atau menutup instrumen kontrol pemutar (otomatis sembunyi setelah 4 detik tanpa interaksi).
 - Ketuk ganda (double tap): melompat 10 detik ke belakang pada sisi kiri atau 10 detik ke depan pada sisi kanan.
 - Navigasi bawah melayang 4 tab: Beranda, Cari, Koleksi, dan Akun dengan efek backdrop blur.
 - Bouncing scroll physics pada katalog konten.
 
-### 3. Sorotan Utama (Billboard)
+### 4. Sorotan Utama (Billboard)
 - Banner sorotan film utama pada halaman Beranda dengan informasi batas usia (SU, 13+, 16+, 18+) dan lencana resolusi (Full HD, HDR).
 - Tombol aksi cepat: Mulai Nonton, Simpan ke Koleksi, dan Buka Detail.
 
-### 4. Kurasi Konten dan Riwayat
+### 5. Kurasi Konten dan Riwayat
 - Top 10 Indonesia: daftar tayangan paling banyak ditonton dengan tipografi penomoran besar.
 - Lanjutkan Menonton (Continue Watching): menampilkan kartu riwayat tontonan terakhir beserta persentase durasi yang tersimpan.
 - Pengelompokan baris konten tematik: Film Populer, Aksi, Drama, dan Fiksi Ilmiah.
 
-### 5. Pencarian dan Filter
+### 6. Pencarian dan Filter
 - Bilah pencarian teks dengan mekanisme debouncing untuk membatasi frekuensi query saat pengguna mengetik.
 - Filter berdasarkan kategori format (Semua, Film, Serial) dan pilihan chip genre.
 - Grid hasil pencarian yang langsung terhubung ke halaman detail atau pemutar.
 
-### 6. Detail Konten
+### 7. Detail Konten
 - Tab Ringkasan: sinopsis lengkap, sutradara, pemeran utama, genre, tahun rilis, dan durasi.
 - Tab Episode dan Musim: pemilih musim serial TV dengan daftar episode, durasi tayang, dan kartu ringkasan cerita tiap episode.
 - Tab Konten Serupa: rekomendasi tayangan berdasarkan kesamaan genre.
 - Tab Ulasan: daftar ulasan pengguna beserta formulir pengiriman rating bintang (1-10) dan komentar.
 
-### 7. Autentikasi dan Akun Pengguna
+### 8. Autentikasi dan Akun Pengguna
 - Pengguna Terdaftar (VIP):
   - Lencana status akun VIP.
   - Sinkronisasi daftar tontonan (Watchlist) dan progres durasi menonton.
@@ -323,14 +330,18 @@ liveeuy_mob/
 │   │   │   ├── login_screen.dart
 │   │   │   └── register_screen.dart
 │   │   ├── home/                      # Beranda, hero billboard, dan baris kategori
-│   │   │   └── home_screen.dart
+│   │   │   ├── home_screen.dart
+│   │   │   └── widgets/
+│   │   │       ├── hero_showcase_banner.dart
+│   │   │       └── in_feed_sponsor_billboard.dart # Kartu sponsor billboard feed
 │   │   ├── detail/                    # Halaman detail tayangan dan tab episode
 │   │   │   └── content_detail_screen.dart
-│   │   ├── player/                    # Layar pemutar video, ambient glow, dan HUD kontrol
+│   │   ├── player/                    # Layar pemutar video, pre-roll ad overlay, dan HUD kontrol
 │   │   │   └── video_player_screen.dart
 │   │   └── search/                    # Pencarian katalog dan filter genre
 │   │       └── search_screen.dart
-│   ├── models/                        # Model data DTO (Movie, Episode, Review, Settings)
+│   ├── models/                        # Model data DTO (Movie, Episode, Ad, Review, Settings)
+│   │   ├── ad_model.dart              # Model kampanye iklan dan layer placement
 │   │   ├── episode_model.dart
 │   │   ├── movie_model.dart
 │   │   ├── notification_model.dart
@@ -338,6 +349,7 @@ liveeuy_mob/
 │   │   ├── user_settings_model.dart
 │   │   └── watch_progress_model.dart
 │   ├── providers/                     # State management Riverpod
+│   │   ├── ad_provider.dart           # Provider kampanye iklan, impresi, dan VIP gating
 │   │   ├── auth_provider.dart
 │   │   ├── media_provider.dart
 │   │   ├── notification_provider.dart
@@ -354,7 +366,9 @@ liveeuy_mob/
 │           └── streamflix_logo.dart
 └── test/                              # Pengujian unit dan widget
     ├── account_settings_test.dart
+    ├── ad_system_test.dart            # Pengujian komprehensif sistem iklan hybrid & VIP
     ├── notification_test.dart
+    ├── vip_subscription_test.dart
     ├── widget_test.dart
     ├── network/
     └── services/

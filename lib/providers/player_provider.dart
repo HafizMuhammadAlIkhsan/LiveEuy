@@ -1,18 +1,18 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class PlayerSettings {
-  final String resolution; // '4K UHD', '1080p', '720p', 'Auto'
+  final String resolution; // 'Otomatis', '1080p FHD', '720p HD', '480p SD'
   final double playbackSpeed; // 0.75, 1.0, 1.25, 1.5, 2.0
   final String subtitle; // 'Bahasa Indonesia', 'English', 'Japanese', 'Nonaktif'
   final bool isStatsForNerdsVisible;
   final bool isAmbientGlowEnabled;
 
   const PlayerSettings({
-    this.resolution = 'Auto (1080p)',
+    this.resolution = 'Otomatis',
     this.playbackSpeed = 1.0,
     this.subtitle = 'Bahasa Indonesia',
     this.isStatsForNerdsVisible = false,
-    this.isAmbientGlowEnabled = true,
+    this.isAmbientGlowEnabled = false,
   });
 
   PlayerSettings copyWith({
@@ -59,3 +59,10 @@ class PlayerNotifier extends StateNotifier<PlayerSettings> {
 final playerProvider = StateNotifierProvider<PlayerNotifier, PlayerSettings>((ref) {
   return PlayerNotifier();
 });
+
+const List<String> availableResolutions = [
+  'Otomatis',
+  '1080p FHD',
+  '720p HD',
+  '480p SD',
+];
