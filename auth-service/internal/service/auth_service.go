@@ -9,7 +9,6 @@ import (
 	"time"
 
 	models "github.com/DXR3IN/auth-service/internal/domain"
-	"github.com/DXR3IN/auth-service/internal/repository"
 	"github.com/DXR3IN/auth-service/internal/utils"
 	"github.com/DXR3IN/auth-service/pkg/logger"
 )
@@ -24,11 +23,11 @@ var (
 
 const (
 	refreshTokenDuration = 30 * 24 * time.Hour
-	defaultPicture        = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=160&auto=format&fit=crop&q=80"
+	defaultPicture       = models.DefaultPicture
 )
 
 type AuthService struct {
-	repo        repository.UserRepository
+	repo        models.UserRepository
 	jwt         models.TokenManager
 	sessionRepo models.SessionRepository
 }
@@ -39,7 +38,7 @@ type AuthResult struct {
 	RefreshToken string
 }
 
-func NewAuthService(r repository.UserRepository, jwt models.TokenManager, sessionRepo models.SessionRepository) *AuthService {
+func NewAuthService(r models.UserRepository, jwt models.TokenManager, sessionRepo models.SessionRepository) *AuthService {
 	return &AuthService{repo: r, jwt: jwt, sessionRepo: sessionRepo}
 }
 
@@ -50,17 +49,7 @@ func generateRefreshToken(userID string) (*models.RefreshTokenSession, error) {
 	}
 
 	tokenStr := hex.EncodeToString(b)
-	now := time.Now()
-
-	session := &models.RefreshTokenSession{
-		Token:     tokenStr,
-		UserID:    userID,
-		CreatedAt: now,
-		ExpiresAt: now.Add(refreshTokenDuration),
-		IsRevoked: false,
-	}
-
-	return session, nil
+	return models.NewRefreshTokenSession(tokenStr, userID, "", refreshTokenDuration), nil
 }
 
 func (s *AuthService) Register(ctx context.Context, name, email, password, tier string, deviceName string) (*AuthResult, error) {
@@ -77,28 +66,12 @@ func (s *AuthService) Register(ctx context.Context, name, email, password, tier 
 		return nil, err
 	}
 
-	if tier == "" {
-		tier = "VIP Standard"
+	subTier := models.ParseStageTier(tier)
+	newUser, err := models.NewUser("", name, email, hashed, subTier, "local")
+	if err != nil {
+		return nil, err
 	}
 
-	devices := 2
-	if tier == "Free Guest" {
-		devices = 1
-	} else if tier == "VIP Cinema Ultra" {
-		devices = 4
-	}
-
-	newUser := &models.User{
-		Name:       name,
-		Email:      email,
-		Password:   hashed,
-		Picture:     defaultPicture,
-		Role:       "user",
-		Tier:       tier,
-		Provider:   "local",
-		WatchHours: 0.0,
-		Devices:    devices,
-	}
 	if err := s.repo.Create(newUser); err != nil {
 		return nil, err
 	}
@@ -113,7 +86,7 @@ func (s *AuthService) Register(ctx context.Context, name, email, password, tier 
 	}
 	refreshToken.DeviceName = deviceName
 
-	_ = s.sessionRepo.EnforceMaxDevices(ctx, newUser.ID, devices)
+	_ = s.sessionRepo.EnforceMaxDevices(ctx, newUser.ID, newUser.MaxAllowedDevices())
 
 	if err := s.sessionRepo.Save(ctx, refreshToken); err != nil {
 		return nil, err
@@ -146,11 +119,7 @@ func (s *AuthService) Login(ctx context.Context, email, password string, deviceN
 	}
 	refreshToken.DeviceName = deviceName
 
-	maxDevices := u.Devices
-	if maxDevices <= 0 {
-		maxDevices = 2
-	}
-	_ = s.sessionRepo.EnforceMaxDevices(ctx, u.ID, maxDevices)
+	_ = s.sessionRepo.EnforceMaxDevices(ctx, u.ID, u.MaxAllowedDevices())
 
 	if err := s.sessionRepo.Save(ctx, refreshToken); err != nil {
 		return nil, err
@@ -166,7 +135,6 @@ func (s *AuthService) DemoLogin(ctx context.Context, persona string, deviceName 
 		demoRole   string
 		demoTier   string
 		watchHours float64
-		devices    int
 	)
 
 	switch persona {
@@ -174,16 +142,14 @@ func (s *AuthService) DemoLogin(ctx context.Context, persona string, deviceName 
 		demoEmail = "hafiz@liveeuy.id"
 		demoName = "Hafiz Muhammad"
 		demoRole = "admin"
-		demoTier = "VIP Cinema Ultra"
+		demoTier = "vip"
 		watchHours = 48.5
-		devices = 4
 	case "budi":
 		demoEmail = "budi@liveeuy.id"
 		demoName = "Budi Santoso"
 		demoRole = "user"
-		demoTier = "VIP Standard"
+		demoTier = "standard"
 		watchHours = 12.0
-		devices = 2
 	default:
 		return nil, fmt.Errorf("persona '%s' tidak dikenali (gunakan 'hafiz' atau 'budi')", persona)
 	}
@@ -193,19 +159,15 @@ func (s *AuthService) DemoLogin(ctx context.Context, persona string, deviceName 
 		return nil, err
 	}
 
+	subTier := models.ParseStageTier(demoTier)
 	if user == nil {
 		hashed, _ := utils.HashPassword("LiveEuy#2026")
-		newUser := &models.User{
-			Name:       demoName,
-			Email:      demoEmail,
-			Password:   hashed,
-			Picture:     defaultPicture,
-			Role:       demoRole,
-			Tier:       demoTier,
-			Provider:   "demo",
-			WatchHours: watchHours,
-			Devices:    devices,
+		newUser, err := models.NewUser("", demoName, demoEmail, hashed, subTier, "demo")
+		if err != nil {
+			return nil, err
 		}
+		newUser.Role = demoRole
+		newUser.WatchHours = watchHours
 		if err := s.repo.Create(newUser); err != nil {
 			return nil, err
 		}
@@ -213,9 +175,8 @@ func (s *AuthService) DemoLogin(ctx context.Context, persona string, deviceName 
 	} else {
 		// Pastikan data role & tier persona terupdate
 		user.Role = demoRole
-		user.Tier = demoTier
+		user.UpgradeTier(subTier)
 		user.WatchHours = watchHours
-		user.Devices = devices
 		_ = s.repo.Update(user)
 	}
 
@@ -230,7 +191,7 @@ func (s *AuthService) DemoLogin(ctx context.Context, persona string, deviceName 
 	}
 	refreshToken.DeviceName = deviceName
 
-	_ = s.sessionRepo.EnforceMaxDevices(ctx, user.ID, devices)
+	_ = s.sessionRepo.EnforceMaxDevices(ctx, user.ID, user.MaxAllowedDevices())
 
 	if err := s.sessionRepo.Save(ctx, refreshToken); err != nil {
 		return nil, err
@@ -328,6 +289,11 @@ func (s *AuthService) ChangePassword(userID, currentPassword, newPassword string
 	if err != nil {
 		return err
 	}
+
+	if err := u.ChangePassword(hashed); err != nil {
+		return err
+	}
+
 	return s.repo.EditPasswordByID(userID, hashed)
 }
 
@@ -349,9 +315,13 @@ func (s *AuthService) ForgotPassword(ctx context.Context, email string) error {
 	return nil
 }
 
-func (s *AuthService) ResetPassword(ctx context.Context, resetToken, newPassword string) error {
+func (s *AuthService) ResetPassword(ctx context.Context, resetToken, newPassword string, userID string) error {
 	if resetToken == "" {
 		return errors.New("token reset tidak valid")
+	}
+	user, err := s.repo.FindByID(userID)
+	if err != nil || user == nil {
+		return nil
 	}
 	// Di masa depan: validasi token reset dari Redis / DB
 	return nil

@@ -32,7 +32,7 @@ func TestJWTManager_RS256(t *testing.T) {
 		Email: "hafiz@liveeuy.id",
 		Name:  "Hafiz Muhammad",
 		Role:  "admin",
-		Tier:  "VIP Cinema Ultra",
+		Stage:  "vip",
 	}
 
 	tokenStr, err := jwtMgr.GenerateAccessToken(user)
@@ -51,8 +51,8 @@ func TestJWTManager_RS256(t *testing.T) {
 	if claims.Role != "admin" {
 		t.Fatalf("expected role 'admin', got %s", claims.Role)
 	}
-	if claims.Tier != "VIP Cinema Ultra" {
-		t.Fatalf("expected tier 'VIP Cinema Ultra', got %s", claims.Tier)
+	if claims.Stage != "vip" {
+		t.Fatalf("expected tier 'vip', got %s", claims.Stage)
 	}
 
 	// Test JWKS

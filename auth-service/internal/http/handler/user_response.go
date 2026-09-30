@@ -18,7 +18,7 @@ type UserContractResponse struct {
 	Name        string  `json:"name"`
 	Email       string  `json:"email"`
 	Picture      string  `json:"picture"`
-	Tier        string  `json:"tier"`
+	Stage        string  `json:"stage"`
 	Role        string  `json:"role"`
 	MemberSince string  `json:"memberSince"`
 	WatchHours  float64 `json:"watchHours"`
@@ -34,9 +34,9 @@ func ToUserContractResponse(u *domain.User) UserContractResponse {
 	if role == "" {
 		role = "user"
 	}
-	tier := u.Tier
-	if tier == "" {
-		tier = "VIP Standard"
+	stage := u.Stage
+	if stage == "" {
+		stage = "guest"
 	}
 	devices := u.Devices
 	if devices == 0 {
@@ -47,7 +47,7 @@ func ToUserContractResponse(u *domain.User) UserContractResponse {
 		Name:        u.Name,
 		Email:       u.Email,
 
-		Tier:        tier,
+		Stage:        stage,
 		Role:        role,
 		MemberSince: u.GetMemberSince(),
 		WatchHours:  u.WatchHours,

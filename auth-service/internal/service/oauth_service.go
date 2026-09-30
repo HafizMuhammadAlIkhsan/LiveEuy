@@ -5,17 +5,16 @@ import (
 	"fmt"
 
 	"github.com/DXR3IN/auth-service/internal/domain"
-	"github.com/DXR3IN/auth-service/internal/repository"
 )
 
 type OAuthService struct {
 	oauthProvider domain.OAuthProvider
-	userRepo      repository.UserRepository
+	userRepo      domain.UserRepository
 	jwtUtil       domain.TokenManager
 	sessionRepo   domain.SessionRepository
 }
 
-func NewOAuthService(oauthProvider domain.OAuthProvider, userRepo repository.UserRepository, jwtUtil domain.TokenManager, sessionRepo domain.SessionRepository) *OAuthService {
+func NewOAuthService(oauthProvider domain.OAuthProvider, userRepo domain.UserRepository, jwtUtil domain.TokenManager, sessionRepo domain.SessionRepository) *OAuthService {
 	return &OAuthService{
 		oauthProvider: oauthProvider,
 		userRepo:      userRepo,
@@ -35,17 +34,15 @@ func (s *OAuthService) HandleGoogleCallback(ctx context.Context, code string) (s
 	}
 
 	user, err := s.userRepo.FindByEmail(googleUser.Email)
-	if err != nil {
-		newUser := &domain.User{
-			Email:    googleUser.Email,
-			Name:     googleUser.Name,
-			Picture:  googleUser.Picture,
-			Provider: "google",
+	if err != nil || user == nil {
+		newUser, err := domain.NewOAuthUser("", googleUser.Name, googleUser.Email, googleUser.Picture, "google")
+		if err != nil {
+			return "", "", fmt.Errorf("gagal inisialisasi entitas user OAuth: %w", err)
 		}
 
 		err = s.userRepo.Create(newUser)
 		if err != nil {
-			return "", "", fmt.Errorf("gagal menyimpar user OAuth ke DB: %w", err)
+			return "", "", fmt.Errorf("gagal menyimpan user OAuth ke DB: %w", err)
 		}
 		user = newUser
 	}
@@ -59,16 +56,12 @@ func (s *OAuthService) HandleGoogleCallback(ctx context.Context, code string) (s
 	if err != nil {
 		return "", "", fmt.Errorf("gagal generate refresh token: %w", err)
 	}
-	
-	maxDevices := user.Devices
-	if maxDevices <= 0 {
-		maxDevices = 2
-	}
-	_ = s.sessionRepo.EnforceMaxDevices(ctx, user.ID, maxDevices)
+
+	_ = s.sessionRepo.EnforceMaxDevices(ctx, user.ID, user.MaxAllowedDevices())
 
 	if err := s.sessionRepo.Save(ctx, refreshTokenSession); err != nil {
 		return "", "", fmt.Errorf("gagal menyimpan refresh token ke redis: %w", err)
 	}
 
 	return refreshTokenSession.Token, accessToken, nil
-}
+}

@@ -17,7 +17,7 @@ type User struct {
 	Provider   string    `gorm:"default:'local'" json:"provider"`
 	Picture    string    `gorm:"column:picture" json:"picture"`
 	Role       string    `gorm:"default:'user'" json:"role"`
-	Tier       string    `gorm:"default:'VIP Standard'" json:"tier"`
+	Stage       string    `gorm:"default:'guest'" json:"stage"`
 	WatchHours float64   `gorm:"default:0.0" json:"watch_hours"`
 	Devices    int       `gorm:"default:2" json:"devices"`
 	CreatedAt  time.Time `gorm:"autoCreateTime" json:"created_at"`
@@ -38,8 +38,8 @@ func (u *User) BeforeCreate(tx *gorm.DB) error {
 	if u.Role == "" {
 		u.Role = "user"
 	}
-	if u.Tier == "" {
-		u.Tier = "VIP Standard"
+	if u.Stage == "" {
+		u.Stage = "VIP Standard"
 	}
 	if u.Devices == 0 {
 		u.Devices = 2
@@ -65,7 +65,7 @@ func (u *User) ToDomain() *models.User {
 		Provider:   u.Provider,
 		Picture:    u.Picture,
 		Role:       u.Role,
-		Tier:       u.Tier,
+		Stage:       u.Stage,
 		WatchHours: u.WatchHours,
 		Devices:    u.Devices,
 		CreatedAt:  u.CreatedAt,
@@ -73,15 +73,8 @@ func (u *User) ToDomain() *models.User {
 	}
 }
 
-type UserRepository interface {
-	Create(u *models.User) error
-	FindByEmail(email string) (*models.User, error)
-	FindByID(id string) (*models.User, error)
-	EditPasswordByID(ID, newPassword string) error
-	EditNameByID(ID, newName string) error
-	EditProfile(ID, name, picture string) error
-	Update(u *models.User) error
-}
+// UserRepository is an alias to the Domain Port domain.UserRepository for backward compatibility.
+type UserRepository = models.UserRepository
 
 type userRepo struct {
 	db *gorm.DB
@@ -100,7 +93,7 @@ func (r *userRepo) Create(u *models.User) error {
 		Provider:   u.Provider,
 		Picture:    u.Picture,
 		Role:       u.Role,
-		Tier:       u.Tier,
+		Stage:       u.Stage,
 		WatchHours: u.WatchHours,
 		Devices:    u.Devices,
 		CreatedAt:  u.CreatedAt,
@@ -143,7 +136,7 @@ func (r *userRepo) Update(u *models.User) error {
 
 		"picture":     u.Picture,
 		"role":        u.Role,
-		"tier":        u.Tier,
+		"stage":        u.Stage,
 		"watch_hours": u.WatchHours,
 		"devices":     u.Devices,
 	}).Error

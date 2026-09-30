@@ -6,14 +6,13 @@ import (
 	"github.com/DXR3IN/auth-service/internal/domain"
 	h "github.com/DXR3IN/auth-service/internal/http/handler"
 	"github.com/DXR3IN/auth-service/internal/http/middleware"
-	"github.com/DXR3IN/auth-service/internal/repository"
 	"github.com/DXR3IN/auth-service/internal/service"
 	ginpkg "github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-func NewRouter(cfg *config.Config, userRepo repository.UserRepository, jwtMgr domain.TokenManager, sessionRepo domain.SessionRepository, oauthProvider domain.OAuthProvider) *ginpkg.Engine {
+func NewRouter(cfg *config.Config, userRepo domain.UserRepository, jwtMgr domain.TokenManager, sessionRepo domain.SessionRepository, oauthProvider domain.OAuthProvider) *ginpkg.Engine {
 	r := ginpkg.Default()
 
 	// Swagger documentation route

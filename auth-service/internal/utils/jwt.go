@@ -10,6 +10,15 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+// jwtCustomClaims is the infrastructure-specific adapter struct for signing/parsing with golang-jwt.
+type jwtCustomClaims struct {
+	jwt.RegisteredClaims
+	Email string `json:"email,omitempty"`
+	Name  string `json:"name,omitempty"`
+	Role  string `json:"role,omitempty"`
+	Stage  string `json:"stage,omitempty"`
+}
+
 type JWTManager struct {
 	privateKey *rsa.PrivateKey
 	publicKey  *rsa.PublicKey
@@ -37,14 +46,14 @@ func (j *JWTManager) GenerateAccessToken(user *domain.User) (string, error) {
 	now := time.Now()
 	role := user.Role
 	if role == "" {
-		role = "user"
+		role = string(domain.RoleUser)
 	}
-	tier := user.Tier
-	if tier == "" {
-		tier = "VIP Standard"
+	stage := user.Stage
+	if stage == "" {
+		stage = string(domain.StageGuest)
 	}
 
-	claims := &domain.JWTClaims{
+	claims := &jwtCustomClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   fmt.Sprintf("%v", user.ID),
 			IssuedAt:  jwt.NewNumericDate(now),
@@ -55,7 +64,7 @@ func (j *JWTManager) GenerateAccessToken(user *domain.User) (string, error) {
 		Email: user.Email,
 		Name:  user.Name,
 		Role:  role,
-		Tier:  tier,
+		Stage:  stage,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
@@ -64,12 +73,12 @@ func (j *JWTManager) GenerateAccessToken(user *domain.User) (string, error) {
 	return token.SignedString(j.privateKey)
 }
 
-func (j *JWTManager) Verify(tokenStr string) (*domain.JWTClaims, error) {
+func (j *JWTManager) Verify(tokenStr string) (*domain.TokenClaims, error) {
 	if j.publicKey == nil {
 		return nil, errors.New("RSA public key is not configured for verification")
 	}
 
-	token, err := jwt.ParseWithClaims(tokenStr, &domain.JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenStr, &jwtCustomClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v (expected RS256)", token.Header["alg"])
 		}
@@ -79,8 +88,25 @@ func (j *JWTManager) Verify(tokenStr string) (*domain.JWTClaims, error) {
 		return nil, err
 	}
 
-	if claims, ok := token.Claims.(*domain.JWTClaims); ok && token.Valid {
-		return claims, nil
+	if claims, ok := token.Claims.(*jwtCustomClaims); ok && token.Valid {
+		var exp time.Time
+		if claims.ExpiresAt != nil {
+			exp = claims.ExpiresAt.Time
+		}
+		var iat time.Time
+		if claims.IssuedAt != nil {
+			iat = claims.IssuedAt.Time
+		}
+		return &domain.TokenClaims{
+			Subject:   claims.Subject,
+			Email:     claims.Email,
+			Name:      claims.Name,
+			Role:      claims.Role,
+			Stage:      claims.Stage,
+			Issuer:    claims.Issuer,
+			IssuedAt:  iat,
+			ExpiresAt: exp,
+		}, nil
 	}
 	return nil, errors.New("invalid token")
 }

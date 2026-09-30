@@ -46,11 +46,12 @@ func AuthRequired(jwtMgr domain.TokenManager) gin.HandlerFunc {
 			})
 			return
 		}
-		c.Set("owner_id", claims.Subject)
+		
+		c.Set("user_id", claims.Subject)
 		c.Set("user_email", claims.Email)
 		c.Set("user_name", claims.Name)
 		c.Set("user_role", claims.Role)
-		c.Set("user_tier", claims.Tier)
+		c.Set("user_stage", claims.Stage)
 		c.Next()
 	}
 }

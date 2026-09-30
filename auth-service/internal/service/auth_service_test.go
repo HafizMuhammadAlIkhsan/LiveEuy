@@ -89,7 +89,7 @@ func (m *mockTokenManager) Verify(tokenStr string) (*domain.JWTClaims, error) {
 	return &domain.JWTClaims{
 		Email: "hafiz@liveeuy.id",
 		Role:  "admin",
-		Tier:  "VIP Cinema Ultra",
+		Stage:  "guest",
 	}, nil
 }
 
@@ -223,8 +223,8 @@ func TestAuthService_RegisterAndLogin(t *testing.T) {
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
 		}
-		if res.User.Tier != "VIP Cinema Ultra" {
-			t.Fatalf("expected tier VIP Cinema Ultra, got %s", res.User.Tier)
+		if res.User.Stage != "vip" {
+			t.Fatalf("expected tier VIP Cinema Ultra, got %s", res.User.Stage)
 		}
 		if !enforced {
 			t.Fatalf("expected EnforceMaxDevices to be called")
@@ -241,7 +241,7 @@ func TestAuthService_RegisterAndLogin(t *testing.T) {
 					Email:    email,
 					Password: hashedPwd,
 					Role:     "user",
-					Tier:     "VIP Standard",
+					Stage:     "vip",
 					Devices:  2,
 				}, nil
 			},

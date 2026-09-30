@@ -43,12 +43,12 @@ func sendError(c *gin.Context, httpStatus int, message string, errType string, c
 
 func setRefreshTokenCookie(c *gin.Context, token string) {
 	c.SetSameSite(http.SameSiteStrictMode)
-	c.SetCookie("refreshToken", token, 2592000, "/api/v1/auth", "", false, true)
+	c.SetCookie("refreshToken", token, 2592000, "/api/v1/auth", "", true, true)
 }
 
 func clearRefreshTokenCookie(c *gin.Context) {
 	c.SetSameSite(http.SameSiteStrictMode)
-	c.SetCookie("refreshToken", "", -1, "/api/v1/auth", "", false, true)
+	c.SetCookie("refreshToken", "", -1, "/api/v1/auth", "", true, true)
 }
 
 // Register godoc
@@ -256,7 +256,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 // @Failure 401 {object} APIErrorResponse "Unauthorized"
 // @Router /api/v1/auth/logout-all [post]
 func (h *AuthHandler) LogoutAll(c *gin.Context) {
-	userID, exists := c.Get("owner_id")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		sendError(c, http.StatusUnauthorized, "Access token tidak valid atau telah kedaluwarsa.", "UNAUTHORIZED", "AUTH_401_02", nil)
 		return
@@ -279,7 +279,7 @@ func (h *AuthHandler) LogoutAll(c *gin.Context) {
 // @Failure 404 {object} APIErrorResponse "User not found"
 // @Router /api/v1/auth/me [get]
 func (h *AuthHandler) Me(c *gin.Context) {
-	userID, exists := c.Get("owner_id")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		sendError(c, http.StatusUnauthorized, "Access token tidak valid atau telah kedaluwarsa.", "UNAUTHORIZED", "AUTH_401_02", nil)
 		return
@@ -313,7 +313,7 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	userID, exists := c.Get("owner_id")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		sendError(c, http.StatusUnauthorized, "Access token tidak valid.", "UNAUTHORIZED", "AUTH_401_02", nil)
 		return
@@ -347,7 +347,7 @@ func (h *AuthHandler) ChangePassword(c *gin.Context) {
 		return
 	}
 
-	userID, exists := c.Get("owner_id")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		sendError(c, http.StatusUnauthorized, "Access token tidak valid.", "UNAUTHORIZED", "AUTH_401_02", nil)
 		return
@@ -404,7 +404,19 @@ func (h *AuthHandler) ResetPassword(c *gin.Context) {
 		return
 	}
 
-	if err := h.svc.ResetPassword(c.Request.Context(), req.Token, req.NewPassword); err != nil {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		sendError(c, http.StatusUnauthorized, "Access token tidak valid.", "UNAUTHORIZED", "AUTH_401_02", nil)
+		return
+	}
+
+	userIDStr, ok := userID.(string)
+	if !ok {
+		sendError(c, http.StatusUnauthorized, "Token salah.", "UNAUTHORIZED", "AUTH_401_02", nil)
+		return
+	}
+
+	if err := h.svc.ResetPassword(c.Request.Context(), req.Token, req.NewPassword, userIDStr); err != nil {
 		sendError(c, http.StatusBadRequest, "Token reset password tidak valid atau telah kedaluwarsa.", "BAD_REQUEST", "AUTH_400_01", nil)
 		return
 	}
@@ -419,7 +431,7 @@ func (h *AuthHandler) UpdateName(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	userID, exists := c.Get("owner_id")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "unauthorized"})
 		return
@@ -438,7 +450,7 @@ func (h *AuthHandler) UpdatePassword(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
 		return
 	}
-	userID, exists := c.Get("owner_id")
+	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "error": "unauthorized"})
 		return

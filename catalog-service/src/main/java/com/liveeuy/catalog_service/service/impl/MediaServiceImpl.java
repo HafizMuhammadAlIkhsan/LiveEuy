@@ -86,7 +86,7 @@ public class MediaServiceImpl implements MediaService {
                 .collect(Collectors.toList());
     }
 
-@Override
+    @Override
     @Transactional
     public MediaResponseDTO createMedia(MediaRequestDTO requestDTO) {
         Media media = mediaMapper.toEntity(requestDTO);
