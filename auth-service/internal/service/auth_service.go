@@ -77,15 +77,16 @@ func (s *AuthService) Register(ctx context.Context, name, email, password, tier 
 		return nil, err
 	}
 
-	if tier == "" {
-		tier = "VIP Standard"
+	// Default new registered accounts to Free Guest tier to prevent unauthorized self-granting of VIP
+	if tier == "" || tier != "Free Guest" {
+		tier = "Free Guest"
 	}
 
-	devices := 2
-	if tier == "Free Guest" {
-		devices = 1
-	} else if tier == "VIP Cinema Ultra" {
+	devices := 1
+	if tier == "VIP Cinema Ultra" {
 		devices = 4
+	} else if tier == "VIP Standard" {
+		devices = 2
 	}
 
 	newUser := &models.User{

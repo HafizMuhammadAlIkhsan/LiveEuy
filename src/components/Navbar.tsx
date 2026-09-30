@@ -24,11 +24,18 @@ import {
   Smartphone,
   Laptop,
   ShieldAlert,
-  Loader2
+  Loader2,
+  Users,
+  Baby,
+  Lock,
+  Smile,
+  Plus,
+  Download
 } from 'lucide-react';
 import { useWatch } from '../context/WatchContext';
 import { ViewTab } from '../types';
 import { useAjaxSearch } from '../hooks/useAjaxSearch';
+import { usePwaInstall } from '../hooks/usePwaInstall';
 
 export const Navbar: React.FC = () => {
   const { 
@@ -47,11 +54,17 @@ export const Navbar: React.FC = () => {
     openDeviceSecurityModal,
     visitorSessions,
     login,
-    broadcastAnnouncement
+    broadcastAnnouncement,
+    profiles,
+    activeProfile,
+    isKidsMode,
+    openFamilyModal,
+    switchProfile
   } = useWatch();
 
   const navigate = useNavigate();
   const location = useLocation();
+  const { isStandalone, promptInstall } = usePwaInstall();
 
   const [isScrolled, setIsScrolled] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -236,6 +249,12 @@ export const Navbar: React.FC = () => {
                 {isInAdminPage && (
                   <span className="px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 uppercase">
                     CMS
+                  </span>
+                )}
+                {isKidsMode && !isInAdminPage && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black tracking-wider bg-gradient-to-r from-amber-400 to-emerald-400 text-black shadow-sm flex items-center gap-1 uppercase select-none animate-pulse">
+                    <Smile className="w-3 h-3" />
+                    <span>KIDS</span>
                   </span>
                 )}
               </Link>
@@ -467,6 +486,30 @@ export const Navbar: React.FC = () => {
                 )}
               </div>
 
+              {/* FAMILY & KIDS MODE BUTTON */}
+              {isKidsMode ? (
+                <button
+                  type="button"
+                  onClick={() => openFamilyModal()}
+                  className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 transition-all min-h-[36px] shadow-sm cursor-pointer"
+                  title="Mode Anak Aktif. Klik untuk beralih profil atau keluar."
+                >
+                  <Smile className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="hidden xs:inline">Mode Anak</span>
+                  <Lock className="w-3 h-3 text-amber-400/80" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => openFamilyModal()}
+                  className="hidden sm:flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 hover:border-brand-500/40 transition-all min-h-[36px] shadow-sm cursor-pointer group"
+                  title="Buka Profil Akun Keluarga & Mode Anak"
+                >
+                  <Users className="w-3.5 h-3.5 text-brand-400 group-hover:scale-110 transition-transform" />
+                  <span className="hidden md:inline font-medium">Keluarga</span>
+                </button>
+              )}
+
               {/* CROSS-PLATFORM MOBILE & BACKEND SYNC BUTTON */}
               <button
                 onClick={() => openMobileSync()}
@@ -530,34 +573,20 @@ export const Navbar: React.FC = () => {
                 /* ================= LOGGED IN USER ================= */
                 <div className="flex items-center gap-1.5 sm:gap-2.5 lg:gap-3">
                   
-                  {/* ADMIN ACTION BUTTON: Only rendered if user is Admin */}
-                  {isAdminUser && (
-                    isInAdminPage ? (
-                      <button
-                        onClick={() => {
-                          setCurrentTab('home');
-                          setSearchQuery('');
-                        }}
-                        className="md:hidden inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/10 text-white border border-white/15 min-h-[36px]"
-                        title="Kembali ke Web"
-                      >
-                        <ArrowLeft className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Web</span>
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => {
-                          setCurrentTab('admin');
-                          setSearchQuery('');
-                        }}
-                        className="inline-flex items-center gap-1.5 px-2.5 lg:px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors bg-white/5 hover:bg-white/10 text-slate-200 hover:text-white border border-white/10 min-h-[36px]"
-                        title="Buka Panel Manajemen CMS Admin"
-                      >
-                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                        <span className="hidden xs:inline md:hidden lg:inline">CMS Admin</span>
-                        <span className="hidden md:inline lg:hidden">CMS</span>
-                      </button>
-                    )
+                  {/* When on admin page in mobile, show Back to Web */}
+                  {isInAdminPage && (
+                    <button
+                      onClick={() => {
+                        setCurrentTab('home');
+                        setSearchQuery('');
+                        navigate('/');
+                      }}
+                      className="md:hidden inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/10 text-white border border-white/15 min-h-[36px]"
+                      title="Kembali ke Web"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Web</span>
+                    </button>
                   )}
 
                   {/* Profile Menu Popover */}
@@ -568,168 +597,355 @@ export const Navbar: React.FC = () => {
                       aria-label="Profil Pengguna"
                     >
                       {/* Netflix-style clean square avatar */}
-                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-md overflow-hidden bg-surface-800 border border-white/20 hover:border-white/40 transition-colors">
+                      <div className={`relative w-7 h-7 sm:w-8 sm:h-8 rounded-md overflow-hidden bg-surface-800 border transition-all ${
+                        isKidsMode 
+                          ? 'border-amber-400 ring-2 ring-amber-400/30' 
+                          : 'border-white/20 hover:border-white/40'
+                      }`}>
                         <img
-                          src={user.avatar}
-                          alt={user.name}
+                          src={activeProfile?.avatar || user.avatar}
+                          alt={activeProfile?.name || user.name}
                           className="w-full h-full object-cover"
                         />
+                        {isKidsMode && (
+                          <div className="absolute bottom-0 inset-x-0 bg-amber-500 text-black text-[7px] font-black text-center leading-none py-0.5">
+                            KIDS
+                          </div>
+                        )}
                       </div>
                       <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden sm:block" />
                     </button>
 
                     {showProfileMenu && (
-                      <div className="absolute top-full right-0 mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-xl bg-[#10121a]/95 backdrop-blur-xl border border-white/10 p-2 shadow-2xl z-50 animate-fade-in text-xs sm:text-sm">
-                        
-                        {/* Profile Header */}
-                        <div className="px-3 py-2.5 border-b border-white/10">
-                          <div className="flex items-center justify-between">
-                            <p className="font-bold text-white truncate">{user.name}</p>
-                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-white/10 text-slate-300">
-                              {user.tier}
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-slate-400 truncate mt-0.5">{user.email}</p>
-                        </div>
+                      <>
+                        {/* Mobile Backdrop Overlay - closes menu when clicking outside */}
+                        <div 
+                          className="fixed inset-0 bg-black/75 backdrop-blur-sm z-40 sm:hidden transition-opacity animate-fade-in"
+                          onClick={() => setShowProfileMenu(false)}
+                          aria-hidden="true"
+                        />
 
-                        {/* Menu Options */}
-                        <div className="py-1">
-                          {isAdminUser && (
-                            isInAdminPage ? (
+                        {/* Responsive Profile Modal / Popover */}
+                        <div 
+                          className="fixed sm:absolute inset-x-3 sm:inset-x-auto top-14 sm:top-full right-auto sm:right-0 mt-0 sm:mt-2 w-auto sm:w-80 max-w-full sm:max-w-xs rounded-2xl bg-[#0e1017] sm:bg-[#10121a]/98 backdrop-blur-2xl border border-white/15 shadow-2xl z-50 animate-fade-in text-xs sm:text-sm flex flex-col max-h-[82vh] sm:max-h-[min(650px,calc(100vh-5rem))] overflow-hidden"
+                          role="dialog"
+                          aria-modal="true"
+                        >
+                          {/* 1. Profile Header (Fixed top) */}
+                          <div className="px-3.5 py-3 border-b border-white/10 bg-white/[0.03] flex-shrink-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="relative w-8 h-8 rounded-lg overflow-hidden bg-surface-800 border border-white/20 flex-shrink-0 shadow-sm">
+                                  <img
+                                    src={activeProfile?.avatar || user.avatar}
+                                    alt={activeProfile?.name || user.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                  {isKidsMode && (
+                                    <div className="absolute bottom-0 inset-x-0 bg-amber-500 text-black text-[7px] font-black text-center leading-none py-0.5">
+                                      KIDS
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5">
+                                    <p className="font-bold text-white truncate text-xs sm:text-sm">{user.name}</p>
+                                    <span className={`text-[9px] sm:text-[10px] font-semibold px-1.5 py-0.5 rounded flex items-center gap-1 flex-shrink-0 ${
+                                      user.tier?.includes('VIP')
+                                        ? 'bg-gradient-to-r from-amber-500/20 to-brand-500/20 text-amber-300 border border-amber-500/30'
+                                        : 'bg-white/10 text-slate-300'
+                                    }`}>
+                                      {user.tier?.includes('VIP') && <Crown className="w-2.5 h-2.5 text-amber-400" />}
+                                      <span>{user.tier}</span>
+                                    </span>
+                                  </div>
+                                  <p className="text-[11px] text-slate-400 truncate mt-0.5">{user.email}</p>
+                                </div>
+                              </div>
+
+                              {/* Mobile Close Button */}
                               <button
-                                onClick={() => {
-                                  setCurrentTab('home');
-                                  setShowProfileMenu(false);
-                                }}
-                                className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 transition-colors min-h-[40px]"
+                                type="button"
+                                onClick={() => setShowProfileMenu(false)}
+                                className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors sm:hidden flex-shrink-0"
+                                aria-label="Tutup Menu Profil"
                               >
-                                <ArrowLeft className="w-4 h-4 text-brand-400" />
-                                <span>Kembali ke Website</span>
+                                <X className="w-4 h-4" />
                               </button>
-                            ) : (
+                            </div>
+
+                            {user.tier?.includes('VIP') && (
+                              <div className="mt-2 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[10px] text-emerald-300 font-semibold">
+                                <Sparkles className="w-3 h-3 text-emerald-400 flex-shrink-0" />
+                                <span className="truncate">Benefit Aktif: Bebas Iklan & Billboard</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* 2. Scrollable Body with Brand Harmonized Scrollbar */}
+                          <div className="flex-1 overflow-y-auto overscroll-contain p-2 sm:p-2.5 pr-1.5 sm:pr-2 space-y-1.5 divide-y divide-white/5 custom-scrollbar profile-scrollbar">
+                            {/* Quick Family Profiles Switcher */}
+                            <div className="px-1.5 py-1 pb-2">
+                              <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                                <span>Profil Aktif:</span>
+                                <span className={activeProfile.isKids ? 'text-amber-400 font-extrabold' : 'text-brand-400 font-extrabold'}>
+                                  {activeProfile.name}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                                {profiles.map(p => (
+                                  <button
+                                    key={p.id}
+                                    type="button"
+                                    onClick={() => {
+                                      if (activeProfile.isKids && !p.isKids) {
+                                        openFamilyModal();
+                                        setShowProfileMenu(false);
+                                      } else {
+                                        switchProfile(p.id);
+                                        setShowProfileMenu(false);
+                                      }
+                                    }}
+                                    className="relative flex flex-col items-center flex-shrink-0 group cursor-pointer"
+                                    title={`${p.name}${p.isKids ? ' (Mode Anak)' : ''}`}
+                                  >
+                                    <div className={`w-8 h-8 rounded-lg overflow-hidden border-2 transition-all ${
+                                      p.id === activeProfile.id
+                                        ? 'border-brand-400 scale-105 shadow-md shadow-brand-500/40 ring-2 ring-brand-500/30'
+                                        : 'border-white/20 opacity-70 group-hover:opacity-100 group-hover:border-white/40'
+                                    }`}>
+                                      <img src={p.avatar} alt={p.name} className="w-full h-full object-cover" />
+                                    </div>
+                                    <span className="text-[9px] text-slate-300 truncate max-w-[48px] mt-1 font-medium">
+                                      {p.name.split(' ')[0]}
+                                    </span>
+                                  </button>
+                                ))}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    openFamilyModal();
+                                    setShowProfileMenu(false);
+                                  }}
+                                  className="w-8 h-8 rounded-lg border border-dashed border-white/30 hover:border-brand-400 hover:bg-brand-500/10 flex items-center justify-center text-slate-400 hover:text-brand-300 transition-colors flex-shrink-0 mb-3 cursor-pointer"
+                                  title="Kelola Profil & Akun Keluarga"
+                                >
+                                  <Plus className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Menu Options */}
+                            <div className="pt-1.5 space-y-0.5">
+                              {/* Kelola Profil & Family Sharing Button */}
                               <button
+                                type="button"
                                 onClick={() => {
-                                  setCurrentTab('admin');
+                                  openFamilyModal();
                                   setShowProfileMenu(false);
                                 }}
-                                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 transition-colors font-medium min-h-[40px]"
+                                className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-200 hover:text-white hover:bg-white/5 active:bg-white/10 transition-colors font-medium min-h-[38px] cursor-pointer"
                               >
-                                <span className="flex items-center gap-2">
-                                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                                  <span>Panel CMS Admin</span>
+                                <span className="flex items-center gap-2.5">
+                                  <Users className="w-4 h-4 text-brand-400" />
+                                  <span>Profil & Family Sharing</span>
+                                </span>
+                                <span className="text-[10px] text-slate-400 font-mono bg-white/5 px-1.5 py-0.5 rounded">
+                                  {profiles.length}/5
                                 </span>
                               </button>
-                            )
-                          )}
 
-                          <button
-                            onClick={() => {
-                              setCurrentTab('watchlist');
-                              setShowProfileMenu(false);
-                            }}
-                            className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 transition-colors min-h-[40px]"
-                          >
-                            <Bookmark className="w-4 h-4 text-brand-400" />
-                            <span>Koleksi & Riwayat Saya</span>
-                          </button>
+                              {/* Quick Toggle Kids Mode */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  openFamilyModal();
+                                  setShowProfileMenu(false);
+                                }}
+                                className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 active:bg-amber-500/20 transition-colors font-medium min-h-[38px] cursor-pointer"
+                              >
+                                <span className="flex items-center gap-2.5">
+                                  <Smile className="w-4 h-4 text-amber-400" />
+                                  <span>{isKidsMode ? 'Keluar Mode Anak' : 'Beralih ke Mode Anak'}</span>
+                                </span>
+                                {isKidsMode && <Lock className="w-3.5 h-3.5 text-amber-400" />}
+                              </button>
 
-                          {/* Kelola Perangkat & Keamanan */}
-                          <button
-                            onClick={() => {
-                              openDeviceSecurityModal();
-                              setShowProfileMenu(false);
-                            }}
-                            className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 transition-colors min-h-[40px]"
-                          >
-                            <span className="flex items-center gap-2">
-                              <Laptop className="w-4 h-4 text-cyan-400" />
-                              <span>Perangkat & Keamanan</span>
-                            </span>
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-mono font-bold">
-                              {user.devices || visitorSessions.length || 1} Device
-                            </span>
-                          </button>
+                              {/* Admin CMS Button */}
+                              {isAdminUser && (
+                                isInAdminPage ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setCurrentTab('home');
+                                      navigate('/');
+                                      setShowProfileMenu(false);
+                                    }}
+                                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 active:bg-white/10 transition-colors min-h-[38px] cursor-pointer"
+                                  >
+                                    <ArrowLeft className="w-4 h-4 text-brand-400" />
+                                    <span>Kembali ke Website</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setCurrentTab('admin');
+                                      setShowProfileMenu(false);
+                                    }}
+                                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 active:bg-emerald-500/20 transition-colors font-medium min-h-[38px] cursor-pointer"
+                                  >
+                                    <span className="flex items-center gap-2.5">
+                                      <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                                      <span>Panel CMS Admin</span>
+                                    </span>
+                                  </button>
+                                )
+                              )}
 
-                          {/* Quick Role Switcher for Pair-Testing */}
-                          {isAdminUser ? (
+                              {/* Koleksi & Riwayat */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCurrentTab('watchlist');
+                                  navigate('/watchlist');
+                                  setShowProfileMenu(false);
+                                }}
+                                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 active:bg-white/10 transition-colors min-h-[38px] cursor-pointer"
+                              >
+                                <Bookmark className="w-4 h-4 text-brand-400" />
+                                <span>Koleksi & Riwayat Saya</span>
+                              </button>
+
+                              {/* Perangkat & Keamanan */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  openDeviceSecurityModal();
+                                  setShowProfileMenu(false);
+                                }}
+                                className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 active:bg-white/10 transition-colors min-h-[38px] cursor-pointer"
+                              >
+                                <span className="flex items-center gap-2.5">
+                                  <Laptop className="w-4 h-4 text-cyan-400" />
+                                  <span>Perangkat & Keamanan</span>
+                                </span>
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-mono font-bold">
+                                  {user.devices || visitorSessions.length || 1} Device
+                                </span>
+                              </button>
+
+                              {/* Pasang Aplikasi (PWA) */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setShowProfileMenu(false);
+                                  if (!isStandalone) {
+                                    promptInstall();
+                                  }
+                                }}
+                                className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 active:bg-white/10 transition-colors min-h-[38px] cursor-pointer"
+                              >
+                                <span className="flex items-center gap-2.5">
+                                  <Download className="w-4 h-4 text-brand-400" />
+                                  <span>Pasang Aplikasi</span>
+                                </span>
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300 font-bold">
+                                  {isStandalone ? 'Terpasang' : 'PWA'}
+                                </span>
+                              </button>
+
+                              {/* Role Switcher for Pair Testing */}
+                              {isAdminUser ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    login({
+                                      name: 'Budi Santoso',
+                                      email: 'budi@liveeuy.id',
+                                      tier: 'VIP Standard',
+                                      role: 'user',
+                                      watchHours: 12.0,
+                                      devices: 1
+                                    });
+                                    setCurrentTab('home');
+                                    navigate('/');
+                                    setShowProfileMenu(false);
+                                  }}
+                                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 active:bg-white/10 transition-colors min-h-[38px] cursor-pointer"
+                                  title="Beralih ke akun penonton"
+                                >
+                                  <span className="flex items-center gap-2.5">
+                                    <UserIcon className="w-4 h-4 text-slate-400" />
+                                    <span>Akun Penonton</span>
+                                  </span>
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 font-mono">Budi</span>
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    login({
+                                      name: 'Hafiz Muhammad',
+                                      email: 'hafiz@liveeuy.id',
+                                      tier: 'VIP Cinema Ultra',
+                                      role: 'admin',
+                                      watchHours: 48.5,
+                                      devices: 3
+                                    });
+                                    setShowProfileMenu(false);
+                                  }}
+                                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 active:bg-emerald-500/20 transition-colors min-h-[38px] cursor-pointer"
+                                  title="Beralih ke akun administrator"
+                                >
+                                  <span className="flex items-center gap-2.5">
+                                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                                    <span>Akun Admin CMS</span>
+                                  </span>
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 font-mono">Hafiz</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* 3. Sticky Bottom Footer with High-Visibility Logout Button */}
+                          <div className="flex-shrink-0 p-2.5 sm:p-3 border-t border-white/10 bg-[#090b10] space-y-1.5">
+                            {/* Main Logout Button */}
                             <button
+                              type="button"
                               onClick={() => {
-                                login({
-                                  name: 'Budi Santoso',
-                                  email: 'budi@liveeuy.id',
-                                  tier: 'VIP Standard',
-                                  role: 'user',
-                                  watchHours: 12.0,
-                                  devices: 1
-                                });
+                                logout();
                                 setCurrentTab('home');
+                                navigate('/');
                                 setShowProfileMenu(false);
                               }}
-                              className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors border-t border-white/5 mt-1 min-h-[40px]"
-                              title="Beralih ke akun penonton"
+                              className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 active:bg-rose-500/35 border border-rose-500/30 text-rose-300 hover:text-white font-bold text-xs sm:text-sm transition-all min-h-[42px] cursor-pointer shadow-sm shadow-rose-950/40"
                             >
-                              <span className="flex items-center gap-2">
-                                <UserIcon className="w-4 h-4 text-slate-400" />
-                                <span>Akun Penonton</span>
-                              </span>
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 font-mono">Budi</span>
+                              <LogOut className="w-4 h-4 text-rose-400" />
+                              <span>Keluar dari Sesi Ini (Logout)</span>
                             </button>
-                          ) : (
+
+                            {/* Logout Semua Device */}
                             <button
+                              type="button"
                               onClick={() => {
-                                login({
-                                  name: 'Hafiz Muhammad',
-                                  email: 'hafiz@liveeuy.id',
-                                  tier: 'VIP Cinema Ultra',
-                                  role: 'admin',
-                                  watchHours: 48.5,
-                                  devices: 3
-                                });
+                                openDeviceSecurityModal();
                                 setShowProfileMenu(false);
                               }}
-                              className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 transition-colors border-t border-white/5 mt-1 min-h-[40px]"
-                              title="Beralih ke akun administrator"
+                              className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-slate-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors text-[11px] font-semibold cursor-pointer"
+                              title="Keluar dari semua perangkat"
                             >
-                              <span className="flex items-center gap-2">
-                                <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                                <span>Akun Admin CMS</span>
+                              <span className="flex items-center gap-1.5">
+                                <ShieldAlert className="w-3.5 h-3.5 text-rose-400/80" />
+                                <span>Logout Semua Device</span>
                               </span>
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 font-mono">Hafiz</span>
+                              <span className="text-[9px] px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold uppercase">
+                                Semua
+                              </span>
                             </button>
-                          )}
-
-                          {/* Logout */}
-                          <button
-                            onClick={() => {
-                              logout();
-                              setCurrentTab('home');
-                              setShowProfileMenu(false);
-                            }}
-                            className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors min-h-[40px]"
-                          >
-                            <LogOut className="w-4 h-4" />
-                            <span>Keluar dari Sesi Ini</span>
-                          </button>
-
-                          {/* Logout Semua Device */}
-                          <button
-                            onClick={() => {
-                              openDeviceSecurityModal();
-                              setShowProfileMenu(false);
-                            }}
-                            className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-rose-400/80 hover:text-rose-300 hover:bg-rose-500/10 transition-colors text-xs font-semibold"
-                            title="Keluar dari semua perangkat"
-                          >
-                            <span className="flex items-center gap-2">
-                              <ShieldAlert className="w-4 h-4 text-rose-400" />
-                              <span>Logout Semua Device</span>
-                            </span>
-                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold uppercase">
-                              Semua
-                            </span>
-                          </button>
+                          </div>
                         </div>
-                      </div>
+                      </>
                     )}
                   </div>
                 </div>
@@ -815,20 +1031,21 @@ export const Navbar: React.FC = () => {
       ) : (
         /* Mobile Bottom Nav in Consumer/Viewer Mode */
         <nav 
-          className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#08090d]/95 backdrop-blur-xl border-t border-white/[0.08] px-2 py-2 flex items-center justify-around shadow-2xl safe-area-bottom"
+          className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#08090d]/95 backdrop-blur-xl border-t border-white/[0.08] px-1.5 py-1.5 flex items-center justify-around shadow-2xl safe-area-bottom"
           style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
         >
-          {navItems.map(item => {
-            const isActive = (location.pathname === item.path || (item.path === '/' && location.pathname === '')) && !searchQuery;
+          {navItems.filter(item => item.tab !== 'trending').map(item => {
+            const isActive = (location.pathname === item.path || (item.path === '/' && location.pathname === '')) && !searchQuery && !showProfileMenu;
             return (
               <Link
                 key={item.tab}
                 to={item.path}
                 onClick={() => {
                   setSearchQuery('');
+                  setShowProfileMenu(false);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                className={`flex flex-col items-center justify-center py-0.5 px-3 transition-colors relative ${
+                className={`flex flex-col items-center justify-center py-0.5 px-2 transition-colors relative ${
                   isActive ? 'text-white' : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
@@ -841,7 +1058,7 @@ export const Navbar: React.FC = () => {
                   )}
                 </div>
                 <span className={`text-[10px] mt-1 tracking-tight ${isActive ? 'font-semibold text-white' : 'font-normal'}`}>
-                  {item.label}
+                  {item.tabletLabel || item.label}
                 </span>
                 {isActive && (
                   <span className="w-1 h-1 rounded-full bg-brand-500 mt-0.5" />
@@ -849,6 +1066,44 @@ export const Navbar: React.FC = () => {
               </Link>
             );
           })}
+
+          {/* Profile / Account Tab on Mobile Bottom Bar */}
+          {isLoggedIn ? (
+            <button
+              type="button"
+              onClick={() => setShowProfileMenu(prev => !prev)}
+              className={`flex flex-col items-center justify-center py-0.5 px-2 transition-colors relative cursor-pointer ${
+                showProfileMenu ? 'text-white' : 'text-slate-400 hover:text-slate-200'
+              }`}
+              aria-label="Profil Akun"
+            >
+              <div className={`relative w-4.5 h-4.5 rounded-full overflow-hidden border transition-all ${
+                showProfileMenu ? 'border-brand-400 ring-2 ring-brand-500/40' : 'border-white/30'
+              }`}>
+                <img
+                  src={activeProfile?.avatar || user?.avatar}
+                  alt={user?.name || 'Profil'}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <span className={`text-[10px] mt-1 tracking-tight ${showProfileMenu ? 'font-semibold text-white' : 'font-normal'}`}>
+                Profil
+              </span>
+              {showProfileMenu && (
+                <span className="w-1 h-1 rounded-full bg-brand-500 mt-0.5" />
+              )}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => openAuthModal('login')}
+              className="flex flex-col items-center justify-center py-0.5 px-2 transition-colors relative text-slate-400 hover:text-slate-200 cursor-pointer"
+              aria-label="Masuk Akun"
+            >
+              <LogIn className="w-4 h-4" />
+              <span className="text-[10px] mt-1 tracking-tight">Masuk</span>
+            </button>
+          )}
         </nav>
       )}
     </>

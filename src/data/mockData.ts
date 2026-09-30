@@ -1,4 +1,4 @@
-import { MediaItem } from '../types';
+import { MediaItem, StreamingPlatform } from '../types';
 
 export const GENRES = [
   'Semua Genre',
@@ -35,6 +35,16 @@ export const YEARS = [
   '2020'
 ];
 
+export const STREAMING_PLATFORMS = [
+  'Semua Platform',
+  'Netflix',
+  'Disney+',
+  'Prime Video',
+  'HBO'
+] as const;
+
+export type StreamingPlatformFilter = typeof STREAMING_PLATFORMS[number];
+
 export const MOCK_MEDIA: MediaItem[] = [
   {
     id: 'cyberpunk-neo-nusantara',
@@ -59,8 +69,18 @@ export const MOCK_MEDIA: MediaItem[] = [
     isTrending: true,
     isFeatured: true,
     topRank: 1,
+    network: 'Netflix',
+    exclusiveTag: 'Netflix Original Series',
     quality: '4K UHD',
     audio: 'Dolby Atmos',
+    imdbId: 'tt14365620',
+    imdbRating: 9.4,
+    actors: [
+      { name: 'Iko Uwais', character: 'Arga Satria (Mantan Agen Sandi)', profileUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=185&auto=format&fit=crop&q=80' },
+      { name: 'Chelsea Islan', character: 'Dr. Elena Wijaya (Ahli Neuro-Cyber)', profileUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=185&auto=format&fit=crop&q=80' },
+      { name: 'Reza Rahadian', character: 'Viktor Tan (Pimpinan Sindikat Data)', profileUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=185&auto=format&fit=crop&q=80' },
+      { name: 'Tara Basro', character: 'Kapten Maya (Kepala Satuan Siber)', profileUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=185&auto=format&fit=crop&q=80' }
+    ],
     seasons: [
       {
         seasonNumber: 1,
@@ -157,8 +177,17 @@ export const MOCK_MEDIA: MediaItem[] = [
     isTrending: true,
     isFeatured: true,
     topRank: 2,
+    network: 'HBO',
+    exclusiveTag: 'HBO Original Movie',
     quality: '4K UHD',
     audio: 'Dolby Atmos',
+    imdbId: 'tt1160419',
+    imdbRating: 9.1,
+    actors: [
+      { name: 'Alexander Skarsgård', character: 'Komandan Ryan Vance', profileUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=185&auto=format&fit=crop&q=80' },
+      { name: 'Rebecca Ferguson', character: 'Dr. Astra Cole (Astrobiologist)', profileUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=185&auto=format&fit=crop&q=80' },
+      { name: 'Ken Watanabe', character: 'Jenderal Hiroshi (Stasiun Elysium)', profileUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=185&auto=format&fit=crop&q=80' }
+    ],
     reviews: [
       {
         id: 'r3',
@@ -167,6 +196,124 @@ export const MOCK_MEDIA: MediaItem[] = [
         rating: 9.5,
         date: 'Kemarin',
         comment: 'Sinematografinya mengingatkan pada mahakarya Interstellar, sangat megah dan menyentuh emosi.'
+      }
+    ]
+  },
+  {
+    id: 'the-mentalist',
+    title: 'The Mentalist',
+    originalTitle: 'The Mentalist (2008)',
+    type: 'tv',
+    tagline: 'He sees what everyone else misses.',
+    overview: 'Patrick Jane, seorang konsultan independen untuk Biro Investigasi California (CBI), memiliki rekam jejak luar biasa dalam memecahkan kejahatan rumit menggunakan keterampilan observasi dan manipulasi psikologis yang tajam sembari memburu Red John, pembunuh keluarganya.',
+    posterUrl: 'https://images.unsplash.com/photo-1509281373149-e957c6296406?w=600&auto=format&fit=crop&q=80',
+    backdropUrl: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1600&auto=format&fit=crop&q=80',
+    releaseYear: 2008,
+    country: 'Amerika Serikat',
+    rating: 8.6,
+    matchScore: 98,
+    ageRating: '16+',
+    totalSeasons: 7,
+    genres: ['Misteri', 'Drama', 'Thriller'],
+    cast: [
+      'Simon Baker',
+      'Robin Tunney',
+      'Tim Kang',
+      'Rockmond Dunbar',
+      'Joe Adler',
+      'Josie Loren',
+      'David Norona',
+      'Aunjanue Ellis-Taylor'
+    ],
+    director: 'Bruno Heller',
+    videoUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
+    trailerUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    isTrending: true,
+    isFeatured: true,
+    network: 'HBO',
+    exclusiveTag: 'HBO Max Exclusive',
+    quality: 'HD',
+    audio: '5.1 Surround',
+    imdbId: 'tt1196946',
+    imdbRating: 8.2,
+    actors: [
+      {
+        name: 'Simon Baker',
+        character: 'Patrick Jane',
+        profileUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=240&auto=format&fit=crop&q=80'
+      },
+      {
+        name: 'Robin Tunney',
+        character: 'Teresa Lisbon',
+        profileUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=240&auto=format&fit=crop&q=80'
+      },
+      {
+        name: 'Tim Kang',
+        character: 'Kimball Cho',
+        profileUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=240&auto=format&fit=crop&q=80'
+      },
+      {
+        name: 'Rockmond Dunbar',
+        character: 'Dennis Abbott',
+        profileUrl: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=240&auto=format&fit=crop&q=80'
+      },
+      {
+        name: 'Joe Adler',
+        character: 'Jason Wylie',
+        profileUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=240&auto=format&fit=crop&q=80'
+      },
+      {
+        name: 'Josie Loren',
+        character: 'Michelle Vega',
+        profileUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=240&auto=format&fit=crop&q=80'
+      },
+      {
+        name: 'David Norona',
+        character: "Osvaldo 'Oscar' Ardiles",
+        profileUrl: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=240&auto=format&fit=crop&q=80'
+      },
+      {
+        name: 'Aunjanue Ellis-Taylor',
+        character: 'Madeleine Hightower',
+        profileUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=240&auto=format&fit=crop&q=80'
+      }
+    ],
+    seasons: [
+      {
+        seasonNumber: 7,
+        title: 'Musim 7: Babak Terakhir',
+        episodes: [
+          {
+            id: 'ment-s7-e13',
+            episodeNumber: 13,
+            seasonNumber: 7,
+            title: 'White Orchids',
+            overview: "Lisbon menerima lamaran pernikahan kejutan dari Jane, tetapi seorang pembunuh berantai mematikan mengancam kebahagiaan mereka di hari penting.",
+            duration: '40m',
+            thumbnail: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=500&auto=format&fit=crop&q=80',
+            videoUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
+          },
+          {
+            id: 'ment-s7-e12',
+            episodeNumber: 12,
+            seasonNumber: 7,
+            title: 'Brown Shag Carpet',
+            overview: 'Jane setuju untuk sekali lagi berpura-pura menjadi cenayang demi memancing pembunuh berantai keluar dari persembunyian.',
+            duration: '42m',
+            thumbnail: 'https://images.unsplash.com/photo-1485846234645-a62644f84728?w=500&auto=format&fit=crop&q=80',
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
+          },
+          {
+            id: 'ment-s7-e11',
+            episodeNumber: 11,
+            seasonNumber: 7,
+            title: 'Byzantium',
+            overview: 'Seorang pemuda mengaku memiliki indera keenam dan menawarkan petunjuk untuk mengungkap makam rahasia.',
+            duration: '41m',
+            thumbnail: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=500&auto=format&fit=crop&q=80',
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4'
+          }
+        ]
       }
     ]
   },
@@ -193,8 +340,15 @@ export const MOCK_MEDIA: MediaItem[] = [
     isTrending: true,
     isFeatured: true,
     topRank: 3,
+    network: 'Disney+',
+    exclusiveTag: 'Disney+ Exclusive',
     quality: 'Dolby Vision',
     audio: '5.1 Surround',
+    actors: [
+      { name: 'Marsha Timothy', character: 'Detektif Gayatri', profileUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=240&auto=format&fit=crop&q=80' },
+      { name: 'Ario Bayu', character: 'Inspektur Suryo', profileUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=240&auto=format&fit=crop&q=80' },
+      { name: 'Asmara Abigail', character: 'Nyai Larasati (Kuncen)', profileUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=240&auto=format&fit=crop&q=80' }
+    ]
   },
   {
     id: 'tokyo-speedline',
@@ -217,8 +371,15 @@ export const MOCK_MEDIA: MediaItem[] = [
     videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4',
     isFeatured: true,
     topRank: 4,
+    network: 'Prime Video',
+    exclusiveTag: 'Prime Video Exclusive',
     quality: '4K UHD',
     audio: 'Dolby Atmos',
+    actors: [
+      { name: 'Mackenyu', character: 'Ren Takahashi (Pembalap Jalanan)', profileUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=240&auto=format&fit=crop&q=80' },
+      { name: 'Karen Fukuhara', character: 'Aoi Kuroki (Mekanik Legendaris)', profileUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=240&auto=format&fit=crop&q=80' },
+      { name: 'Sung Kang', character: 'Boss Han (Pialang Balap)', profileUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=240&auto=format&fit=crop&q=80' }
+    ]
   },
   {
     id: 'legends-of-valkyrie',
@@ -241,8 +402,15 @@ export const MOCK_MEDIA: MediaItem[] = [
     videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
     isFeatured: true,
     topRank: 5,
+    network: 'Netflix',
+    exclusiveTag: 'Netflix Original',
     quality: '4K UHD',
     audio: 'Dolby Atmos',
+    actors: [
+      { name: 'Travis Fimmel', character: 'Ragnar Lodbrok', profileUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=240&auto=format&fit=crop&q=80' },
+      { name: 'Katheryn Winnick', character: 'Lagertha (Panglima Perisai)', profileUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=240&auto=format&fit=crop&q=80' },
+      { name: 'Clive Standen', character: 'Rollo (Ksatria Beruang)', profileUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=240&auto=format&fit=crop&q=80' }
+    ],
     seasons: [
       {
         seasonNumber: 1,
@@ -293,6 +461,8 @@ export const MOCK_MEDIA: MediaItem[] = [
     videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
     isFeatured: true,
     topRank: 6,
+    network: 'Netflix',
+    exclusiveTag: 'Netflix Film',
     quality: 'HD',
     audio: '5.1 Surround',
   },
@@ -317,6 +487,8 @@ export const MOCK_MEDIA: MediaItem[] = [
     videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
     isFeatured: true,
     topRank: 7,
+    network: 'Prime Video',
+    exclusiveTag: 'Prime Video Anime',
     quality: '4K UHD',
     audio: 'Dolby Atmos',
     seasons: [
@@ -368,6 +540,8 @@ export const MOCK_MEDIA: MediaItem[] = [
     director: 'Shawn Levy',
     videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
     topRank: 8,
+    network: 'Prime Video',
+    exclusiveTag: 'Prime Video Original',
     quality: '4K UHD',
     audio: 'Dolby Atmos',
   },
@@ -391,6 +565,8 @@ export const MOCK_MEDIA: MediaItem[] = [
     director: 'Guillermo del Toro',
     videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
     topRank: 9,
+    network: 'HBO',
+    exclusiveTag: 'HBO Max Blockbuster',
     quality: 'Dolby Vision',
     audio: '5.1 Surround',
   },
@@ -414,6 +590,8 @@ export const MOCK_MEDIA: MediaItem[] = [
     director: 'Anggy Umbara',
     videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
     topRank: 10,
+    network: 'Disney+',
+    exclusiveTag: 'Disney+ Hotstar Exclusive',
     quality: 'HD',
     audio: 'Stereo',
   },
@@ -436,6 +614,8 @@ export const MOCK_MEDIA: MediaItem[] = [
     cast: ['Pemeran Baru', 'Bintang Tamu'],
     director: 'Sutradara Indie',
     videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+    network: 'Netflix',
+    exclusiveTag: 'Netflix Horror',
     quality: 'HD',
     audio: 'Stereo',
   },
@@ -458,8 +638,103 @@ export const MOCK_MEDIA: MediaItem[] = [
     cast: ['Aktor Laga', 'Pemeran Figuran'],
     director: 'Produser Muda',
     videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4',
+    network: 'HBO',
+    exclusiveTag: 'HBO Asia Original',
     quality: 'HD',
     audio: '5.1 Surround',
+  },
+  {
+    id: 'dino-cilik-petualang',
+    title: 'Petualangan Dino Cilik & Pulau Ajaib',
+    originalTitle: 'Little Dino: Lost Island Quest',
+    type: 'movie',
+    tagline: 'Persahabatan sejati mengalahkan raksasa manapun!',
+    overview: 'Kisah seru Bronto si dinosaurus kecil dan kawan-kawannya menjelajahi pulau misterius penuh buah pelangi ajaib, teka-teki kuno, dan belajar tentang arti kerja sama.',
+    posterUrl: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=600&auto=format&fit=crop&q=80',
+    backdropUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1600&auto=format&fit=crop&q=80',
+    releaseYear: 2026,
+    country: 'Indonesia',
+    rating: 9.4,
+    matchScore: 99,
+    ageRating: 'SU',
+    duration: '1j 35m',
+    genres: ['Animasi', 'Keluarga', 'Petualangan', 'Komedi'],
+    cast: ['Raffi Ahmad', 'Nagita Slavina', 'Rafathar'],
+    director: 'Hanung Bramantyo',
+    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+    network: 'Disney+',
+    exclusiveTag: 'Disney+ Family Original',
+    quality: '4K UHD',
+    audio: 'Dolby Atmos',
+    isTrending: true,
+    isFeatured: true
+  },
+  {
+    id: 'keluarga-super-nusantara',
+    title: 'Keluarga Super Nusantara',
+    originalTitle: 'Nusantara Super Family',
+    type: 'tv',
+    tagline: 'Kekuatan super boleh ajaib, tapi urusan PR sekolah tetap wajib!',
+    overview: 'Keluarga dengan kemampuan ajaib yang tinggal di pinggiran kota harus merahasiakan kekuatan mereka sambil membasmi kejahatan dan menyelesaikan tugas harian keluarga yang lucu.',
+    posterUrl: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=600&auto=format&fit=crop&q=80',
+    backdropUrl: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=1600&auto=format&fit=crop&q=80',
+    releaseYear: 2026,
+    country: 'Indonesia',
+    rating: 9.2,
+    matchScore: 97,
+    ageRating: 'SU',
+    totalSeasons: 1,
+    genres: ['Animasi', 'Keluarga', 'Komedi'],
+    cast: ['Indra Bekti', 'Asri Welas', 'Fatih Unru'],
+    director: 'Fajar Nugros',
+    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+    network: 'Disney+',
+    exclusiveTag: 'Disney+ Original Series',
+    quality: 'HD',
+    audio: '5.1 Surround',
+    isTrending: true,
+    seasons: [
+      {
+        seasonNumber: 1,
+        title: 'Musim 1: Rahasia Dapur Nenek',
+        episodes: [
+          {
+            id: 'ks-s1-e1',
+            episodeNumber: 1,
+            seasonNumber: 1,
+            title: 'Sarapan Anti Gravitasi',
+            overview: 'Pancake buatan Ayah melayang ke langit-langit rumah sebelum jam berangkat sekolah.',
+            duration: '22m',
+            thumbnail: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=500&auto=format&fit=crop&q=80',
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'pahlawan-hutan-safari',
+    title: 'Pahlawan Hutan Safari: Misi Penyelamatan',
+    originalTitle: 'Safari Rangers: Forest Quest',
+    type: 'movie',
+    tagline: 'Jaga rimba, lindungi satwa langka kita!',
+    overview: 'Tiga satwa cerdik dan ranger cilik bekerjasama menggagalkan rencana pemburu liar dan mengembalikan kedamaian hutan tropis Kalimantan yang indah.',
+    posterUrl: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=600&auto=format&fit=crop&q=80',
+    backdropUrl: 'https://images.unsplash.com/photo-1470246973918-29a93221c455?w=1600&auto=format&fit=crop&q=80',
+    releaseYear: 2025,
+    country: 'Indonesia',
+    rating: 8.8,
+    matchScore: 93,
+    ageRating: 'SU',
+    duration: '1j 28m',
+    genres: ['Animasi', 'Petualangan', 'Keluarga'],
+    cast: ['Ringgo Agus Rahman', 'Sabai Morscheck', 'Bjorka'],
+    director: 'Riri Riza',
+    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
+    network: 'Prime Video',
+    exclusiveTag: 'Prime Video Kids',
+    quality: 'HD',
+    audio: 'Stereo',
   }
 ];
 

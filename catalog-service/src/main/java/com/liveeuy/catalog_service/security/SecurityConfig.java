@@ -67,11 +67,9 @@ public class SecurityConfig {
                     "/webjars/**"
                 ).permitAll()
 
-                // Health check & Actuator
-                .requestMatchers("/actuator/**", "/health/**").permitAll()
-
-                // H2 Console (dev & test)
-                .requestMatchers("/h2-console/**").permitAll()
+                // Health check & Actuator publik (hanya health & info, blokir heapdump / env)
+                .requestMatchers("/actuator/health", "/actuator/info", "/health/**").permitAll()
+                .requestMatchers("/actuator/**", "/h2-console/**").denyAll()
 
                 // Feed kurasi personalisasi user terautentikasi (berdasarkan JWT tier & profile)
                 .requestMatchers(HttpMethod.GET, "/media/feed", "/api/v1/media/feed").authenticated()

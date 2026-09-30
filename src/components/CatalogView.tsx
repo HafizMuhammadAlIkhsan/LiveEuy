@@ -9,7 +9,8 @@ import {
 } from 'lucide-react';
 import { useWatch } from '../context/WatchContext';
 import { MediaCard } from './MediaCard';
-import { GENRES, COUNTRIES, YEARS } from '../data/mockData';
+import { StreamingHubs, StreamingPlatformBanner } from './StreamingHubs';
+import { GENRES, COUNTRIES, YEARS, STREAMING_PLATFORMS, StreamingPlatformFilter } from '../data/mockData';
 import { MediaType } from '../types';
 
 interface CatalogViewProps {
@@ -24,17 +25,32 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
   pageSubtitle 
 }) => {
   const { allMedia, searchQuery, setSearchQuery } = useWatch();
+  const [selectedPlatform, setSelectedPlatform] = useState<StreamingPlatformFilter>('Semua Platform');
   const [selectedGenre, setSelectedGenre] = useState('Semua Genre');
   const [selectedCountry, setSelectedCountry] = useState('Semua Negara');
   const [selectedYear, setSelectedYear] = useState('Semua Tahun');
   const [typeFilter, setTypeFilter] = useState<'all' | 'movie' | 'tv'>(forcedType || 'all');
   const [sortBy, setSortBy] = useState<'popular' | 'rating' | 'newest' | 'oldest'>('popular');
 
+  const platformCounts = useMemo(() => {
+    const relevant = forcedType ? allMedia.filter(m => m.type === forcedType) : allMedia;
+    const counts: Record<string, number> = { 'Semua Platform': relevant.length };
+    STREAMING_PLATFORMS.forEach(p => {
+      if (p !== 'Semua Platform') {
+        counts[p] = relevant.filter(m => m.network === p).length;
+      }
+    });
+    return counts;
+  }, [allMedia, forcedType]);
+
   const filteredItems = useMemo(() => {
     return allMedia.filter(item => {
       // Type filter
       if (forcedType && item.type !== forcedType) return false;
       if (!forcedType && typeFilter !== 'all' && item.type !== typeFilter) return false;
+
+      // Platform filter
+      if (selectedPlatform !== 'Semua Platform' && item.network !== selectedPlatform) return false;
 
       // Genre filter
       if (selectedGenre !== 'Semua Genre' && !item.genres.includes(selectedGenre)) return false;
@@ -62,11 +78,12 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
       if (sortBy === 'oldest') return a.releaseYear - b.releaseYear;
       return (a.topRank || 99) - (b.topRank || 99);
     });
-  }, [allMedia, forcedType, typeFilter, selectedGenre, selectedCountry, selectedYear, searchQuery, sortBy]);
+  }, [allMedia, forcedType, typeFilter, selectedPlatform, selectedGenre, selectedCountry, selectedYear, searchQuery, sortBy]);
 
-  const hasActiveFilters = selectedGenre !== 'Semua Genre' || selectedCountry !== 'Semua Negara' || selectedYear !== 'Semua Tahun' || (typeFilter !== 'all' && !forcedType);
+  const hasActiveFilters = selectedPlatform !== 'Semua Platform' || selectedGenre !== 'Semua Genre' || selectedCountry !== 'Semua Negara' || selectedYear !== 'Semua Tahun' || (typeFilter !== 'all' && !forcedType);
 
   const resetFilters = () => {
+    setSelectedPlatform('Semua Platform');
     setSelectedGenre('Semua Genre');
     setSelectedCountry('Semua Negara');
     setSelectedYear('Semua Tahun');
@@ -91,6 +108,23 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
             Menampilkan <span className="text-brand-400 font-bold">{filteredItems.length}</span> judul tayangan
           </span>
         </div>
+      </div>
+
+      {/* Streaming Platform Brand Hubs */}
+      <div className="space-y-4 mb-6">
+        <StreamingHubs
+          selectedPlatform={selectedPlatform}
+          onSelectPlatform={setSelectedPlatform}
+          counts={platformCounts}
+        />
+
+        {selectedPlatform !== 'Semua Platform' && (
+          <StreamingPlatformBanner
+            platform={selectedPlatform}
+            onClear={() => setSelectedPlatform('Semua Platform')}
+            count={filteredItems.length}
+          />
+        )}
       </div>
 
       {/* Filter and Control Bar */}

@@ -5,4 +5,5 @@ export { TrendingPage } from './TrendingPage';
 export { WatchlistPage } from './WatchlistPage';
 export { SearchPage } from './SearchPage';
 export { AdminPage } from './AdminPage';
+export { DetailPage } from './DetailPage';
 export { NotFoundPage, ForbiddenPage, ServerErrorPage } from './ErrorPages';

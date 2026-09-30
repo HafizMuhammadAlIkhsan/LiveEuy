@@ -5,7 +5,8 @@ import (
 )
 
 func HashPassword(password string) (string, error) {
-	b, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	// Use BCrypt cost 12 to withstand GPU/rainbow-table offline attacks
+	b, err := bcrypt.GenerateFromPassword([]byte(password), 12)
 	return string(b), err
 }
 

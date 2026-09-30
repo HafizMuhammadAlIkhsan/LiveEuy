@@ -1,10 +1,13 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useWatch } from '../../context/WatchContext';
 import { MediaItem } from '../../types';
 import { HeroBanner } from '../../components/HeroBanner';
 import { MediaRow } from '../../components/MediaRow';
 import { TopTenRow } from '../../components/TopTenRow';
 import { BillboardAd } from '../../components/BillboardAd';
+import { StreamingHubs } from '../../components/StreamingHubs';
+import { STREAMING_PLATFORMS, StreamingPlatformFilter } from '../../data/mockData';
 import { 
   Play, 
   Sparkles, 
@@ -28,6 +31,7 @@ import {
 } from 'lucide-react';
 
 export const HomePage: React.FC = () => {
+  const navigate = useNavigate();
   const { 
     allMedia, 
     watchHistory, 
@@ -36,10 +40,37 @@ export const HomePage: React.FC = () => {
     user, 
     isLoggedIn, 
     openAuthModal,
-    featuredOrder
+    featuredOrder,
+    isKidsMode,
+    activeProfile,
+    openFamilyModal
   } = useWatch();
 
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+
+  // Streaming platform counts & curated brand collections
+  const platformCounts = useMemo(() => {
+    const counts: Record<string, number> = { 'Semua Platform': allMedia.length };
+    STREAMING_PLATFORMS.forEach(p => {
+      if (p !== 'Semua Platform') {
+        counts[p] = allMedia.filter(m => m.network === p).length;
+      }
+    });
+    return counts;
+  }, [allMedia]);
+
+  const handleHubClick = (platform: StreamingPlatformFilter) => {
+    if (platform === 'Semua Platform') {
+      navigate('/movies?type=all');
+    } else {
+      navigate(`/movies?platform=${encodeURIComponent(platform)}&type=all`);
+    }
+  };
+
+  const disneyItems = useMemo(() => allMedia.filter(m => m.network === 'Disney+'), [allMedia]);
+  const netflixItems = useMemo(() => allMedia.filter(m => m.network === 'Netflix'), [allMedia]);
+  const primeItems = useMemo(() => allMedia.filter(m => m.network === 'Prime Video'), [allMedia]);
+  const hboItems = useMemo(() => allMedia.filter(m => m.network === 'HBO'), [allMedia]);
 
   // Provide ordered blockbuster film slides according to admin CMS configuration
   const featuredItems = useMemo(() => {
@@ -181,6 +212,15 @@ export const HomePage: React.FC = () => {
         </div>
       </div>
 
+      {/* Streaming Platform Brand Hubs (Disney+, Netflix, Prime, HBO) */}
+      <section className="relative z-20 cinema-layout-container mb-6 sm:mb-8">
+        <StreamingHubs
+          selectedPlatform="Semua Platform"
+          onSelectPlatform={handleHubClick}
+          counts={platformCounts}
+        />
+      </section>
+
       <div className="relative z-20 space-y-8 sm:space-y-12 pb-20">
         
         {/* ========================================================
@@ -248,7 +288,7 @@ export const HomePage: React.FC = () => {
               </div>
             </section>
           )
-        ) : (
+        ) : !isKidsMode ? (
           /* GUEST USER: CLOUD SYNC PROMPT TEASER */
           <section className="cinema-layout-container">
             <div className="rounded-2xl bg-[#0c0e14]/90 border border-white/[0.08] p-5 sm:p-7 flex flex-col md:flex-row items-center justify-between gap-5 shadow-lg">
@@ -273,6 +313,40 @@ export const HomePage: React.FC = () => {
               </button>
             </div>
           </section>
+        ) : null}
+
+        {/* KIDS MODE SPECIAL CELEBRATION HEADER */}
+        {isKidsMode && (
+          <section className="cinema-layout-container pt-2">
+            <div className="p-4 sm:p-6 rounded-3xl bg-gradient-to-r from-amber-500/20 via-emerald-500/15 to-brand-500/20 border border-amber-500/30 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl animate-fade-in">
+              <div className="flex items-center gap-3 sm:gap-4 text-center sm:text-left">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-amber-400 text-black flex items-center justify-center font-black shadow-lg text-2xl flex-shrink-0">
+                  🎈
+                </div>
+                <div>
+                  <div className="flex items-center justify-center sm:justify-start gap-2">
+                    <h2 className="text-base sm:text-xl font-black text-white">
+                      Halo {activeProfile.name}! Selamat Datang di Dunia Anak
+                    </h2>
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-amber-400 text-black uppercase">
+                      KIDS ZONE
+                    </span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-slate-300 mt-1">
+                    Semua film & kartun di sini aman berkategori Semua Umur (SU), ramah keluarga, dan bebas konten dewasa.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => openFamilyModal()}
+                className="px-4 py-2 rounded-xl glass-panel hover:bg-white/20 text-white text-xs font-bold transition-all flex items-center gap-1.5 flex-shrink-0 cursor-pointer"
+              >
+                <span>Kelola Profil</span>
+              </button>
+            </div>
+          </section>
         )}
 
         {/* Top 10 Ranked Row */}
@@ -292,6 +366,26 @@ export const HomePage: React.FC = () => {
         {/* Dual Ads under Trending in Indonesia */}
         <BillboardAd placementIndex={1} />
 
+        {/* Disney+ Exclusives Row */}
+        {disneyItems.length > 0 && (
+          <MediaRow
+            title="Eksklusif Disney+ & Petualangan Keluarga"
+            subtitle="Koleksi tayangan resmi Disney, Marvel, dan animasi blockbuster"
+            items={disneyItems}
+            onViewAll={() => navigate('/movies?platform=Disney%2B&type=all')}
+          />
+        )}
+
+        {/* Netflix Originals Row */}
+        {netflixItems.length > 0 && (
+          <MediaRow
+            title="Netflix Originals Terpopuler"
+            subtitle="Serial dan film orisinal paling dibicarakan pekan ini"
+            items={netflixItems}
+            onViewAll={() => navigate('/movies?platform=Netflix&type=all')}
+          />
+        )}
+
         {/* Action & Sci-Fi Row */}
         <MediaRow
           title="Aksi Spektakuler & Fiksi Ilmiah"
@@ -303,6 +397,16 @@ export const HomePage: React.FC = () => {
         {/* Dual Ads under Action & Sci-Fi */}
         <BillboardAd placementIndex={2} />
 
+        {/* HBO Originals Row */}
+        {hboItems.length > 0 && (
+          <MediaRow
+            title="HBO & Max Originals"
+            subtitle="Karya sinema prestisius dan drama investigasi berating tinggi"
+            items={hboItems}
+            onViewAll={() => navigate('/movies?platform=HBO&type=all')}
+          />
+        )}
+
         {/* Drama & Thriller Row */}
         <MediaRow
           title="Serial Drama & Cerita Penuh Misteri"
@@ -313,6 +417,16 @@ export const HomePage: React.FC = () => {
 
         {/* Dual Ads under Drama & Thriller */}
         <BillboardAd placementIndex={3} />
+
+        {/* Prime Video Exclusives Row */}
+        {primeItems.length > 0 && (
+          <MediaRow
+            title="Prime Video Exclusives"
+            subtitle="Sinema berkecepatan tinggi dan serial anime eksklusif"
+            items={primeItems}
+            onViewAll={() => navigate('/movies?platform=Prime%20Video&type=all')}
+          />
+        )}
 
         {/* Animation & Comedy Row */}
         <MediaRow
@@ -328,7 +442,7 @@ export const HomePage: React.FC = () => {
         {/* ========================================================
             GUEST ONLY SECTION: SUBSCRIPTION PLANS & FAQ
             ======================================================== */}
-        {!isLoggedIn && (
+        {!isLoggedIn && !isKidsMode && (
           <section className="cinema-layout-container space-y-10 pt-6">
             
             {/* Subscription Tier Cards - Architectural Cinema Passes */}

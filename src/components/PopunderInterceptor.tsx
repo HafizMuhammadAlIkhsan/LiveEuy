@@ -2,13 +2,14 @@ import React, { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useWatch } from '../context/WatchContext';
 import { AdCampaign } from '../types';
+import { sanitizeUrl } from '../utils/security';
 
 export const PopunderInterceptor: React.FC = () => {
   const { ads, recordAdImpression, recordAdClick, user } = useWatch();
   const location = useLocation();
 
   const isAdminView = location.pathname.startsWith('/admin');
-  const isVip = user?.tier === 'VIP Cinema Ultra';
+  const isVip = user?.tier === 'VIP Cinema Ultra' || user?.tier === 'VIP Standard';
 
   const hasTriggeredInSessionRef = useRef(false);
 
@@ -50,8 +51,9 @@ export const PopunderInterceptor: React.FC = () => {
       recordAdImpression(popunderAd.id);
       recordAdClick(popunderAd.id);
 
-      if (popunderAd.targetUrl) {
-        window.open(popunderAd.targetUrl, '_blank', 'noopener,noreferrer');
+      const safeUrl = sanitizeUrl(popunderAd.targetUrl);
+      if (safeUrl) {
+        window.open(safeUrl, '_blank', 'noopener,noreferrer');
       }
     };
 

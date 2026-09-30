@@ -22,20 +22,51 @@
   scrollbar-width: none;
 }
 
-/* Stylized slim scrollbar for dropdowns and dialogs */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* ========================================================
+   CINEMATIC SLIM SCROLLBAR (MATCHING LIVEEUY DARK THEME)
+   ======================================================== */
+.custom-scrollbar,
+.scrollbar-thin,
+.profile-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(87, 92, 251, 0.45) rgba(15, 17, 26, 0.6);
 }
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(15, 17, 26, 0.7);
+
+.custom-scrollbar::-webkit-scrollbar,
+.scrollbar-thin::-webkit-scrollbar,
+.profile-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
 }
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(67, 63, 254, 0.4);
+
+.custom-scrollbar::-webkit-scrollbar-track,
+.scrollbar-thin::-webkit-scrollbar-track,
+.profile-scrollbar::-webkit-scrollbar-track {
+  background: rgba(15, 17, 26, 0.6);
   border-radius: 9999px;
+  margin: 3px 0;
 }
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(67, 63, 254, 0.8);
+
+.custom-scrollbar::-webkit-scrollbar-thumb,
+.scrollbar-thin::-webkit-scrollbar-thumb,
+.profile-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(87, 92, 251, 0.45) 0%, rgba(67, 63, 254, 0.6) 100%);
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.2s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover,
+.scrollbar-thin::-webkit-scrollbar-thumb:hover,
+.profile-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(125, 131, 252, 0.8) 0%, rgba(67, 63, 254, 0.95) 100%);
+  box-shadow: 0 0 10px rgba(67, 63, 254, 0.5);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:active,
+.scrollbar-thin::-webkit-scrollbar-thumb:active,
+.profile-scrollbar::-webkit-scrollbar-thumb:active {
+  background: #575cfb;
 }
 
 /* Glassmorphism helpers */

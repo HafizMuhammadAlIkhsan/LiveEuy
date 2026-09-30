@@ -8,12 +8,20 @@ import (
 	"github.com/DXR3IN/auth-service/internal/http/middleware"
 	"github.com/DXR3IN/auth-service/internal/repository"
 	"github.com/DXR3IN/auth-service/internal/service"
+	"github.com/DXR3IN/auth-service/internal/storage"
 	ginpkg "github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-func NewRouter(cfg *config.Config, userRepo repository.UserRepository, jwtMgr domain.TokenManager, sessionRepo domain.SessionRepository, oauthProvider domain.OAuthProvider) *ginpkg.Engine {
+func NewRouter(
+	cfg *config.Config,
+	userRepo repository.UserRepository,
+	jwtMgr domain.TokenManager,
+	sessionRepo domain.SessionRepository,
+	oauthProvider domain.OAuthProvider,
+	r2Svc storage.R2StorageService,
+) *ginpkg.Engine {
 	r := ginpkg.Default()
 
 	// Swagger documentation route
@@ -28,6 +36,7 @@ func NewRouter(cfg *config.Config, userRepo repository.UserRepository, jwtMgr do
 	oauthSvc := service.NewOAuthService(oauthProvider, userRepo, jwtMgr, sessionRepo)
 	authHandler := h.NewAuthHandler(authSvc, jwtMgr)
 	oauthHandler := h.NewOAuthHandler(oauthSvc)
+	r2Handler := h.NewR2UploadHandler(r2Svc)
 
 	// API v1 Auth Group (Standard Contract)
 	authV1 := r.Group("/api/v1/auth")
@@ -53,6 +62,11 @@ func NewRouter(cfg *config.Config, userRepo repository.UserRepository, jwtMgr do
 			protectedAuth.PUT("/profile", authHandler.UpdateProfile)
 			protectedAuth.PUT("/change-password", authHandler.ChangePassword)
 			protectedAuth.POST("/logout-all", authHandler.LogoutAll)
+
+			// ── Cloudflare R2 — Avatar & File Storage ──────────────────────
+			protectedAuth.POST("/me/avatar", r2Handler.UploadAvatar)
+			protectedAuth.DELETE("/me/avatar", r2Handler.DeleteAvatar)
+			protectedAuth.GET("/storage/presign", r2Handler.GetPresignedDownloadURL)
 		}
 	}
 

@@ -1,10 +1,10 @@
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { MediaItem, Episode, WatchProgress, ViewTab, User, VisitorSession, BroadcastAnnouncement, AdminAuditLog, AdCampaign, AdInquiry } from '../types';
+import { MediaItem, Episode, WatchProgress, ViewTab, User, VisitorSession, BroadcastAnnouncement, AdminAuditLog, AdCampaign, AdInquiry, UserProfile, FamilyAccount } from '../types';
 import { MOCK_MEDIA, MOCK_ADS, MOCK_AD_INQUIRIES } from '../data/mockData';
 import { apiService } from '../services/api';
 import { trackCurrentVisitor, getStoredSessions, resetVisitorTracking, saveStoredSessions, deleteCookie, TRACKER_COOKIE_NAME } from '../utils/cookieTracker';
-import { sanitizeMediaCatalog } from '../utils/security';
+import { sanitizeMediaCatalog, sanitizeUrl } from '../utils/security';
 
 interface WatchContextType {
   currentTab: ViewTab;
@@ -94,6 +94,20 @@ interface WatchContextType {
   currentSession: VisitorSession | null;
   refreshTracking: () => Promise<void>;
   resetTracking: () => void;
+  // Family Account Sharing & Kids Mode
+  profiles: UserProfile[];
+  activeProfile: UserProfile;
+  isKidsMode: boolean;
+  switchProfile: (profileId: string, pin?: string) => { success: boolean; message?: string };
+  addProfile: (profile: Omit<UserProfile, 'id'>) => { success: boolean; message: string };
+  updateProfile: (profileId: string, updated: Partial<UserProfile>) => void;
+  deleteProfile: (profileId: string) => { success: boolean; message: string };
+  toggleKidsMode: (pin?: string) => { success: boolean; message?: string };
+  isFamilyModalOpen: boolean;
+  openFamilyModal: () => void;
+  closeFamilyModal: () => void;
+  familyShareCode: string;
+  rawMedia: MediaItem[];
 }
 
 export const withViewTransition = (fn: () => void) => {
@@ -214,7 +228,29 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [mediaList, setMediaList] = useState<MediaItem[]>(() => {
     try {
       const saved = localStorage.getItem('liveeuy_custom_media');
-      return saved ? JSON.parse(saved) : MOCK_MEDIA;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const { sanitized } = sanitizeMediaCatalog(parsed);
+        const mockMap = new Map(MOCK_MEDIA.map(m => [m.id, m]));
+        const merged = sanitized.map(item => {
+          const mockMatch = mockMap.get(item.id);
+          if (mockMatch) {
+            return {
+              ...item,
+              ...(item.topRank === undefined && mockMatch.topRank !== undefined ? { topRank: mockMatch.topRank } : {}),
+              ...((!item.actors || item.actors.length === 0) && mockMatch.actors ? { actors: mockMatch.actors } : {})
+            };
+          }
+          return item;
+        });
+        MOCK_MEDIA.forEach(m => {
+          if (!merged.some(item => item.id === m.id)) {
+            merged.push(m);
+          }
+        });
+        return merged;
+      }
+      return MOCK_MEDIA;
     } catch {
       return MOCK_MEDIA;
     }
@@ -539,7 +575,7 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     addAuditLog('Reset Iklan Sponsor', 'ads', 'Mengembalikan seluruh konfigurasi iklan ke bawaan IDLIX.');
   };
 
-  const recordAdImpression = (id: string) => {
+  const recordAdImpression = useCallback((id: string) => {
     setAds(prev => {
       const next = prev.map(a => a.id === id ? { ...a, impressions: a.impressions + 1 } : a);
       try {
@@ -547,9 +583,9 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       } catch {}
       return next;
     });
-  };
+  }, []);
 
-  const recordAdClick = (id: string) => {
+  const recordAdClick = useCallback((id: string) => {
     setAds(prev => {
       const next = prev.map(a => a.id === id ? { ...a, clicks: a.clicks + 1 } : a);
       try {
@@ -557,7 +593,7 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       } catch {}
       return next;
     });
-  };
+  }, []);
 
   const submitAdInquiry = (inquiry: Omit<AdInquiry, 'id' | 'submittedAt' | 'status'>) => {
     const newInquiry: AdInquiry = {
@@ -642,7 +678,7 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     email: 'hafiz@liveeuy.id',
     avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
     tier: 'VIP Cinema Ultra',
-    role: 'admin',
+    role: 'user',
     memberSince: 'September 2024',
     watchHours: 48.5,
     devices: 3
@@ -652,12 +688,193 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const saved = localStorage.getItem('liveeuy_user');
       if (saved === 'guest') return null;
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.email === 'hafiz@liveeuy.id' && parsed.role === 'admin' && !parsed.isExplicitAdmin) {
+          parsed.role = 'user';
+          try {
+            localStorage.setItem('liveeuy_user', JSON.stringify(parsed));
+          } catch {}
+        }
+        return parsed;
+      }
       return DEFAULT_USER;
     } catch {
       return DEFAULT_USER;
     }
   });
+
+  // ==========================================
+  // FAMILY ACCOUNT SHARING & KIDS MODE SYSTEM
+  // ==========================================
+  const DEFAULT_PROFILES: UserProfile[] = [
+    {
+      id: 'prof-01',
+      name: 'Hafiz (Utama)',
+      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
+      isKids: false,
+      color: 'emerald'
+    },
+    {
+      id: 'prof-02',
+      name: 'Keluarga',
+      avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=120&auto=format&fit=crop&q=80',
+      isKids: false,
+      color: 'blue'
+    },
+    {
+      id: 'prof-03',
+      name: 'Adik Caca (Kids)',
+      avatar: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=120&auto=format&fit=crop&q=80',
+      isKids: true,
+      pin: '1234',
+      color: 'amber'
+    }
+  ];
+
+  const [profiles, setProfiles] = useState<UserProfile[]>(() => {
+    try {
+      const saved = localStorage.getItem('liveeuy_family_profiles');
+      return saved ? JSON.parse(saved) : DEFAULT_PROFILES;
+    } catch {
+      return DEFAULT_PROFILES;
+    }
+  });
+
+  const [activeProfileId, setActiveProfileId] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem('liveeuy_active_profile_id');
+      return saved || 'prof-01';
+    } catch {
+      return 'prof-01';
+    }
+  });
+
+  const [familyShareCode] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem('liveeuy_family_share_code');
+      if (saved) return saved;
+      const code = 'LIVEEUY-FAM-4K89';
+      localStorage.setItem('liveeuy_family_share_code', code);
+      return code;
+    } catch {
+      return 'LIVEEUY-FAM-4K89';
+    }
+  });
+
+  const [isFamilyModalOpen, setIsFamilyModalOpen] = useState(false);
+  const openFamilyModal = () => setIsFamilyModalOpen(true);
+  const closeFamilyModal = () => setIsFamilyModalOpen(false);
+
+  const activeProfile = useMemo(() => {
+    return profiles.find(p => p.id === activeProfileId) || profiles[0] || DEFAULT_PROFILES[0];
+  }, [profiles, activeProfileId]);
+
+  const isKidsMode = activeProfile.isKids;
+
+  const filteredMedia = useMemo(() => {
+    if (!isKidsMode) return mediaList;
+    return mediaList.filter(item => {
+      // Must not be 16+, 18+, or 21+
+      if (item.ageRating === '16+' || item.ageRating === '18+' || item.ageRating === '21+') return false;
+      const hasKidsSafeGenre = item.genres.some(g =>
+        ['Animasi', 'Keluarga', 'Komedi', 'Petualangan', 'Fantasi'].includes(g)
+      );
+      return item.ageRating === 'SU' || hasKidsSafeGenre;
+    });
+  }, [mediaList, isKidsMode]);
+
+  const switchProfile = (profileId: string, pin?: string): { success: boolean; message?: string } => {
+    const target = profiles.find(p => p.id === profileId);
+    if (!target) return { success: false, message: 'Profil tidak ditemukan.' };
+
+    // If currently in Kids profile and switching to an adult profile: verify PIN
+    if (activeProfile.isKids && !target.isKids) {
+      const requiredPin = activeProfile.pin || '1234';
+      if (!pin || pin.trim() !== requiredPin) {
+        return { success: false, message: 'PIN Pengawasan Orang Tua tidak sesuai (Default: 1234).' };
+      }
+    }
+
+    withViewTransition(() => {
+      setActiveProfileId(target.id);
+    });
+    try {
+      localStorage.setItem('liveeuy_active_profile_id', target.id);
+    } catch {}
+    addAuditLog('Ganti Profil Aktif', 'user', `Beralih ke profil "${target.name}" ${target.isKids ? '(Mode Anak)' : ''}.`);
+    return { success: true };
+  };
+
+  const toggleKidsMode = (pin?: string): { success: boolean; message?: string } => {
+    if (isKidsMode) {
+      // Exiting Kids Mode: find first adult profile
+      const adultProfile = profiles.find(p => !p.isKids) || profiles[0];
+      return switchProfile(adultProfile.id, pin);
+    } else {
+      // Entering Kids Mode: find first kids profile, or create one
+      let kidsProfile = profiles.find(p => p.isKids);
+      if (!kidsProfile) {
+        kidsProfile = {
+          id: `prof-${Date.now()}`,
+          name: 'Adik Caca (Kids)',
+          avatar: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=120&auto=format&fit=crop&q=80',
+          isKids: true,
+          pin: '1234',
+          color: 'amber'
+        };
+        const next = [...profiles, kidsProfile];
+        setProfiles(next);
+        try {
+          localStorage.setItem('liveeuy_family_profiles', JSON.stringify(next));
+        } catch {}
+      }
+      return switchProfile(kidsProfile.id);
+    }
+  };
+
+  const addProfile = (newProfileData: Omit<UserProfile, 'id'>) => {
+    if (profiles.length >= 5) {
+      return { success: false, message: 'Maksimum 5 profil untuk Akun Keluarga telah tercapai.' };
+    }
+    const newProfile: UserProfile = {
+      ...newProfileData,
+      id: `prof-${Date.now()}`
+    };
+    const next = [...profiles, newProfile];
+    setProfiles(next);
+    try {
+      localStorage.setItem('liveeuy_family_profiles', JSON.stringify(next));
+    } catch {}
+    addAuditLog('Tambah Profil Keluarga', 'user', `Profil baru "${newProfile.name}" ${newProfile.isKids ? '(Mode Anak)' : ''} berhasil dibuat.`);
+    return { success: true, message: `Profil "${newProfile.name}" berhasil ditambahkan!` };
+  };
+
+  const updateProfile = (profileId: string, updated: Partial<UserProfile>) => {
+    const next = profiles.map(p => p.id === profileId ? { ...p, ...updated } : p);
+    setProfiles(next);
+    try {
+      localStorage.setItem('liveeuy_family_profiles', JSON.stringify(next));
+    } catch {}
+  };
+
+  const deleteProfile = (profileId: string) => {
+    if (profiles.length <= 1) {
+      return { success: false, message: 'Akun minimal harus memiliki satu profil aktif.' };
+    }
+    const next = profiles.filter(p => p.id !== profileId);
+    setProfiles(next);
+    if (activeProfileId === profileId) {
+      setActiveProfileId(next[0].id);
+      try {
+        localStorage.setItem('liveeuy_active_profile_id', next[0].id);
+      } catch {}
+    }
+    try {
+      localStorage.setItem('liveeuy_family_profiles', JSON.stringify(next));
+    } catch {}
+    return { success: true, message: 'Profil berhasil dihapus.' };
+  };
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
@@ -691,7 +908,7 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       email: userData?.email || 'user@liveeuy.id',
       avatar: userData?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
       tier: userData?.tier || 'VIP Standard',
-      role: userData?.role || (userData?.email?.toLowerCase().includes('admin') || userData?.email === 'hafiz@liveeuy.id' ? 'admin' : 'user'),
+      role: userData?.role === 'admin' ? 'admin' : (userData?.email?.toLowerCase() === 'admin@liveeuy.id' ? 'admin' : 'user'),
       memberSince: userData?.memberSince || 'Hari ini',
       watchHours: userData?.watchHours || 0,
       devices: userData?.devices || 1
@@ -725,7 +942,7 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             email: restoredUser.email || prev?.email || 'user@liveeuy.id',
             avatar: restoredUser.avatar || prev?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
             tier: restoredUser.tier || prev?.tier || 'VIP Standard',
-            role: restoredUser.role || (restoredUser.email?.toLowerCase().includes('admin') || restoredUser.email === 'hafiz@liveeuy.id' ? 'admin' : (prev?.role || 'user')),
+            role: restoredUser.role === 'admin' ? 'admin' : (prev?.role || 'user'),
             memberSince: restoredUser.memberSince || prev?.memberSince || 'Hari ini',
             watchHours: restoredUser.watchHours ?? prev?.watchHours ?? 0,
             devices: restoredUser.devices ?? prev?.devices ?? 1
@@ -740,6 +957,17 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const [detailItem, setDetailItem] = useState<MediaItem | null>(null);
+
+  // Automatically open detail modal if ?detail= or ?media= query param is in URL
+  useEffect(() => {
+    const detailId = searchParams.get('detail') || searchParams.get('media');
+    if (detailId && mediaList.length > 0) {
+      const target = mediaList.find(m => m.id === detailId);
+      if (target) {
+        setDetailItem(target);
+      }
+    }
+  }, [searchParams, mediaList]);
   const [playerState, setPlayerState] = useState<{
     isOpen: boolean;
     item: MediaItem | null;
@@ -825,6 +1053,9 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const openDetail = (item: MediaItem) => {
+    if (isKidsMode && (item.ageRating === '16+' || item.ageRating === '18+' || item.ageRating === '21+')) {
+      return;
+    }
     withViewTransition(() => {
       setDetailItem(item);
     });
@@ -834,9 +1065,36 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     withViewTransition(() => {
       setDetailItem(null);
     });
+    if (searchParams.has('detail') || searchParams.has('media')) {
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('detail');
+      nextParams.delete('media');
+      setSearchParams(nextParams, { replace: true });
+    }
   };
 
   const openPlayer = (item: MediaItem, episode?: Episode) => {
+    if (isKidsMode && (item.ageRating === '16+' || item.ageRating === '18+' || item.ageRating === '21+')) {
+      return;
+    }
+    // Non-VIP users (Guest or Free Tier) trigger popunder sponsor popup tab when starting a video (bypassed in Kids Mode)
+    const isVipUser = user?.tier === 'VIP Cinema Ultra' || user?.tier === 'VIP Standard' || isKidsMode;
+    if (!isVipUser) {
+      const popunderAd = ads.find(a => a.isActive && a.layer === 'popunder_interstitial');
+      if (popunderAd && popunderAd.targetUrl) {
+        const safeUrl = sanitizeUrl(popunderAd.targetUrl);
+        if (safeUrl) {
+          recordAdImpression(popunderAd.id);
+          recordAdClick(popunderAd.id);
+          try {
+            window.open(safeUrl, '_blank', 'noopener,noreferrer');
+          } catch (e) {
+            console.warn('Popunder window.open blocked by browser:', e);
+          }
+        }
+      }
+    }
+
     withViewTransition(() => {
       setPlayerState({
         isOpen: true,
@@ -999,7 +1257,8 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         openPlayer,
         closePlayer,
         playNextEpisode,
-        allMedia: mediaList,
+        allMedia: filteredMedia,
+        rawMedia: mediaList,
         addMedia,
         updateMedia,
         deleteMedia,
@@ -1052,7 +1311,20 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         visitorSessions,
         currentSession,
         refreshTracking,
-        resetTracking
+        resetTracking,
+        // Family Account Sharing & Kids Mode
+        profiles,
+        activeProfile,
+        isKidsMode,
+        switchProfile,
+        addProfile,
+        updateProfile,
+        deleteProfile,
+        toggleKidsMode,
+        isFamilyModalOpen,
+        openFamilyModal,
+        closeFamilyModal,
+        familyShareCode
       }}
     >
       {children}

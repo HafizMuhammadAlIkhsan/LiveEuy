@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { 
   detectOS, 
   detectBrowser, 
@@ -7,8 +7,12 @@ import {
   setCookie, 
   deleteCookie,
   TRACKER_COOKIE_NAME,
+  SESSIONS_STORAGE_KEY,
   getStoredSessions,
-  saveStoredSessions
+  saveStoredSessions,
+  fetchClientIP,
+  maskEmail,
+  trackCurrentVisitor
 } from '../utils/cookieTracker';
 
 describe('cookieTracker Utils', () => {
@@ -118,6 +122,53 @@ describe('cookieTracker Utils', () => {
       expect(retrieved).toHaveLength(1);
       expect(retrieved[0].sessionId).toBe('sess-test-01');
       expect(retrieved[0].city).toBe('Bandung');
+    });
+  });
+
+  describe('fetchClientIP Privacy Protection', () => {
+    it('does not contact third-party api.ipify.org and returns safe IP information', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        expect(url).not.toContain('ipify.org');
+        return new Response(JSON.stringify({ ip: '192.168.1.10', city: 'Jakarta', country: 'Indonesia' }), {
+          status: 200
+        });
+      });
+      global.fetch = mockFetch;
+
+      const ipInfo = await fetchClientIP();
+      expect(ipInfo.ip).toBe('192.168.1.10');
+      expect(mockFetch).toHaveBeenCalled();
+      expect(mockFetch.mock.calls[0][0]).not.toContain('ipify.org');
+    });
+
+    it('falls back gracefully to local network info on network error without leaking data', async () => {
+      global.fetch = vi.fn().mockRejectedValue(new Error('Network offline'));
+
+      const ipInfo = await fetchClientIP();
+      expect(ipInfo.ip).toBe('127.0.0.1');
+      expect(ipInfo.city).toBe('Local Network');
+      expect(ipInfo.country).toBe('Indonesia');
+    });
+  });
+
+  describe('PII Protection (User Email Masking)', () => {
+    it('masks email addresses properly', () => {
+      expect(maskEmail('hafiz@liveeuy.id')).toBe('ha***z@liveeuy.id');
+      expect(maskEmail('budi.santoso@liveeuy.id')).toBe('bu***o@liveeuy.id');
+      expect(maskEmail('ab@liveeuy.id')).toBe('a***@liveeuy.id');
+      expect(maskEmail('')).toBeUndefined();
+      expect(maskEmail(undefined)).toBeUndefined();
+    });
+
+    it('stores masked email in localStorage visitor sessions avoiding plaintext PII leaks', async () => {
+      global.fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ ip: '127.0.0.1' }), { status: 200 }));
+
+      await trackCurrentVisitor('home', 'sensitive_user@liveeuy.id');
+
+      const raw = localStorage.getItem(SESSIONS_STORAGE_KEY);
+      expect(raw).not.toBeNull();
+      expect(raw).not.toContain('sensitive_user@liveeuy.id');
+      expect(raw).toContain('se***r@liveeuy.id');
     });
   });
 });

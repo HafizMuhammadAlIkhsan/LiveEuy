@@ -21,7 +21,8 @@ public static Specification<Media> buildFilter(String type, String genre, String
             query.distinct(true);
 
             if (StringUtils.hasText(search)) {
-                predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("title")), "%" + search.toLowerCase() + "%"));
+                String safeSearch = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_").toLowerCase();
+                predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("title")), "%" + safeSearch + "%", '\\'));
             }
 
             if (StringUtils.hasText(type) && !type.equalsIgnoreCase(TYPE_ALL)) {

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useWatch } from '../context/WatchContext';
 import { AdCampaign } from '../types';
+import { sanitizeUrl } from '../utils/security';
 
 interface BillboardAdProps {
   placementIndex?: number;
@@ -9,38 +10,44 @@ interface BillboardAdProps {
 }
 
 export const BillboardAd: React.FC<BillboardAdProps> = ({ placementIndex = 0, className = '', fluid = false }) => {
-  const { ads, recordAdImpression, recordAdClick } = useWatch();
+  const { ads, recordAdImpression, recordAdClick, user } = useWatch();
+
+  // VIP users receive Free Ads benefit: completely hide billboard ads
+  const isVip = user?.tier === 'VIP Cinema Ultra' || user?.tier === 'VIP Standard';
 
   // Find active billboard feed ads synchronized with Admin Page
   const billboardAds = ads.filter(a => a.isActive && a.layer === 'billboard_feed');
 
-  // If all billboard ads are deactivated in Admin Page, do not render anything
-  if (billboardAds.length === 0) {
-    return null;
-  }
-
-  // Pair selection from active billboard ads
-  const leftAd: AdCampaign = billboardAds[(placementIndex * 2) % billboardAds.length];
-  const rightAd: AdCampaign = billboardAds.length > 1
+  // Pair selection from active billboard ads (if available)
+  const leftAd: AdCampaign | undefined = billboardAds.length > 0 
+    ? billboardAds[(placementIndex * 2) % billboardAds.length] 
+    : undefined;
+  const rightAd: AdCampaign | undefined = billboardAds.length > 1
     ? billboardAds[(placementIndex * 2 + 1) % billboardAds.length]
-    : billboardAds[0];
+    : leftAd;
 
   const [hasRecordedImpressions, setHasRecordedImpressions] = useState(false);
 
   useEffect(() => {
-    if (!hasRecordedImpressions) {
+    if (!hasRecordedImpressions && !isVip && leftAd && rightAd) {
       if (leftAd?.id) recordAdImpression(leftAd.id);
       if (rightAd?.id && rightAd.id !== leftAd?.id) recordAdImpression(rightAd.id);
       setHasRecordedImpressions(true);
     }
-  }, [leftAd, rightAd, hasRecordedImpressions, recordAdImpression]);
+  }, [leftAd, rightAd, hasRecordedImpressions, isVip, recordAdImpression]);
+
+  // If VIP user or no billboard ads are active, do not render anything
+  if (isVip || billboardAds.length === 0 || !leftAd || !rightAd) {
+    return null;
+  }
 
   const handleAdClick = (ad: AdCampaign) => {
     if (ad?.id) {
       recordAdClick(ad.id);
     }
-    if (ad?.targetUrl) {
-      window.open(ad.targetUrl, '_blank', 'noopener,noreferrer');
+    const safeUrl = sanitizeUrl(ad?.targetUrl);
+    if (safeUrl) {
+      window.open(safeUrl, '_blank', 'noopener,noreferrer');
     }
   };
 

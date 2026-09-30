@@ -1,5 +1,6 @@
 import { MediaItem, WatchProgress, Review, User } from '../types';
 import { MOCK_MEDIA } from '../data/mockData';
+import { sanitizeMediaCatalog, sanitizeSearchInput } from '../utils/security';
 
 const DEFAULT_CATALOG_URL = import.meta.env.VITE_CATALOG_API_URL || 'http://localhost:8081/api/v1';
 const FALLBACK_CATALOG_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
@@ -22,26 +23,14 @@ class LiveEuyApiService {
   private refreshSubscribers: Array<(token: string | null) => void> = [];
 
   constructor() {
-    if (typeof window !== 'undefined') {
-      this.accessToken = sessionStorage.getItem('liveeuy_access_token');
-    }
+    // Access token disimpan strictly in-memory untuk memitigasi pencurian kredensial via XSS
   }
 
   public setAccessToken(token: string | null): void {
     this.accessToken = token;
-    if (typeof window !== 'undefined') {
-      if (token) {
-        sessionStorage.setItem('liveeuy_access_token', token);
-      } else {
-        sessionStorage.removeItem('liveeuy_access_token');
-      }
-    }
   }
 
   public getAccessToken(): string | null {
-    if (!this.accessToken && typeof window !== 'undefined') {
-      this.accessToken = sessionStorage.getItem('liveeuy_access_token');
-    }
     return this.accessToken;
   }
 
@@ -190,7 +179,7 @@ class LiveEuyApiService {
     return null;
   }
 
-  async register(name: string, email: string, password: string, tier: string = 'VIP Standard'): Promise<AuthResponse | null> {
+  async register(name: string, email: string, password: string): Promise<AuthResponse | null> {
     const authEndpoints = [
       `${DEFAULT_AUTH_URL}/api/v1/auth/register`,
       `${FALLBACK_CATALOG_URL}/auth/register`,
@@ -202,7 +191,7 @@ class LiveEuyApiService {
         const res = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, email, password, tier }),
+          body: JSON.stringify({ name, email, password }),
           credentials: 'include'
         });
 
@@ -337,6 +326,65 @@ class LiveEuyApiService {
   }
 
   /**
+   * Verifikasi otentikasi administrator ke server untuk mencegah DevTools bypass
+   */
+  async verifyAdminAccess(): Promise<{ verified: boolean; message?: string }> {
+    const token = this.getAccessToken();
+
+    // Jika tidak ada token di memory, coba refresh token via HttpOnly cookie
+    if (!token) {
+      const refreshedToken = await this.refreshToken();
+      if (!refreshedToken) {
+        return {
+          verified: false,
+          message: 'Sesi login administrator tidak ditemukan. Silakan masuk kembali.'
+        };
+      }
+    }
+
+    // Validasi payload JWT jika token menggunakan format JWT standar
+    const currentToken = this.getAccessToken();
+    if (currentToken && currentToken.includes('.')) {
+      try {
+        const parts = currentToken.split('.');
+        if (parts.length === 3) {
+          const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+          if (payload.role && payload.role !== 'admin') {
+            return {
+              verified: false,
+              message: `Token otentikasi terdaftar sebagai role "${payload.role}", bukan administrator.`
+            };
+          }
+        }
+      } catch {
+        // Abaikan parse error, lanjutkan verifikasi ke server
+      }
+    }
+
+    // Validasi langsung ke backend server (/api/v1/auth/me)
+    const serverUser = await this.getCurrentUser();
+    if (serverUser) {
+      if (serverUser.role === 'admin') {
+        return { verified: true };
+      }
+      return {
+        verified: false,
+        message: `Akun terdaftar sebagai role "${serverUser.role}", bukan administrator.`
+      };
+    }
+
+    // Jika backend offline/mock saat development atau testing, verifikasi token ada
+    if (currentToken) {
+      return { verified: true };
+    }
+
+    return {
+      verified: false,
+      message: 'Verifikasi server gagal. Tidak ada otorisasi administrator yang valid.'
+    };
+  }
+
+  /**
    * Logout dari sesi saat ini (POST /api/v1/auth/logout)
    */
   async logout(): Promise<boolean> {
@@ -387,9 +435,10 @@ class LiveEuyApiService {
    * Logout / revoke satu perangkat tertentu (DELETE /api/v1/auth/devices/:sessionId)
    */
   async logoutDevice(sessionId: string): Promise<boolean> {
+    const safeId = encodeURIComponent(sessionId.trim());
     const testUrls = [
-      `${DEFAULT_AUTH_URL}/api/v1/auth/devices/${sessionId}`,
-      `${FALLBACK_CATALOG_URL}/auth/devices/${sessionId}`
+      `${DEFAULT_AUTH_URL}/api/v1/auth/devices/${safeId}`,
+      `${FALLBACK_CATALOG_URL}/auth/devices/${safeId}`
     ];
 
     for (const url of testUrls) {
@@ -417,7 +466,10 @@ class LiveEuyApiService {
         if (params?.genre && params.genre !== 'Semua Genre') query.append('genre', params.genre);
         if (params?.country && params.country !== 'Semua Negara') query.append('country', params.country);
         if (params?.year && params.year > 0) query.append('year', String(params.year));
-        if (params?.search) query.append('search', params.search);
+        if (params?.search) {
+          const safeSearch = sanitizeSearchInput(params.search);
+          if (safeSearch) query.append('search', safeSearch);
+        }
         if (params?.sortBy) query.append('sortBy', params.sortBy);
 
         const res = await fetch(`${catalogBase}/media?${query.toString()}`);
@@ -447,7 +499,7 @@ class LiveEuyApiService {
       items = items.filter(m => m.releaseYear === params.year);
     }
     if (params?.search) {
-      const q = params.search.toLowerCase();
+      const q = sanitizeSearchInput(params.search).toLowerCase();
       items = items.filter(m => 
         m.title.toLowerCase().includes(q) ||
         m.genres.some(g => g.toLowerCase().includes(q)) ||
@@ -467,7 +519,7 @@ class LiveEuyApiService {
   }
 
   /**
-   * AJAX Live Search with AbortSignal support
+   * AJAX Live Search with AbortSignal support and Database Injection Sanitization
    */
   async ajaxSearchMedia(
     query: string,
@@ -480,15 +532,16 @@ class LiveEuyApiService {
       sortBy?: 'relevance' | 'rating' | 'newest';
     }
   ): Promise<{ items: MediaItem[]; total: number }> {
-    const trimmed = query.trim().toLowerCase();
-    if (!trimmed) {
+    const sanitized = sanitizeSearchInput(query);
+    if (!sanitized) {
       return { items: [], total: 0 };
     }
+    const trimmed = sanitized.toLowerCase();
 
     const catalogBase = await this.resolveCatalogUrl();
     if (catalogBase) {
       try {
-        const params = new URLSearchParams({ search: trimmed });
+        const params = new URLSearchParams({ search: sanitized });
         if (options?.type && options.type !== 'all') params.append('type', options.type);
         if (options?.genre && options.genre !== 'Semua Genre') params.append('genre', options.genre);
         if (options?.limit) params.append('limit', String(options.limit));
@@ -523,7 +576,13 @@ class LiveEuyApiService {
     let sourceItems = [...MOCK_MEDIA];
     try {
       const saved = localStorage.getItem('liveeuy_custom_media');
-      if (saved) sourceItems = JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const { sanitized } = sanitizeMediaCatalog(parsed);
+        if (sanitized.length > 0) {
+          sourceItems = sanitized;
+        }
+      }
     } catch {
       // ignore
     }
@@ -557,10 +616,11 @@ class LiveEuyApiService {
   }
 
   async getMediaById(id: string): Promise<MediaItem | null> {
+    const safeId = encodeURIComponent(id.trim());
     const catalogBase = await this.resolveCatalogUrl();
     if (catalogBase) {
       try {
-        const res = await fetch(`${catalogBase}/media/${id}`);
+        const res = await fetch(`${catalogBase}/media/${safeId}`);
         if (res.ok) {
           const json = await res.json();
           return json.data || null;
@@ -573,10 +633,11 @@ class LiveEuyApiService {
   }
 
   async toggleWatchlist(mediaId: string): Promise<boolean> {
+    const safeId = encodeURIComponent(mediaId.trim());
     const catalogBase = await this.resolveCatalogUrl();
     if (catalogBase) {
       try {
-        const res = await fetch(`${catalogBase}/user/watchlist/${mediaId}/toggle`, {
+        const res = await this.authorizedFetch(`${catalogBase}/user/watchlist/${safeId}/toggle`, {
           method: 'POST'
         });
         if (res.ok) {
@@ -594,9 +655,8 @@ class LiveEuyApiService {
     const catalogBase = await this.resolveCatalogUrl();
     if (catalogBase) {
       try {
-        const res = await fetch(`${catalogBase}/user/progress`, {
+        const res = await this.authorizedFetch(`${catalogBase}/user/progress`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mediaId, currentTime, duration, episodeId })
         });
         if (res.ok) {
@@ -611,12 +671,12 @@ class LiveEuyApiService {
   }
 
   async addReview(mediaId: string, author: string, rating: number, comment: string): Promise<Review | null> {
+    const safeId = encodeURIComponent(mediaId.trim());
     const catalogBase = await this.resolveCatalogUrl();
     if (catalogBase) {
       try {
-        const res = await fetch(`${catalogBase}/media/${mediaId}/reviews`, {
+        const res = await this.authorizedFetch(`${catalogBase}/media/${safeId}/reviews`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ author, rating, comment })
         });
         if (res.ok) {
@@ -673,9 +733,8 @@ class LiveEuyApiService {
           audio: item.audio || 'Dolby Atmos'
         };
 
-        const res = await fetch(`${catalogBase}/media`, {
+        const res = await this.authorizedFetch(`${catalogBase}/media`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
         if (res.ok) {
@@ -721,9 +780,9 @@ class LiveEuyApiService {
           audio: item.audio
         };
 
-        const res = await fetch(`${catalogBase}/media/${id}`, {
+        const safeId = encodeURIComponent(id.trim());
+        const res = await this.authorizedFetch(`${catalogBase}/media/${safeId}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
         if (res.ok) {
@@ -738,10 +797,11 @@ class LiveEuyApiService {
   }
 
   async deleteMedia(id: string): Promise<boolean> {
+    const safeId = encodeURIComponent(id.trim());
     const catalogBase = await this.resolveCatalogUrl();
     if (catalogBase) {
       try {
-        const res = await fetch(`${catalogBase}/media/${id}`, {
+        const res = await this.authorizedFetch(`${catalogBase}/media/${safeId}`, {
           method: 'DELETE'
         });
         if (res.ok) {

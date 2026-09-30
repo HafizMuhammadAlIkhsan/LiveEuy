@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { X, ExternalLink, Sparkles } from 'lucide-react';
 import { useWatch } from '../context/WatchContext';
 import { AdCampaign } from '../types';
+import { sanitizeUrl } from '../utils/security';
 
 export const FloatingStickyAd: React.FC = () => {
   const { ads, recordAdImpression, recordAdClick, user } = useWatch();
@@ -10,7 +11,7 @@ export const FloatingStickyAd: React.FC = () => {
 
   // Hide in admin view or for VIP users
   const isAdminView = location.pathname.startsWith('/admin');
-  const isVip = user?.tier === 'VIP Cinema Ultra';
+  const isVip = user?.tier === 'VIP Cinema Ultra' || user?.tier === 'VIP Standard';
 
   const [isDismissed, setIsDismissed] = useState(() => {
     try {
@@ -52,8 +53,9 @@ export const FloatingStickyAd: React.FC = () => {
     if (activeAd?.id) {
       recordAdClick(activeAd.id);
     }
-    if (activeAd?.targetUrl) {
-      window.open(activeAd.targetUrl, '_blank', 'noopener,noreferrer');
+    const safeUrl = sanitizeUrl(activeAd?.targetUrl);
+    if (safeUrl) {
+      window.open(safeUrl, '_blank', 'noopener,noreferrer');
     }
   };
 

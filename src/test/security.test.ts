@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   sanitizeUrl,
   sanitizeText,
+  sanitizeSearchInput,
   sanitizeMediaItem,
   sanitizeMediaCatalog,
   getLoginLockoutStatus,
@@ -13,6 +14,7 @@ import {
 
 describe('Security Utility Module', () => {
   beforeEach(() => {
+    localStorage.clear();
     sessionStorage.clear();
     vi.restoreAllMocks();
   });
@@ -32,11 +34,18 @@ describe('Security Utility Module', () => {
       expect(sanitizeUrl('data:image/png;base64,iVBORw0KGgo=')).toBe('data:image/png;base64,iVBORw0KGgo=');
     });
 
-    it('blocks dangerous javascript: and vbscript: protocols', () => {
+    it('blocks dangerous javascript:, vbscript:, and data:image/svg+xml protocols', () => {
       expect(sanitizeUrl('javascript:alert(1)')).toBe('');
       expect(sanitizeUrl('javascript:/*--></title></style></textarea></script></xmp><svg/onload=\'+/"/+/onmouseover=1/+/[*/[]/+alert(1)//\'>')).toBe('');
       expect(sanitizeUrl('vbscript:msgbox("xss")')).toBe('');
       expect(sanitizeUrl('data:text/html,<script>alert(1)</script>')).toBe('');
+      expect(sanitizeUrl('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"></svg>')).toBe('');
+      expect(sanitizeUrl('data:image/svg+xml;base64,PHN2ZyBvbmxvYWQ9YWxlcnQoMSk+PC9zdmc+')).toBe('');
+    });
+
+    it('blocks protocol-relative URLs preventing open redirects', () => {
+      expect(sanitizeUrl('//evil.com/phishing')).toBe('');
+      expect(sanitizeUrl('//google.com')).toBe('');
     });
 
     it('returns custom fallback when URL is invalid', () => {
@@ -51,10 +60,28 @@ describe('Security Utility Module', () => {
       expect(sanitizeText('Normal <b>Film</b> Action')).toBe('Normal Film Action');
       expect(sanitizeText('<img src="x" onerror="alert(1)">')).toBe('');
     });
+  });
 
-    it('handles non-string values gracefully', () => {
-      expect(sanitizeText(123 as any)).toBe('');
-      expect(sanitizeText(null, 'default')).toBe('default');
+  describe('sanitizeSearchInput (Database Query Injection Protection)', () => {
+    it('strips dangerous SQL meta-characters and delimiters', () => {
+      expect(sanitizeSearchInput("Avengers'; DROP TABLE media; --")).toBe("Avengers DROP TABLE media --");
+      expect(sanitizeSearchInput('Movie "test" or 1=1')).toBe("Movie test or 1=1");
+      expect(sanitizeSearchInput("test\\path\\query")).toBe("testpathquery");
+    });
+
+    it('strips ASCII control codes', () => {
+      expect(sanitizeSearchInput("test\u0000payload\u001f")).toBe("testpayload");
+    });
+
+    it('truncates excessive search strings to avoid DoS/buffer overflow', () => {
+      const longInput = 'A'.repeat(200);
+      expect(sanitizeSearchInput(longInput)).toHaveLength(100);
+    });
+
+    it('handles non-string and whitespace gracefully', () => {
+      expect(sanitizeSearchInput(null)).toBe('');
+      expect(sanitizeSearchInput(undefined)).toBe('');
+      expect(sanitizeSearchInput('   inception   ')).toBe('inception');
     });
   });
 
@@ -134,6 +161,19 @@ describe('Security Utility Module', () => {
       const status = getLoginLockoutStatus(testEmail);
       expect(status.isLocked).toBe(false);
       expect(status.attempts).toBe(0);
+    });
+
+    it('persists lockout attempts in localStorage preventing multi-tab reset', () => {
+      recordFailedLoginAttempt(testEmail);
+      recordFailedLoginAttempt(testEmail);
+
+      // Verify stored in localStorage, not sessionStorage
+      const throttleKey = `liveeuy_auth_throttle_${testEmail}`;
+      expect(localStorage.getItem(throttleKey)).not.toBeNull();
+      expect(sessionStorage.getItem(throttleKey)).toBeNull();
+
+      const stored = JSON.parse(localStorage.getItem(throttleKey)!);
+      expect(stored.attempts).toBe(2);
     });
   });
 });

@@ -26,13 +26,30 @@ type JWT struct {
 	TTL            int
 }
 
+// R2 menyimpan konfigurasi Cloudflare R2 untuk auth-service.
+// Digunakan untuk upload/delete avatar user dan file user lainnya.
+type R2 struct {
+	// AccountID dari Cloudflare Dashboard → R2 → Overview
+	AccountID string
+	// AccessKeyID dari Manage R2 API Tokens
+	AccessKeyID string
+	// SecretAccessKey dari Manage R2 API Tokens
+	SecretAccessKey string
+	// BucketName nama bucket R2 (contoh: "liveeuy-auth")
+	BucketName string
+	// PublicURL custom domain publik (opsional, contoh: "https://cdn.liveeuy.com")
+	PublicURL string
+}
+
 type Config struct {
 	Port      string
 	DBURL     string
 	WebOAuth  WebOAuth
 	RedisData Redis
 	JWTConfig JWT
+	R2Config  R2
 }
+
 
 func NewConfigFromEnv() *Config {
 	webOAuth := WebOAuth{
@@ -67,12 +84,21 @@ func NewConfigFromEnv() *Config {
 		TTL:            jwtTTL,
 	}
 
+	r2Config := R2{
+		AccountID:       getEnv("R2_ACCOUNT_ID", ""),
+		AccessKeyID:     getEnv("R2_ACCESS_KEY_ID", ""),
+		SecretAccessKey: getEnv("R2_SECRET_ACCESS_KEY", ""),
+		BucketName:      getEnv("R2_BUCKET_NAME", "liveeuy-auth"),
+		PublicURL:       getEnv("R2_PUBLIC_URL", ""),
+	}
+
 	return &Config{
 		Port:      getEnv("PORT", "8080"),
 		DBURL:     getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/authdb?sslmode=disable"),
 		WebOAuth:  webOAuth,
 		RedisData: redisData,
 		JWTConfig: jwtConfig,
+		R2Config:  r2Config,
 	}
 }
 

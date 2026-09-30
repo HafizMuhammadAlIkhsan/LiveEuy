@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useWatch } from '../context/WatchContext';
+import { apiService } from '../services/api';
 import { ShieldAlert, Lock, LogIn, Home, ArrowLeft, UserX, Crown } from 'lucide-react';
 
 interface AdminRouteGuardProps {
@@ -9,6 +10,48 @@ interface AdminRouteGuardProps {
 
 export const AdminRouteGuard: React.FC<AdminRouteGuardProps> = ({ children }) => {
   const { user, isLoggedIn, openAuthModal } = useWatch();
+  const [isVerifying, setIsVerifying] = useState<boolean>(false);
+  const [serverVerified, setServerVerified] = useState<boolean | null>(null);
+  const [denialReason, setDenialReason] = useState<string>('');
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!isLoggedIn || !user) {
+      setServerVerified(null);
+      setIsVerifying(false);
+      return;
+    }
+
+    if (user.role !== 'admin') {
+      setServerVerified(false);
+      setDenialReason('');
+      setIsVerifying(false);
+      return;
+    }
+
+    // Client-side role claims admin - verify with server to prevent DevTools bypass
+    setIsVerifying(true);
+    apiService.verifyAdminAccess().then(res => {
+      if (!isMounted) return;
+      setIsVerifying(false);
+      if (res.verified) {
+        setServerVerified(true);
+      } else {
+        setServerVerified(false);
+        setDenialReason(res.message || 'Verifikasi hak akses administrator ke server gagal.');
+      }
+    }).catch(() => {
+      if (!isMounted) return;
+      setIsVerifying(false);
+      setServerVerified(false);
+      setDenialReason('Gagal memvalidasi sesi administrator ke server.');
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isLoggedIn, user?.role, user?.email]);
 
   // 1. Unauthenticated Guest: Not Logged In
   if (!isLoggedIn || !user) {
@@ -59,8 +102,8 @@ export const AdminRouteGuard: React.FC<AdminRouteGuardProps> = ({ children }) =>
     );
   }
 
-  // 2. Authenticated but Unauthorized: Regular Member (user.role !== 'admin')
-  if (user.role !== 'admin') {
+  // 2. Authenticated but Unauthorized: Regular Member (user.role !== 'admin') or Server Verification Failed (Anti-DevTools bypass)
+  if (user.role !== 'admin' || serverVerified === false) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center p-4 sm:p-6 animate-fade-in">
         <div className="relative max-w-lg w-full bg-[#0d0f17] border border-rose-500/30 rounded-3xl p-6 sm:p-8 text-center shadow-2xl overflow-hidden backdrop-blur-xl">
@@ -82,7 +125,11 @@ export const AdminRouteGuard: React.FC<AdminRouteGuardProps> = ({ children }) =>
           </h2>
 
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed mb-5">
-            Halo <strong className="text-white">{user.name}</strong>, akun Anda terdaftar sebagai <span className="text-amber-400 font-semibold">{user.tier} (Member)</span>. Anda tidak memiliki izin untuk mengelola katalog, analitik, dan server studio LiveEuy.
+            {denialReason || (
+              <>
+                Halo <strong className="text-white">{user.name}</strong>, akun Anda terdaftar sebagai <span className="text-amber-400 font-semibold">{user.tier} (Member)</span>. Anda tidak memiliki izin untuk mengelola katalog, analitik, dan server studio LiveEuy.
+              </>
+            )}
           </p>
 
           {/* User Profile Pill Preview */}
@@ -124,6 +171,25 @@ export const AdminRouteGuard: React.FC<AdminRouteGuardProps> = ({ children }) =>
     );
   }
 
-  // 3. Authenticated Admin: user.role === 'admin'
+  // 3. Verifying admin authority with backend server
+  if (isVerifying || serverVerified === null) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center p-4 sm:p-6 animate-fade-in">
+        <div className="relative max-w-md w-full bg-[#0d0f17] border border-brand-500/20 rounded-3xl p-8 text-center shadow-2xl overflow-hidden backdrop-blur-xl">
+          <div className="w-14 h-14 rounded-2xl bg-brand-500/10 border border-brand-500/30 flex items-center justify-center text-brand-400 mx-auto mb-4 animate-pulse">
+            <ShieldAlert className="w-7 h-7 text-brand-400" />
+          </div>
+          <h2 className="text-xl font-black text-white tracking-tight mb-2">
+            Memverifikasi Otoritas Administrator
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+            Memvalidasi sesi autentikasi dan integritas hak akses administrator dengan server LiveEuy...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // 4. Authenticated Admin & Server Verified
   return <>{children}</>;
 };

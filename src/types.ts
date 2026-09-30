@@ -26,6 +26,12 @@ export interface Review {
   comment: string;
 }
 
+export interface CastMember {
+  name: string;
+  character: string;
+  profileUrl?: string;
+}
+
 export interface MediaItem {
   id: string;
   title: string;
@@ -55,7 +61,16 @@ export interface MediaItem {
   audio: 'Dolby Atmos' | '5.1 Surround' | 'Stereo';
   seasons?: Season[];
   reviews?: Review[];
+  // IMDb & TMDB Rich Actor Credits
+  imdbId?: string;
+  imdbRating?: number;
+  actors?: CastMember[];
+  // Streaming Platform & Exclusive Network
+  network?: StreamingPlatform;
+  exclusiveTag?: string;
 }
+
+export type StreamingPlatform = 'Netflix' | 'Disney+' | 'Prime Video' | 'HBO' | 'Bioskop';
 
 export interface WatchProgress {
   mediaId: string;
@@ -68,6 +83,25 @@ export interface WatchProgress {
 
 export type ViewTab = 'home' | 'movies' | 'tv' | 'trending' | 'watchlist' | 'search' | 'admin';
 
+export interface UserProfile {
+  id: string;
+  name: string;
+  avatar: string;
+  isKids: boolean;
+  pin?: string;
+  allowedAgeRating?: 'SU' | '13+' | '16+' | '18+' | 'all';
+  color?: string;
+}
+
+export interface FamilyAccount {
+  id: string;
+  ownerId: string;
+  name: string;
+  shareCode: string;
+  profiles: UserProfile[];
+  maxProfiles: number;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -79,6 +113,8 @@ export interface User {
   memberSince?: string;
   watchHours?: number;
   devices?: number;
+  familyAccount?: FamilyAccount;
+  activeProfileId?: string;
 }
 
 export interface VisitorSession {

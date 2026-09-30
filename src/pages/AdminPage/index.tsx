@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useWatch } from '../../context/WatchContext';
-import { MediaItem, Episode, Season, User, AdCampaign } from '../../types';
+import { MediaItem, Episode, Season, User, AdCampaign, CastMember } from '../../types';
 import { GENRES, COUNTRIES, YEARS } from '../../data/mockData';
 import { 
   Sliders, 
@@ -72,7 +72,7 @@ import {
   Ban,
   PowerOff
 } from 'lucide-react';
-import { sanitizeMediaCatalog } from '../../utils/security';
+import { sanitizeMediaCatalog, sanitizeUrl } from '../../utils/security';
 
 export type AdminModuleId = 'media' | 'banner' | 'ads' | 'episodes' | 'users' | 'tracking' | 'analytics' | 'reviews' | 'system';
 
@@ -104,7 +104,7 @@ const exportToCSV = (filename: string, rows: (string | number)[][]) => {
 
 export const AdminPage: React.FC = () => {
   const { 
-    allMedia, 
+    rawMedia: allMedia, 
     addMedia, 
     updateMedia, 
     deleteMedia, 
@@ -310,6 +310,7 @@ export const AdminPage: React.FC = () => {
   const [formAudio, setFormAudio] = useState<'Dolby Atmos' | '5.1 Surround' | 'Stereo'>('Dolby Atmos');
   const [formDirector, setFormDirector] = useState('');
   const [formCast, setFormCast] = useState('');
+  const [formActors, setFormActors] = useState<CastMember[]>([]);
   const [formSelectedGenres, setFormSelectedGenres] = useState<string[]>(['Aksi']);
   const [formVideoUrl, setFormVideoUrl] = useState('https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4');
   const [formTrailerUrl, setFormTrailerUrl] = useState('https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4');
@@ -881,6 +882,10 @@ export const AdminPage: React.FC = () => {
     setFormAudio('Dolby Atmos');
     setFormDirector('Sutradara Indonesia');
     setFormCast('Aktor Utama 1, Aktor Utama 2');
+    setFormActors([
+      { name: 'Aktor Utama 1', character: 'Peran Utama', profileUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=240&auto=format&fit=crop&q=80' },
+      { name: 'Aktor Utama 2', character: 'Peran Pendamping', profileUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=240&auto=format&fit=crop&q=80' }
+    ]);
     setFormSelectedGenres(['Aksi', 'Fiksi Ilmiah']);
     setFormVideoUrl('https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4');
     setFormTrailerUrl('https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4');
@@ -914,6 +919,11 @@ export const AdminPage: React.FC = () => {
     setFormAudio(item.audio);
     setFormDirector(item.director);
     setFormCast(item.cast.join(', '));
+    if (item.actors && item.actors.length > 0) {
+      setFormActors(item.actors);
+    } else {
+      setFormActors(item.cast.map(c => ({ name: c, character: 'Pemeran Utama', profileUrl: '' })));
+    }
     setFormSelectedGenres(item.genres);
     setFormVideoUrl(item.videoUrl);
     setFormTrailerUrl(item.trailerUrl || '');
@@ -955,6 +965,7 @@ export const AdminPage: React.FC = () => {
         audio: formAudio,
         director: formDirector,
         cast: castArray,
+        actors: formActors.filter(a => a.name.trim()),
         genres: formSelectedGenres,
         videoUrl: formVideoUrl,
         trailerUrl: formTrailerUrl,
@@ -985,6 +996,7 @@ export const AdminPage: React.FC = () => {
         audio: formAudio,
         director: formDirector || 'Sutradara',
         cast: castArray.length > 0 ? castArray : ['Aktor Utama'],
+        actors: formActors.filter(a => a.name.trim()),
         genres: formSelectedGenres,
         videoUrl: formVideoUrl,
         trailerUrl: formTrailerUrl,
@@ -3247,7 +3259,7 @@ export const AdminPage: React.FC = () => {
                         Mitra: <span className="text-slate-300 font-semibold">{ad.partnerName}</span> • {ad.category}
                       </p>
                       <a
-                        href={ad.targetUrl}
+                        href={sanitizeUrl(ad.targetUrl) || '#'}
                         target="_blank"
                         rel="noreferrer"
                         className="text-[10px] text-brand-400 hover:underline flex items-center gap-1 mt-1 truncate"
@@ -5440,7 +5452,7 @@ export const AdminPage: React.FC = () => {
                           <span>{isPreviewPlayerOpen ? 'Tutup Pratinjau' : 'Buka Mini Player Uji'}</span>
                         </button>
                         <a
-                          href={formVideoUrl}
+                          href={sanitizeUrl(formVideoUrl) || '#'}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] flex items-center gap-1 transition-colors"
@@ -5529,14 +5541,122 @@ export const AdminPage: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="font-semibold text-slate-300">Pemeran (Pisahkan koma)</label>
+                  <label className="font-semibold text-slate-300">Pemeran (Ringkasan Pisahkan Koma)</label>
                   <input
                     type="text"
                     value={formCast}
                     onChange={e => setFormCast(e.target.value)}
                     className="w-full bg-surface-800 border border-white/10 rounded-xl px-3 py-2 text-white focus:outline-none"
+                    placeholder="Contoh: Simon Baker, Robin Tunney"
                   />
                 </div>
+              </div>
+
+              {/* Rich Cast & Characters Section Editor */}
+              <div className="space-y-3 p-4 rounded-2xl bg-surface-800/60 border border-white/10">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-brand-400" />
+                    <span className="font-semibold text-white text-sm">Daftar Aktor, Aktris & Karakter (Cast)</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-slate-300">
+                      {formActors.length} Aktor
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newActor: CastMember = {
+                        name: '',
+                        character: '',
+                        profileUrl: ''
+                      };
+                      setFormActors(prev => [...prev, newActor]);
+                    }}
+                    className="flex items-center gap-1 px-3 py-1 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Tambah Aktor</span>
+                  </button>
+                </div>
+
+                {formActors.length === 0 ? (
+                  <p className="text-xs text-slate-400 italic py-2 text-center">
+                    Belum ada data detail aktor. Tambahkan aktor baru di atas.
+                  </p>
+                ) : (
+                  <div className="space-y-2.5 max-h-56 overflow-y-auto pr-1">
+                    {formActors.map((actor, aIdx) => (
+                      <div key={aIdx} className="flex flex-col sm:flex-row items-start sm:items-center gap-2 p-2.5 rounded-xl bg-surface-900/80 border border-white/5">
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                          {/* Circular Avatar Preview */}
+                          <div className="w-8 h-8 rounded-full overflow-hidden bg-surface-800 border border-white/10 flex-shrink-0 flex items-center justify-center">
+                            {actor.profileUrl ? (
+                              <img src={actor.profileUrl} alt={actor.name || 'Actor'} className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="text-xs font-bold text-slate-400">
+                                {actor.name ? actor.name.charAt(0).toUpperCase() : '?'}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Name Input */}
+                          <input
+                            type="text"
+                            placeholder="Nama Aktor (cth: Simon Baker)"
+                            value={actor.name}
+                            onChange={e => {
+                              const updated = [...formActors];
+                              updated[aIdx] = { ...updated[aIdx], name: e.target.value };
+                              setFormActors(updated);
+                              setFormCast(updated.map(a => a.name).filter(Boolean).join(', '));
+                            }}
+                            className="flex-1 sm:w-40 bg-surface-800 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500"
+                          />
+                        </div>
+
+                        {/* Character Input */}
+                        <input
+                          type="text"
+                          placeholder="Nama Karakter (cth: Patrick Jane)"
+                          value={actor.character}
+                          onChange={e => {
+                            const updated = [...formActors];
+                            updated[aIdx] = { ...updated[aIdx], character: e.target.value };
+                            setFormActors(updated);
+                          }}
+                          className="flex-1 w-full bg-surface-800 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500"
+                        />
+
+                        {/* Profile Image URL Input */}
+                        <input
+                          type="text"
+                          placeholder="URL Foto Avatar (https://...)"
+                          value={actor.profileUrl || ''}
+                          onChange={e => {
+                            const updated = [...formActors];
+                            updated[aIdx] = { ...updated[aIdx], profileUrl: e.target.value };
+                            setFormActors(updated);
+                          }}
+                          className="flex-1 w-full sm:w-44 bg-surface-800 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500"
+                        />
+
+                        {/* Delete Button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = formActors.filter((_, idx) => idx !== aIdx);
+                            setFormActors(updated);
+                            setFormCast(updated.map(a => a.name).filter(Boolean).join(', '));
+                          }}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors self-end sm:self-auto"
+                          title="Hapus Aktor"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Status Switches */}

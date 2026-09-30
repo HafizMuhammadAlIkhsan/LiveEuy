@@ -1,7 +1,7 @@
 import { VisitorSession } from '../types';
 
 export const TRACKER_COOKIE_NAME = 'liveeuy_visitor_token';
-const SESSIONS_STORAGE_KEY = 'liveeuy_tracked_sessions';
+export const SESSIONS_STORAGE_KEY = 'liveeuy_tracked_sessions';
 
 /**
  * Cookie Helper: Get cookie value by name
@@ -85,35 +85,49 @@ export function detectDeviceType(ua: string): 'Desktop' | 'Mobile' | 'Tablet' {
 }
 
 /**
- * Fetch Public Client IP with graceful fallback
+ * Fetch Public Client IP using first-party backend endpoint or local client fallback.
+ * Menghilangkan pemanggilan ke third-party (api.ipify.org) untuk menjaga privasi pengguna.
  */
 export async function fetchClientIP(): Promise<{ ip: string; city: string; country: string }> {
+  const authUrl = import.meta.env.VITE_AUTH_API_URL || 'http://localhost:8080';
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2000);
-    const res = await fetch('https://api.ipify.org?format=json', { signal: controller.signal });
+    const timeoutId = setTimeout(() => controller.abort(), 1200);
+    const res = await fetch(`${authUrl}/api/v1/auth/client-ip`, { signal: controller.signal });
     clearTimeout(timeoutId);
     if (res.ok) {
       const data = await res.json();
       return {
-        ip: data.ip || '180.252.164.218',
-        city: 'Jakarta',
-        country: 'Indonesia'
+        ip: data.ip || '127.0.0.1',
+        city: data.city || 'Local Network',
+        country: data.country || 'Indonesia'
       };
     }
   } catch {
-    // Network blocked, offline, or adblocker active
+    // Backend offline / fallback
   }
 
   return {
-    ip: '180.252.164.218',
-    city: 'Jakarta',
+    ip: '127.0.0.1',
+    city: 'Local Network',
     country: 'Indonesia'
   };
 }
 
 /**
- * Pre-seeded mock visitor sessions for demo & realism
+ * Mask email address to protect Personally Identifiable Information (PII) from leaking in storage.
+ */
+export function maskEmail(email?: string): string | undefined {
+  if (!email || !email.includes('@')) return undefined;
+  const [local, domain] = email.trim().toLowerCase().split('@');
+  if (local.length <= 2) {
+    return `${local[0]}***@${domain}`;
+  }
+  return `${local.slice(0, 2)}***${local.slice(-1)}@${domain}`;
+}
+
+/**
+ * Pre-seeded mock visitor sessions for demo & realism (masked PII)
  */
 const DEFAULT_SESSIONS: VisitorSession[] = [
   {
@@ -133,7 +147,7 @@ const DEFAULT_SESSIONS: VisitorSession[] = [
     lastActive: '5 menit yang lalu',
     currentPage: 'Beranda (Home)',
     visitedPages: ['home', 'movies', 'trending'],
-    userEmail: 'hafiz@liveeuy.id'
+    userEmail: 'ha***z@liveeuy.id'
   },
   {
     sessionId: 'sess-sby-02',
@@ -152,7 +166,7 @@ const DEFAULT_SESSIONS: VisitorSession[] = [
     lastActive: '12 menit yang lalu',
     currentPage: 'Film Bioskop (Movies)',
     visitedPages: ['home', 'movies'],
-    userEmail: 'budi@liveeuy.id'
+    userEmail: 'bu***i@liveeuy.id'
   },
   {
     sessionId: 'sess-bdg-03',
@@ -171,7 +185,7 @@ const DEFAULT_SESSIONS: VisitorSession[] = [
     lastActive: '18 menit yang lalu',
     currentPage: 'Serial TV (Series)',
     visitedPages: ['home', 'tv'],
-    userEmail: 'siti@liveeuy.id'
+    userEmail: 'si***i@liveeuy.id'
   },
   {
     sessionId: 'sess-dps-04',
@@ -212,7 +226,11 @@ export function getStoredSessions(): VisitorSession[] {
 export function saveStoredSessions(sessions: VisitorSession[]): void {
   if (typeof localStorage === 'undefined') return;
   try {
-    localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(sessions));
+    const sanitized = sessions.map(s => ({
+      ...s,
+      userEmail: s.userEmail ? (s.userEmail.includes('***') ? s.userEmail : maskEmail(s.userEmail)) : undefined
+    }));
+    localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(sanitized));
   } catch (e) {
     console.error('Failed to save sessions:', e);
   }
@@ -248,6 +266,7 @@ export async function trackCurrentVisitor(
   const existingIdx = sessions.findIndex(s => s.cookieToken === cookieToken);
 
   const nowStr = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
+  const maskedEmail = userEmail ? maskEmail(userEmail) : undefined;
 
   let currentSession: VisitorSession;
 
@@ -266,7 +285,7 @@ export async function trackCurrentVisitor(
       lastActive: `Baru saja (${nowStr})`,
       currentPage,
       visitedPages: Array.from(new Set([...prev.visitedPages, currentPage])),
-      userEmail: userEmail || prev.userEmail,
+      userEmail: maskedEmail || prev.userEmail,
       isCurrentDevice: true
     };
     sessions[existingIdx] = currentSession;
@@ -288,7 +307,7 @@ export async function trackCurrentVisitor(
       lastActive: `Aktif sekarang (${nowStr})`,
       currentPage,
       visitedPages: [currentPage],
-      userEmail,
+      userEmail: maskedEmail,
       isCurrentDevice: true
     };
     sessions.unshift(currentSession);

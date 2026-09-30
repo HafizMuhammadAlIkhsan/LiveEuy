@@ -1,8 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useWatch } from '../../context/WatchContext';
 import { MediaCard } from '../../components/MediaCard';
+import { HeroBanner } from '../../components/HeroBanner';
 import { BillboardAd } from '../../components/BillboardAd';
-import { GENRES } from '../../data/mockData';
+import { StreamingHubs, StreamingPlatformBanner } from '../../components/StreamingHubs';
+import { GENRES, STREAMING_PLATFORMS, StreamingPlatformFilter } from '../../data/mockData';
 import { MediaItem, Season, Episode } from '../../types';
 import { 
   Tv, 
@@ -17,20 +20,20 @@ import {
   Bookmark, 
   Plus, 
   Check, 
-  ChevronRight,
-  Info,
-  Search,
-  X,
-  RotateCcw,
-  LayoutGrid,
-  List,
-  ChevronDown,
-  ChevronUp,
-  ShieldCheck,
-  Star,
-  ArrowUpDown,
-  SlidersHorizontal,
-  Volume2
+  ChevronRight, 
+  Info, 
+  Search, 
+  X, 
+  RotateCcw, 
+  LayoutGrid, 
+  List, 
+  ChevronDown, 
+  ChevronUp, 
+  ShieldCheck, 
+  Star, 
+  ArrowUpDown, 
+  SlidersHorizontal, 
+  Volume2 
 } from 'lucide-react';
 
 export const SeriesPage: React.FC = () => {
@@ -40,17 +43,52 @@ export const SeriesPage: React.FC = () => {
     openDetail, 
     toggleWatchlist, 
     isInWatchlist, 
-    isLoggedIn,
-    openAuthModal
+    isLoggedIn, 
+    openAuthModal 
   } = useWatch();
+
+  // URL search params for direct platform link (e.g. /tv?platform=Netflix)
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlPlatform = searchParams.get('platform') as StreamingPlatformFilter | null;
+  const [selectedPlatform, setSelectedPlatform] = useState<StreamingPlatformFilter>(
+    urlPlatform && STREAMING_PLATFORMS.includes(urlPlatform) ? urlPlatform : 'Semua Platform'
+  );
+
+  useEffect(() => {
+    if (urlPlatform && STREAMING_PLATFORMS.includes(urlPlatform)) {
+      setSelectedPlatform(urlPlatform);
+    }
+  }, [urlPlatform]);
+
+  const handleSelectPlatform = (platform: StreamingPlatformFilter) => {
+    setSelectedPlatform(platform);
+    const next = new URLSearchParams(searchParams);
+    if (platform === 'Semua Platform') {
+      next.delete('platform');
+    } else {
+      next.set('platform', platform);
+    }
+    setSearchParams(next);
+  };
 
   // All TV series items
   const allSeries = useMemo(() => allMedia.filter(m => m.type === 'tv'), [allMedia]);
 
-  // Spotlight series
+  // Featured series for HeroBanner Carousel (supports platform prioritization)
+  const featuredSeries: MediaItem[] = useMemo(() => {
+    if (selectedPlatform !== 'Semua Platform') {
+      const platformSeries = allSeries.filter(s => s.network === selectedPlatform);
+      if (platformSeries.length > 0) return platformSeries.slice(0, 8);
+    }
+    const top = allSeries.filter(s => s.isTrending || (s.topRank && s.topRank <= 10));
+    return top.length >= 3 ? top.slice(0, 8) : allSeries.slice(0, 8);
+  }, [allSeries, selectedPlatform]);
+
+  // Spotlight series (fallback for episode explorer)
   const spotlightSeries: MediaItem = useMemo(() => {
-    return allSeries.find(s => s.id === 'cyberpunk-neo-nusantara') || allSeries[0];
-  }, [allSeries]);
+    return featuredSeries[0] || allSeries[0];
+  }, [featuredSeries, allSeries]);
 
   // Interactive Episode Explorer selection
   const [selectedSeriesId, setSelectedSeriesId] = useState<string>(spotlightSeries?.id || '');
@@ -79,6 +117,17 @@ export const SeriesPage: React.FC = () => {
     return counts;
   }, [allSeries]);
 
+  // Platform counts for streaming hubs
+  const platformCounts = useMemo(() => {
+    const counts: Record<string, number> = { 'Semua Platform': allSeries.length };
+    STREAMING_PLATFORMS.forEach(p => {
+      if (p !== 'Semua Platform') {
+        counts[p] = allSeries.filter(s => s.network === p).length;
+      }
+    });
+    return counts;
+  }, [allSeries]);
+
   // Active advanced filters counter
   const activeAdvancedCount = useMemo(() => {
     let count = 0;
@@ -92,16 +141,18 @@ export const SeriesPage: React.FC = () => {
   // Total active filters counter
   const totalActiveFiltersCount = useMemo(() => {
     let count = activeAdvancedCount;
+    if (selectedPlatform !== 'Semua Platform') count++;
     if (searchQuery.trim()) count++;
     if (selectedGenre !== 'Semua Genre') count++;
     if (statusFilter !== 'all') count++;
     if (sortBy !== 'popular') count++;
     return count;
-  }, [activeAdvancedCount, searchQuery, selectedGenre, statusFilter, sortBy]);
+  }, [activeAdvancedCount, selectedPlatform, searchQuery, selectedGenre, statusFilter, sortBy]);
 
   // Reset all filters
   const handleResetFilters = () => {
     setSearchQuery('');
+    setSelectedPlatform('Semua Platform');
     setSelectedGenre('Semua Genre');
     setStatusFilter('all');
     setSelectedAgeRating('all');
@@ -109,6 +160,9 @@ export const SeriesPage: React.FC = () => {
     setSelectedQuality('all');
     setSelectedAudio('all');
     setSortBy('popular');
+    const next = new URLSearchParams(searchParams);
+    next.delete('platform');
+    setSearchParams(next);
   };
 
   // Currently active explored series
@@ -133,6 +187,11 @@ export const SeriesPage: React.FC = () => {
   // Filtered series list
   const filteredSeries = useMemo(() => {
     return allSeries.filter(item => {
+      // Streaming Platform filter
+      if (selectedPlatform !== 'Semua Platform' && item.network !== selectedPlatform) {
+        return false;
+      }
+
       // In-page search
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
@@ -183,6 +242,7 @@ export const SeriesPage: React.FC = () => {
     });
   }, [
     allSeries,
+    selectedPlatform,
     searchQuery,
     selectedGenre,
     statusFilter,
@@ -193,119 +253,60 @@ export const SeriesPage: React.FC = () => {
     sortBy
   ]);
 
-  const inWatchlist = activeSeries ? isInWatchlist(activeSeries.id) : false;
-
   return (
-    <div className="pt-20 sm:pt-24 pb-20 cinema-layout-container space-y-8">
-      
+    <main className="w-full">
+      {/* Cinematic Hero Banner Carousel (Identik dengan Beranda) */}
+      <HeroBanner featuredItems={featuredSeries} />
+
       {/* Guest Mode Notice */}
       {!isLoggedIn && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-surface-800/80 border border-brand-500/30 text-xs shadow-lg">
-          <div className="flex items-center gap-2.5">
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-            <span className="text-slate-300">
-              Anda sedang dalam <strong>Mode Tamu</strong>: Masuk ke akun LiveEuy untuk membuka seluruh episode multi-musim dan dapatkan notifikasi rilis episode baru setiap pekan.
-            </span>
+        <div className="relative z-20 cinema-layout-container -mt-6 sm:-mt-8 mb-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-surface-800/90 border border-brand-500/30 text-xs shadow-lg backdrop-blur-xl">
+            <div className="flex items-center gap-2.5">
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+              <span className="text-slate-300">
+                Anda sedang dalam <strong>Mode Tamu</strong>: Masuk ke akun LiveEuy untuk membuka seluruh episode multi-musim dan dapatkan notifikasi rilis episode baru setiap pekan.
+              </span>
+            </div>
+            <button
+              onClick={() => openAuthModal('login')}
+              className="px-4 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold whitespace-nowrap shadow transition-colors"
+            >
+              Masuk Akun
+            </button>
           </div>
-          <button
-            onClick={() => openAuthModal('login')}
-            className="px-4 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold whitespace-nowrap shadow transition-colors"
-          >
-            Masuk Akun
-          </button>
         </div>
       )}
 
-      {/* ========================================================
-          1. BINGE-WATCH SPOTLIGHT BANNER (16:9 Cinema Widescreen)
-          ======================================================== */}
-      {spotlightSeries && (
-        <section className="relative rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-black group">
-          <div className="relative aspect-[16/9] min-h-[380px] sm:min-h-[460px] md:min-h-[500px] lg:min-h-[540px] xl:max-h-[640px] 2xl:max-h-[720px] w-full">
-            <img
-              src={spotlightSeries.backdropUrl}
-              alt={spotlightSeries.title}
-              className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700"
+      {/* Main Content Area */}
+      <div className="relative z-20 cinema-layout-container space-y-8 pb-20 pt-4 sm:pt-6">
+        
+        {/* Dual Billboard Ads under Hero */}
+        <BillboardAd fluid placementIndex={1} />
+
+        {/* ========================================================
+            1. EXCLUSIVE STREAMING BRAND HUBS (DISNEY+, NETFLIX, PRIME, HBO)
+            ======================================================== */}
+        <section className="space-y-4">
+          <StreamingHubs
+            selectedPlatform={selectedPlatform}
+            onSelectPlatform={handleSelectPlatform}
+            counts={platformCounts}
+          />
+
+          {selectedPlatform !== 'Semua Platform' && (
+            <StreamingPlatformBanner
+              platform={selectedPlatform}
+              onClear={() => handleSelectPlatform('Semua Platform')}
+              count={filteredSeries.length}
+              onViewAllCatalog={() => navigate(`/movies?platform=${encodeURIComponent(selectedPlatform)}&type=all`)}
+              viewAllLabel={`Lihat Semua Film & Serial ${selectedPlatform}`}
             />
-
-            {/* Gradient Overlays */}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#08090d] via-[#08090d]/60 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#08090d] via-[#08090d]/70 to-transparent w-full md:w-3/4" />
-
-            {/* Content */}
-            <div className="absolute inset-0 p-6 sm:p-10 md:p-14 flex flex-col justify-end max-w-3xl space-y-3 sm:space-y-4">
-              
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-brand-600 text-white shadow-lg shadow-brand-600/30 flex items-center gap-1.5">
-                  <Tv className="w-3.5 h-3.5" />
-                  Serial Original Unggulan
-                </span>
-                <span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
-                  <CheckCircle className="w-3 h-3" />
-                  {spotlightSeries.totalSeasons} Musim Lengkap
-                </span>
-                <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30">
-                  ★ {spotlightSeries.rating}
-                </span>
-                <span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-white/15 text-white">
-                  {spotlightSeries.quality}
-                </span>
-              </div>
-
-              <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-none drop-shadow-md">
-                {spotlightSeries.title}
-              </h1>
-
-              <p className="text-xs sm:text-base text-slate-300 line-clamp-2 sm:line-clamp-3 leading-relaxed">
-                {spotlightSeries.overview}
-              </p>
-
-              <div className="text-xs text-slate-400 flex flex-wrap gap-x-4 gap-y-1">
-                <span>Pemeran Utama: <strong className="text-slate-200">{spotlightSeries.cast.slice(0, 3).join(', ')}</strong></span>
-                <span>Format: <strong className="text-slate-200">Episode Mingguan 4K HDR</strong></span>
-              </div>
-
-              {/* Actions */}
-              <div className="flex flex-wrap items-center gap-3 pt-2">
-                <button
-                  onClick={() => openPlayer(spotlightSeries)}
-                  className="px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs sm:text-sm font-bold flex items-center gap-2 transition-all hover:scale-105 active:scale-95 shadow-xl shadow-brand-600/30"
-                >
-                  <Play className="w-4 h-4 fill-white" />
-                  <span>Mulai Musim 1 Episode 1</span>
-                </button>
-
-                <button
-                  onClick={() => openDetail(spotlightSeries)}
-                  className="px-5 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold flex items-center gap-2 backdrop-blur-md transition-all"
-                >
-                  <Info className="w-4 h-4" />
-                  <span>Detail & Semua Episode</span>
-                </button>
-
-                <button
-                  onClick={() => toggleWatchlist(spotlightSeries.id)}
-                  className={`p-3 rounded-xl border transition-all ${
-                    inWatchlist
-                      ? 'bg-brand-600/20 border-brand-500 text-brand-400'
-                      : 'bg-white/10 hover:bg-white/20 border-white/10 text-white'
-                  }`}
-                  title={inWatchlist ? 'Hapus dari Koleksi' : 'Tambah ke Koleksi'}
-                >
-                  {inWatchlist ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                </button>
-              </div>
-
-            </div>
-          </div>
+          )}
         </section>
-      )}
-
-      {/* Dual Billboard Ads under Spotlight Series */}
-      <BillboardAd fluid placementIndex={1} />
 
       {/* ========================================================
-          2. WEEKLY EPISODE RELEASE SCHEDULE
+          3. WEEKLY EPISODE RELEASE SCHEDULE
           ======================================================== */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
@@ -348,7 +349,7 @@ export const SeriesPage: React.FC = () => {
       </section>
 
       {/* ========================================================
-          3. INTERACTIVE IN-PAGE EPISODE EXPLORER
+          4. INTERACTIVE IN-PAGE EPISODE EXPLORER
           ======================================================== */}
       {activeSeries && activeSeries.seasons && activeSeries.seasons.length > 0 && (
         <section className="bg-surface-800/40 border border-white/10 rounded-3xl p-5 sm:p-8 space-y-6">
@@ -445,7 +446,7 @@ export const SeriesPage: React.FC = () => {
       )}
 
       {/* ========================================================
-          4. SERIES CATALOG FILTERS & SORT CONTROLS
+          5. SERIES CATALOG FILTERS & SORT CONTROLS
           ======================================================== */}
       <section className="bg-surface-800/40 border border-white/5 rounded-2xl p-4 sm:p-5 space-y-4 shadow-xl backdrop-blur-md">
         
@@ -736,6 +737,25 @@ export const SeriesPage: React.FC = () => {
               Menampilkan <strong className="text-white font-semibold">{filteredSeries.length}</strong> dari {allSeries.length} Serial TV
             </span>
 
+            {/* Active Platform chip */}
+            {selectedPlatform !== 'Semua Platform' && (
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-white text-[11px] font-bold shadow-md ${
+                selectedPlatform === 'Netflix' ? 'bg-[#E50914]' :
+                selectedPlatform === 'Disney+' ? 'bg-[#0063E5]' :
+                selectedPlatform === 'Prime Video' ? 'bg-[#00A8E1]' :
+                selectedPlatform === 'HBO' ? 'bg-[#9900FF]' : 'bg-brand-600'
+              }`}>
+                <span>Studio: {selectedPlatform}</span>
+                <button 
+                  onClick={() => handleSelectPlatform('Semua Platform')} 
+                  className="hover:bg-black/30 p-0.5 rounded-full transition-colors"
+                  title="Hapus filter studio"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+
             {/* Active chips */}
             {searchQuery && (
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-brand-600/20 border border-brand-500/40 text-brand-300 text-[11px]">
@@ -879,6 +899,7 @@ export const SeriesPage: React.FC = () => {
       {/* Dual Billboard Ads under Series Catalog */}
       <BillboardAd fluid placementIndex={2} />
 
-    </div>
+      </div>
+    </main>
   );
 };

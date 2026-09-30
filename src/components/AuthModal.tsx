@@ -29,7 +29,7 @@ import {
 } from '../utils/security';
 
 export const AuthModal: React.FC = () => {
-  const { isAuthModalOpen, closeAuthModal, authModalMode, openAuthModal, login } = useWatch();
+  const { isAuthModalOpen, closeAuthModal, authModalMode, openAuthModal, login, profiles, switchProfile } = useWatch();
   
   const [isRegister, setIsRegister] = useState(authModalMode === 'register');
   const [email, setEmail] = useState('');
@@ -144,8 +144,8 @@ export const AuthModal: React.FC = () => {
         id: userProfile?.id,
         name: userName,
         email: userProfile?.email || email.trim(),
-        tier: (userProfile?.tier as any) || 'VIP Standard',
-        role: (userProfile?.role as any) || (email.toLowerCase().includes('admin') || email === 'hafiz@liveeuy.id' ? 'admin' : 'user'),
+        tier: (userProfile?.tier as any) || (isRegister ? 'Free Guest' : 'VIP Standard'),
+        role: (userProfile?.role as any) || (email.trim().toLowerCase() === 'admin@liveeuy.id' || email.trim().toLowerCase() === 'hafiz@liveeuy.id' ? 'admin' : 'user'),
         avatar: userProfile?.avatar,
         watchHours: userProfile?.watchHours || 0,
         devices: userProfile?.devices || 1
@@ -167,8 +167,8 @@ export const AuthModal: React.FC = () => {
       login({
         name: userName,
         email: email.trim(),
-        tier: 'VIP Standard',
-        role: (email.toLowerCase().includes('admin') || email === 'hafiz@liveeuy.id' ? 'admin' : 'user'),
+        tier: isRegister ? 'Free Guest' : 'VIP Standard',
+        role: (email.trim().toLowerCase() === 'admin@liveeuy.id' || email.trim().toLowerCase() === 'hafiz@liveeuy.id' ? 'admin' : 'user'),
         watchHours: 0,
         devices: 1
       });
@@ -217,6 +217,50 @@ export const AuthModal: React.FC = () => {
       devices: 1
     });
     setSuccessMessage('Masuk sebagai Budi Santoso (Member VIP)...');
+    setSuccess(true);
+    setTimeout(() => {
+      closeAuthModal();
+      setSuccess(false);
+    }, 500);
+  };
+
+  const handleDemoFree = () => {
+    clearLoginLockout('rian@liveeuy.id');
+    setFailedAttempts(0);
+    setLockoutSeconds(0);
+    login({
+      name: 'Rian Pratama',
+      email: 'rian@liveeuy.id',
+      tier: 'Free Guest',
+      role: 'user',
+      watchHours: 2.0,
+      devices: 1
+    });
+    setSuccessMessage('Masuk sebagai Rian (Akun Gratis - Didukung Iklan)...');
+    setSuccess(true);
+    setTimeout(() => {
+      closeAuthModal();
+      setSuccess(false);
+    }, 500);
+  };
+
+  const handleDemoKids = () => {
+    clearLoginLockout('keluarga@liveeuy.id');
+    setFailedAttempts(0);
+    setLockoutSeconds(0);
+    login({
+      name: 'Keluarga Pratama',
+      email: 'keluarga@liveeuy.id',
+      tier: 'VIP Standard',
+      role: 'user',
+      watchHours: 15.0,
+      devices: 2
+    });
+    const kidsProf = profiles.find(p => p.isKids);
+    if (kidsProf) {
+      switchProfile(kidsProf.id);
+    }
+    setSuccessMessage('Masuk sebagai Adik Caca (Mode Anak Aktif)...');
     setSuccess(true);
     setTimeout(() => {
       closeAuthModal();
@@ -432,15 +476,15 @@ export const AuthModal: React.FC = () => {
                 <span className="text-brand-400 font-semibold normal-case">1-Klik Langsung Aktif</span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {/* Admin Persona: Hafiz Muhammad */}
                 <button
                   type="button"
                   onClick={handleDemoVip}
-                  className="p-2.5 rounded-xl bg-white/[0.03] hover:bg-emerald-500/10 border border-white/[0.08] hover:border-emerald-500/40 text-left transition-all group cursor-pointer"
+                  className="p-2 sm:p-2.5 rounded-xl bg-white/[0.03] hover:bg-emerald-500/10 border border-white/[0.08] hover:border-emerald-500/40 text-left transition-all group cursor-pointer"
                 >
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-800 border border-white/20 flex-shrink-0">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg overflow-hidden bg-slate-800 border border-white/20 flex-shrink-0">
                       <img 
                         src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80" 
                         alt="Hafiz" 
@@ -449,14 +493,14 @@ export const AuthModal: React.FC = () => {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1">
-                        <span className="text-xs font-bold text-white truncate group-hover:text-emerald-300 transition-colors">
-                          Hafiz M.
+                        <span className="text-[11px] sm:text-xs font-bold text-white truncate group-hover:text-emerald-300 transition-colors">
+                          Hafiz
                         </span>
-                        <span className="px-1 py-0.2 rounded text-[8px] font-bold bg-emerald-500/20 text-emerald-400 uppercase">
-                          Admin
+                        <span className="px-1 py-0.2 rounded text-[7px] font-bold bg-emerald-500/20 text-emerald-400 uppercase">
+                          VIP
                         </span>
                       </div>
-                      <p className="text-[10px] text-slate-400 truncate">VIP Cinema Ultra • 4K</p>
+                      <p className="text-[9px] text-slate-400 truncate">Ultra • Bebas Iklan</p>
                     </div>
                   </div>
                 </button>
@@ -465,10 +509,10 @@ export const AuthModal: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleDemoStandard}
-                  className="p-2.5 rounded-xl bg-white/[0.03] hover:bg-brand-500/10 border border-white/[0.08] hover:border-brand-500/40 text-left transition-all group cursor-pointer"
+                  className="p-2 sm:p-2.5 rounded-xl bg-white/[0.03] hover:bg-brand-500/10 border border-white/[0.08] hover:border-brand-500/40 text-left transition-all group cursor-pointer"
                 >
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-800 border border-white/20 flex-shrink-0">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg overflow-hidden bg-slate-800 border border-white/20 flex-shrink-0">
                       <img 
                         src="https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=120&auto=format&fit=crop&q=80" 
                         alt="Budi" 
@@ -477,14 +521,66 @@ export const AuthModal: React.FC = () => {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1">
-                        <span className="text-xs font-bold text-white truncate group-hover:text-brand-300 transition-colors">
+                        <span className="text-[11px] sm:text-xs font-bold text-white truncate group-hover:text-brand-300 transition-colors">
                           Budi S.
                         </span>
-                        <span className="px-1 py-0.2 rounded text-[8px] font-bold bg-white/10 text-slate-300 uppercase">
-                          Member
+                        <span className="px-1 py-0.2 rounded text-[7px] font-bold bg-white/10 text-slate-300 uppercase">
+                          VIP
                         </span>
                       </div>
-                      <p className="text-[10px] text-slate-400 truncate">VIP Standar • 1080p</p>
+                      <p className="text-[9px] text-slate-400 truncate">Standar • Bebas Iklan</p>
+                    </div>
+                  </div>
+                </button>
+
+                {/* Free Persona: Rian Pratama */}
+                <button
+                  type="button"
+                  onClick={handleDemoFree}
+                  className="p-2 sm:p-2.5 rounded-xl bg-white/[0.03] hover:bg-amber-500/10 border border-white/[0.08] hover:border-amber-500/40 text-left transition-all group cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg overflow-hidden bg-slate-800 border border-white/20 flex-shrink-0">
+                      <img 
+                        src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80" 
+                        alt="Rian" 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1">
+                        <span className="text-[11px] sm:text-xs font-bold text-white truncate group-hover:text-amber-300 transition-colors">
+                          Rian P.
+                        </span>
+                        <span className="px-1 py-0.2 rounded text-[7px] font-bold bg-amber-500/20 text-amber-400 uppercase">
+                          Gratis
+                        </span>
+                      </div>
+                      <p className="text-[9px] text-amber-300/80 truncate">Ada Iklan Pop-up</p>
+                    </div>
+                  </div>
+                </button>
+
+                {/* Kids Persona: Adik Caca */}
+                <button
+                  type="button"
+                  onClick={handleDemoKids}
+                  className="p-2 sm:p-2.5 rounded-xl bg-white/[0.03] hover:bg-pink-500/10 border border-white/[0.08] hover:border-pink-500/40 text-left transition-all group cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg overflow-hidden bg-pink-500/20 border border-pink-400/40 flex-shrink-0 flex items-center justify-center">
+                      <span className="text-base sm:text-lg">🧸</span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1">
+                        <span className="text-[11px] sm:text-xs font-bold text-white truncate group-hover:text-pink-300 transition-colors">
+                          Adik Caca
+                        </span>
+                        <span className="px-1 py-0.2 rounded text-[7px] font-bold bg-pink-500/20 text-pink-400 uppercase">
+                          Kids
+                        </span>
+                      </div>
+                      <p className="text-[9px] text-pink-300/80 truncate">Aman • PIN 1234</p>
                     </div>
                   </div>
                 </button>

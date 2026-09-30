@@ -9,14 +9,19 @@ export function sanitizeUrl(url: unknown, fallback: string = ''): string {
   const trimmed = url.trim();
   if (!trimmed) return fallback;
 
-  // Check for dangerous protocols
-  const dangerousProtocolRegex = /^\s*(javascript|vbscript|data(?!\s*:\s*image\/(png|jpe?g|webp|gif|svg\+xml)\b)):/i;
+  // Check for dangerous protocols (disallow svg+xml as SVGs can contain executable JavaScript)
+  const dangerousProtocolRegex = /^\s*(javascript|vbscript|data(?!\s*:\s*image\/(png|jpe?g|webp|gif)\b)):/i;
   if (dangerousProtocolRegex.test(trimmed)) {
     return fallback;
   }
 
-  // Allowed patterns: relative paths starting with '/', or http/https/blob/data:image URLs
-  const safeProtocolRegex = /^(\/|https?:\/\/|blob:|data:image\/(png|jpe?g|webp|gif|svg\+xml)[;,])/i;
+  // Disallow protocol-relative URLs (//example.com) to prevent open redirect and external navigation bypasses
+  if (trimmed.startsWith('//')) {
+    return fallback;
+  }
+
+  // Allowed patterns: relative paths starting with '/' (single slash only), or http/https/blob/data:image (raster only) URLs
+  const safeProtocolRegex = /^(\/(?!\/)|https?:\/\/|blob:|data:image\/(png|jpe?g|webp|gif)[;,])/i;
   if (!safeProtocolRegex.test(trimmed)) {
     return fallback;
   }
@@ -161,7 +166,7 @@ function getStorageKey(email: string): string {
 function readRecord(email: string): LockoutRecord {
   if (typeof window === 'undefined') return { attempts: 0, lockoutUntil: null };
   try {
-    const data = sessionStorage.getItem(getStorageKey(email));
+    const data = localStorage.getItem(getStorageKey(email));
     if (!data) return { attempts: 0, lockoutUntil: null };
     return JSON.parse(data);
   } catch {
@@ -172,7 +177,7 @@ function readRecord(email: string): LockoutRecord {
 function writeRecord(email: string, record: LockoutRecord): void {
   if (typeof window === 'undefined') return;
   try {
-    sessionStorage.setItem(getStorageKey(email), JSON.stringify(record));
+    localStorage.setItem(getStorageKey(email), JSON.stringify(record));
   } catch {
     // ignore storage write errors
   }
@@ -221,8 +226,21 @@ export function recordFailedLoginAttempt(email: string): { isLocked: boolean; re
 export function clearLoginLockout(email: string): void {
   if (typeof window === 'undefined') return;
   try {
-    sessionStorage.removeItem(getStorageKey(email));
+    localStorage.removeItem(getStorageKey(email));
   } catch {
     // ignore
   }
+}
+
+/**
+ * Sanitizes and normalizes search input to prevent SQL/NoSQL injection meta-characters,
+ * control codes, and buffer overflow attempts against backend database queries.
+ */
+export function sanitizeSearchInput(input: unknown, maxLength: number = 100): string {
+  if (typeof input !== 'string') return '';
+  return input
+    .trim()
+    .slice(0, maxLength)
+    .replace(/[\u0000-\u001f\u007f-\u009f]/g, '') // Strip ASCII control characters
+    .replace(/[;'"\\]/g, ''); // Strip dangerous SQL quoting/statement termination characters
 }

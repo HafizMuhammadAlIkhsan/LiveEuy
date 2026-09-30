@@ -28,6 +28,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useWatch } from '../context/WatchContext';
+import { sanitizeUrl } from '../utils/security';
 
 export interface HlsQualityLevel {
   index: number;
@@ -95,43 +96,56 @@ export const VideoPlayerModal: React.FC = () => {
   const [showSkipToast, setShowSkipToast] = useState(false);
 
   // Pre-roll Video Ad State (Layer: video_preroll)
-  const isVip = user?.tier === 'VIP Cinema Ultra';
+  const isVip = user?.tier === 'VIP Cinema Ultra' || user?.tier === 'VIP Standard';
   const prerollAd = useMemo(() => {
     if (isVip) return null;
     const activePrerolls = ads.filter(a => a.layer === 'video_preroll' && a.isActive);
-    return activePrerolls.length > 0 ? activePrerolls[0] : null;
+    if (activePrerolls.length > 0) return activePrerolls[0];
+    const fallbackAd = ads.find(a => a.isActive && (a.layer === 'popunder_interstitial' || a.layer === 'billboard_feed'));
+    return fallbackAd || null;
   }, [ads, isVip]);
 
-  const [hasShownPrerollFor, setHasShownPrerollFor] = useState<string | null>(null);
   const [prerollActive, setPrerollActive] = useState<boolean>(false);
   const [prerollCountdown, setPrerollCountdown] = useState<number>(5);
-  const [hasRecordedImpression, setHasRecordedImpression] = useState<boolean>(false);
+  const prerollActiveRef = useRef<boolean>(false);
+  const recordedImpressionRef = useRef<string | null>(null);
+  const lastPlaybackKeyRef = useRef<string | null>(null);
 
-  // Trigger pre-roll when modal opens or item/episode changes
+  // Trigger pre-roll when modal opens or item/episode changes for non-VIP/guest users
   useEffect(() => {
-    const currentId = episode?.id || item?.id;
-    if (isOpen && prerollAd && currentId && hasShownPrerollFor !== currentId) {
-      setPrerollActive(true);
-      setPrerollCountdown(5);
-      setHasRecordedImpression(false);
-      setHasShownPrerollFor(currentId);
-      if (videoRef.current) {
-        videoRef.current.pause();
-        setIsPlaying(false);
+    if (isOpen && item) {
+      const currentKey = `${item.id}_${episode?.id || 'main'}`;
+      if (lastPlaybackKeyRef.current !== currentKey) {
+        lastPlaybackKeyRef.current = currentKey;
+        if (!isVip && prerollAd) {
+          prerollActiveRef.current = true;
+          setPrerollActive(true);
+          const initialCountdown = prerollAd.skipAfterSeconds || 5;
+          setPrerollCountdown(initialCountdown);
+          if (videoRef.current) {
+            videoRef.current.pause();
+            setIsPlaying(false);
+          }
+          if (recordedImpressionRef.current !== `${currentKey}_${prerollAd.id}`) {
+            recordedImpressionRef.current = `${currentKey}_${prerollAd.id}`;
+            recordAdImpression(prerollAd.id);
+          }
+        } else {
+          prerollActiveRef.current = false;
+          setPrerollActive(false);
+        }
       }
     } else if (!isOpen) {
+      lastPlaybackKeyRef.current = null;
+      recordedImpressionRef.current = null;
+      prerollActiveRef.current = false;
       setPrerollActive(false);
     }
-  }, [isOpen, episode?.id, item?.id, prerollAd, hasShownPrerollFor]);
+  }, [isOpen, item, episode, isVip, prerollAd, recordAdImpression]);
 
-  // Pre-roll countdown & impression tracker
+  // Pre-roll countdown timer (ticks every 1s until 0)
   useEffect(() => {
-    if (!prerollActive || !prerollAd) return;
-
-    if (!hasRecordedImpression) {
-      recordAdImpression(prerollAd.id);
-      setHasRecordedImpression(true);
-    }
+    if (!prerollActive) return;
 
     const timer = setInterval(() => {
       setPrerollCountdown(prev => {
@@ -144,24 +158,29 @@ export const VideoPlayerModal: React.FC = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [prerollActive, prerollAd, hasRecordedImpression, recordAdImpression]);
+  }, [prerollActive]);
 
-  const handleSkipPreroll = () => {
+  const handleSkipPreroll = useCallback(() => {
+    prerollActiveRef.current = false;
     setPrerollActive(false);
     if (videoRef.current) {
       videoRef.current.play().catch(() => {});
       setIsPlaying(true);
     }
-  };
+  }, []);
 
-  const handlePrerollClick = () => {
+  const handlePrerollClick = useCallback(() => {
     if (prerollAd) {
       recordAdClick(prerollAd.id);
-      window.open(prerollAd.targetUrl, '_blank', 'noopener,noreferrer');
+      const safeUrl = sanitizeUrl(prerollAd.targetUrl);
+      if (safeUrl) {
+        window.open(safeUrl, '_blank', 'noopener,noreferrer');
+      }
     }
-  };
+  }, [prerollAd, recordAdClick]);
 
-  const activeVideoUrl = episode?.videoUrl || item?.videoUrl || '';
+  const rawVideoUrl = episode?.videoUrl || item?.videoUrl || '';
+  const activeVideoUrl = sanitizeUrl(rawVideoUrl);
   const currentTitle = item ? (episode ? `${item.title} - S${episode.seasonNumber}:E${episode.episodeNumber}` : item.title) : '';
   const episodeSubtitle = episode ? episode.title : item?.tagline || '';
 
@@ -207,7 +226,7 @@ export const VideoPlayerModal: React.FC = () => {
         ];
         setHlsLevels(levels);
         setCurrentLevelIndex(-1);
-        if (!prerollActive) {
+        if (!prerollActiveRef.current) {
           video.play().catch(() => {});
         }
       });
@@ -250,7 +269,7 @@ export const VideoPlayerModal: React.FC = () => {
       // Native Apple HLS (Safari iOS/macOS)
       setIsHls(true);
       video.src = activeVideoUrl;
-      if (!prerollActive) {
+      if (!prerollActiveRef.current) {
         video.play().catch(() => {});
       }
     } else {
@@ -263,11 +282,11 @@ export const VideoPlayerModal: React.FC = () => {
         hlsRef.current = null;
       }
       video.src = activeVideoUrl;
-      if (!prerollActive) {
+      if (!prerollActiveRef.current) {
         video.play().catch(() => {});
       }
     }
-  }, [isOpen, activeVideoUrl, prerollActive]);
+  }, [isOpen, activeVideoUrl]);
 
   const handleSelectQuality = (lvl: HlsQualityLevel) => {
     if (hlsRef.current) {
@@ -486,6 +505,12 @@ export const VideoPlayerModal: React.FC = () => {
         case ' ':
         case 'k':
           e.preventDefault();
+          if (prerollActiveRef.current) {
+            if (prerollCountdown === 0) {
+              handleSkipPreroll();
+            }
+            break;
+          }
           togglePlay();
           break;
         case 'f':
@@ -534,7 +559,7 @@ export const VideoPlayerModal: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, togglePlay, volume, isMuted, currentTime]);
+  }, [isOpen, togglePlay, volume, isMuted, currentTime, prerollCountdown, handleSkipPreroll]);
 
   // Scrub bar hover preview calculations
   const handleScrubberMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -602,7 +627,7 @@ export const VideoPlayerModal: React.FC = () => {
       {/* Main Video Element */}
       <video
         ref={videoRef}
-        autoPlay={!prerollActive}
+        autoPlay={false}
         playsInline
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleTimeUpdate}
@@ -732,10 +757,10 @@ export const VideoPlayerModal: React.FC = () => {
           </div>
 
           {/* Countdown Progress Line */}
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/10">
+          <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-white/10">
             <div 
               className="h-full bg-gradient-to-r from-amber-400 via-brand-500 to-emerald-400 transition-all duration-1000 ease-linear"
-              style={{ width: `${Math.max(0, 100 - ((5 - prerollCountdown) / 5) * 100)}%` }}
+              style={{ width: `${Math.min(100, Math.max(0, (((prerollAd.skipAfterSeconds || 5) - prerollCountdown) / (prerollAd.skipAfterSeconds || 5)) * 100))}%` }}
             />
           </div>
         </div>

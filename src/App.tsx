@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import { WatchProvider, useWatch } from './context/WatchContext';
 import { Navbar } from './components/Navbar';
 import { TopMarqueeAd } from './components/TopMarqueeAd';
@@ -9,10 +9,12 @@ import { DetailModal } from './components/DetailModal';
 import { AuthModal } from './components/AuthModal';
 import { MobileSyncModal } from './components/MobileSyncModal';
 import { PartnershipModal } from './components/PartnershipModal';
+import { FamilyProfilesModal } from './components/FamilyProfilesModal';
 import { Footer } from './components/Footer';
 import { HomePage } from './pages/HomePage';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { NetworkStatusToast } from './components/NetworkStatusToast';
+import { PwaInstallPrompt } from './components/PwaInstallPrompt';
 import { CatalogGridSkeleton } from './components/SkeletonLoader';
 import { useDocumentTitle } from './hooks/useDocumentTitle';
 import { AdminRouteGuard } from './components/AdminRouteGuard';
@@ -52,6 +54,11 @@ const PageLoader: React.FC<{ isCatalog?: boolean }> = ({ isCatalog }) => {
   );
 };
 
+const DetailModalRedirect: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`/?detail=${encodeURIComponent(id || '')}`} replace />;
+};
+
 const MainContent: React.FC = () => {
   useDocumentTitle();
   const { currentTab } = useWatch();
@@ -81,6 +88,11 @@ const MainContent: React.FC = () => {
               <Route path="/movies" element={<MoviesPage />} />
               <Route path="/tv" element={<SeriesPage />} />
               <Route path="/series" element={<Navigate to="/tv" replace />} />
+              <Route path="/movie/:id" element={<DetailModalRedirect />} />
+              <Route path="/movies/:id" element={<DetailModalRedirect />} />
+              <Route path="/series/:id" element={<DetailModalRedirect />} />
+              <Route path="/tv/:id" element={<DetailModalRedirect />} />
+              <Route path="/detail/:id" element={<DetailModalRedirect />} />
               <Route path="/trending" element={<TrendingPage />} />
               <Route path="/watchlist" element={<WatchlistPage />} />
               <Route path="/search" element={<SearchPage />} />
@@ -116,6 +128,7 @@ const MainContent: React.FC = () => {
       <AuthModal />
       <MobileSyncModal />
       <PartnershipModal />
+      <FamilyProfilesModal />
 
       {/* Heavy Modals (Isolated in their own Error Boundary) */}
       <ErrorBoundary fallbackTitle="Pemutar Video Mengalami Kendala">
@@ -125,7 +138,8 @@ const MainContent: React.FC = () => {
         </Suspense>
       </ErrorBoundary>
 
-      {/* Floating Connectivity Notification Toast */}
+      {/* PWA Installation Prompt & Connectivity Notification Toast */}
+      <PwaInstallPrompt />
       <NetworkStatusToast />
     </div>
   );

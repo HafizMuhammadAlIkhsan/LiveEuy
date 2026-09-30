@@ -1,10 +1,14 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useWatch } from '../../context/WatchContext';
 import { MediaCard } from '../../components/MediaCard';
+import { HeroBanner } from '../../components/HeroBanner';
 import { BillboardAd } from '../../components/BillboardAd';
-import { GENRES } from '../../data/mockData';
+import { StreamingHubs, StreamingPlatformBanner } from '../../components/StreamingHubs';
+import { GENRES, STREAMING_PLATFORMS, StreamingPlatformFilter } from '../../data/mockData';
 import { MediaItem } from '../../types';
 import { 
+  Tv,
   Film, 
   Sparkles, 
   Play, 
@@ -41,6 +45,57 @@ export const MoviesPage: React.FC = () => {
     openAuthModal
   } = useWatch();
 
+  // URL search params for direct platform link (e.g. /movies?platform=Disney+)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlPlatform = searchParams.get('platform') as StreamingPlatformFilter | null;
+  const urlType = searchParams.get('type') as 'all' | 'movie' | 'tv' | null;
+
+  const [selectedPlatform, setSelectedPlatform] = useState<StreamingPlatformFilter>(
+    urlPlatform && STREAMING_PLATFORMS.includes(urlPlatform) ? urlPlatform : 'Semua Platform'
+  );
+  const [selectedFormat, setSelectedFormat] = useState<'all' | 'movie' | 'tv'>(
+    urlType || (urlPlatform ? 'all' : 'all')
+  );
+
+  useEffect(() => {
+    if (urlPlatform && STREAMING_PLATFORMS.includes(urlPlatform)) {
+      setSelectedPlatform(urlPlatform);
+    }
+  }, [urlPlatform]);
+
+  useEffect(() => {
+    if (urlType) {
+      setSelectedFormat(urlType);
+    } else if (urlPlatform) {
+      setSelectedFormat('all');
+    }
+  }, [urlType, urlPlatform]);
+
+  const handleSelectPlatform = (platform: StreamingPlatformFilter) => {
+    setSelectedPlatform(platform);
+    const next = new URLSearchParams(searchParams);
+    if (platform === 'Semua Platform') {
+      next.delete('platform');
+    } else {
+      next.set('platform', platform);
+      if (!next.get('type')) {
+        next.set('type', 'all');
+      }
+    }
+    setSearchParams(next);
+  };
+
+  const handleSelectFormat = (fmt: 'all' | 'movie' | 'tv') => {
+    setSelectedFormat(fmt);
+    const next = new URLSearchParams(searchParams);
+    if (fmt === 'all') {
+      next.delete('type');
+    } else {
+      next.set('type', fmt);
+    }
+    setSearchParams(next);
+  };
+
   // Filters state
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGenre, setSelectedGenre] = useState('Semua Genre');
@@ -54,13 +109,33 @@ export const MoviesPage: React.FC = () => {
   const [layoutMode, setLayoutMode] = useState<'grid' | 'list'>('grid');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
-  // All movie items
-  const allMovies = useMemo(() => allMedia.filter(m => m.type === 'movie'), [allMedia]);
+  // Format counts (Semua, Film, Serial TV)
+  const formatCounts = useMemo(() => {
+    const scoped = selectedPlatform === 'Semua Platform' 
+      ? allMedia 
+      : allMedia.filter(m => m.network === selectedPlatform);
+    return {
+      all: scoped.length,
+      movie: scoped.filter(m => m.type === 'movie').length,
+      tv: scoped.filter(m => m.type === 'tv').length,
+    };
+  }, [allMedia, selectedPlatform]);
 
-  // Featured marquee movie (Denis Villeneuve's Chronicles of Elysium or top movie)
-  const marqueeMovie: MediaItem = useMemo(() => {
-    return allMovies.find(m => m.id === 'chronicles-of-elysium') || allMovies[0];
-  }, [allMovies]);
+  // Featured movies for HeroBanner Carousel (supports platform prioritization & format selection)
+  const featuredMovies: MediaItem[] = useMemo(() => {
+    if (selectedPlatform !== 'Semua Platform') {
+      const platformItems = allMedia.filter(m => m.network === selectedPlatform && (selectedFormat === 'all' || m.type === selectedFormat));
+      if (platformItems.length > 0) {
+        return platformItems.slice(0, 8);
+      }
+    }
+    const scoped = selectedFormat === 'all' 
+      ? allMedia 
+      : allMedia.filter(m => m.type === selectedFormat);
+    
+    const top = scoped.filter(m => m.isTrending || (m.topRank && m.topRank <= 10));
+    return top.length >= 3 ? top.slice(0, 8) : scoped.slice(0, 8);
+  }, [allMedia, selectedPlatform, selectedFormat]);
 
   // Studio / Universe options
   const universes = [
@@ -73,14 +148,14 @@ export const MoviesPage: React.FC = () => {
 
   // Genre counts for pills
   const genreCounts = useMemo(() => {
-    const counts: Record<string, number> = { 'Semua Genre': allMovies.length };
+    const counts: Record<string, number> = { 'Semua Genre': allMedia.length };
     GENRES.forEach(g => {
       if (g !== 'Semua Genre') {
-        counts[g] = allMovies.filter(m => m.genres.includes(g)).length;
+        counts[g] = allMedia.filter(m => m.genres.includes(g)).length;
       }
     });
     return counts;
-  }, [allMovies]);
+  }, [allMedia]);
 
   // Active advanced filters counter
   const activeAdvancedCount = useMemo(() => {
@@ -94,18 +169,33 @@ export const MoviesPage: React.FC = () => {
     return count;
   }, [selectedAgeRating, selectedDecade, selectedDuration, selectedQuality, selectedAudio, activeUniverse]);
 
+  // Platform counts for streaming hubs
+  const platformCounts = useMemo(() => {
+    const counts: Record<string, number> = { 'Semua Platform': allMedia.length };
+    STREAMING_PLATFORMS.forEach(p => {
+      if (p !== 'Semua Platform') {
+        counts[p] = allMedia.filter(m => m.network === p).length;
+      }
+    });
+    return counts;
+  }, [allMedia]);
+
   // Total active filters counter
   const totalActiveFiltersCount = useMemo(() => {
     let count = activeAdvancedCount;
+    if (selectedPlatform !== 'Semua Platform') count++;
+    if (selectedFormat !== 'all') count++;
     if (searchQuery.trim()) count++;
     if (selectedGenre !== 'Semua Genre') count++;
     if (sortBy !== 'popular') count++;
     return count;
-  }, [activeAdvancedCount, searchQuery, selectedGenre, sortBy]);
+  }, [activeAdvancedCount, selectedPlatform, selectedFormat, searchQuery, selectedGenre, sortBy]);
 
   // Reset all filters
   const handleResetFilters = () => {
     setSearchQuery('');
+    setSelectedPlatform('Semua Platform');
+    setSelectedFormat('all');
     setSelectedGenre('Semua Genre');
     setSelectedAgeRating('all');
     setSelectedDecade('all');
@@ -114,6 +204,7 @@ export const MoviesPage: React.FC = () => {
     setSelectedAudio('all');
     setActiveUniverse('all');
     setSortBy('popular');
+    setSearchParams(new URLSearchParams());
   };
 
   // Helper for duration calculation in minutes
@@ -131,7 +222,16 @@ export const MoviesPage: React.FC = () => {
 
   // Filtering & sorting logic
   const filteredMovies = useMemo(() => {
-    return allMovies.filter(item => {
+    return allMedia.filter(item => {
+      // Streaming Platform filter
+      if (selectedPlatform !== 'Semua Platform' && item.network !== selectedPlatform) {
+        return false;
+      }
+
+      // Format filter: Semua (all) vs Film (movie) vs Serial TV (tv)
+      if (selectedFormat === 'movie' && item.type !== 'movie') return false;
+      if (selectedFormat === 'tv' && item.type !== 'tv') return false;
+
       // In-page search query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
@@ -191,7 +291,9 @@ export const MoviesPage: React.FC = () => {
       return (a.topRank || 99) - (b.topRank || 99);
     });
   }, [
-    allMovies, 
+    allMedia,
+    selectedPlatform,
+    selectedFormat,
     searchQuery, 
     selectedGenre, 
     selectedAgeRating, 
@@ -203,130 +305,62 @@ export const MoviesPage: React.FC = () => {
     sortBy
   ]);
 
-  const inWatchlist = marqueeMovie ? isInWatchlist(marqueeMovie.id) : false;
-
   return (
-    <div className="pt-20 sm:pt-24 pb-20 cinema-layout-container space-y-8">
-      
+    <main className="w-full">
+      {/* Cinematic Hero Banner Carousel (Identik dengan Beranda) */}
+      <HeroBanner featuredItems={featuredMovies} />
+
       {/* Guest Mode Notice */}
       {!isLoggedIn && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-surface-800/80 border border-brand-500/30 text-xs shadow-lg">
-          <div className="flex items-center gap-2.5">
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-            <span className="text-slate-300">
-              Anda sedang dalam <strong>Mode Tamu</strong>: Pratinjau kualitas HD. Beralih ke akun VIP untuk membuka streaming 4K Ultra HD & Dolby Atmos.
-            </span>
+        <div className="relative z-20 cinema-layout-container -mt-6 sm:-mt-8 mb-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-surface-800/90 border border-brand-500/30 text-xs shadow-lg backdrop-blur-xl">
+            <div className="flex items-center gap-2.5">
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+              <span className="text-slate-300">
+                Anda sedang dalam <strong>Mode Tamu</strong>: Pratinjau kualitas HD. Beralih ke akun VIP untuk membuka streaming 4K Ultra HD & Dolby Atmos.
+              </span>
+            </div>
+            <button
+              onClick={() => openAuthModal('login')}
+              className="px-4 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold whitespace-nowrap shadow transition-colors"
+            >
+              Masuk / Buka 4K
+            </button>
           </div>
-          <button
-            onClick={() => openAuthModal('login')}
-            className="px-4 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold whitespace-nowrap shadow transition-colors"
-          >
-            Masuk / Buka 4K
-          </button>
         </div>
       )}
 
-      {/* ========================================================
-          1. THEATRICAL CINEMA MARQUEE BILLBOARD (16:9 Cinema Widescreen)
-          ======================================================== */}
-      {marqueeMovie && (
-        <section className="relative rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-black group">
-          <div className="relative aspect-[16/9] min-h-[380px] sm:min-h-[460px] md:min-h-[500px] lg:min-h-[540px] xl:max-h-[640px] 2xl:max-h-[720px] w-full">
-            <img
-              src={marqueeMovie.backdropUrl}
-              alt={marqueeMovie.title}
-              className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700"
+      {/* Main Content Area */}
+      <div className="relative z-20 cinema-layout-container space-y-8 pb-20 pt-4 sm:pt-6">
+        
+        {/* Dual Billboard Ads under Hero */}
+        <BillboardAd fluid placementIndex={1} />
+
+        {/* ========================================================
+            1. EXCLUSIVE STREAMING BRAND HUBS (DISNEY+, NETFLIX, PRIME, HBO)
+            ======================================================== */}
+        <section className="space-y-4">
+          <StreamingHubs
+            selectedPlatform={selectedPlatform}
+            onSelectPlatform={handleSelectPlatform}
+            counts={platformCounts}
+          />
+
+          {selectedPlatform !== 'Semua Platform' && (
+            <StreamingPlatformBanner
+              platform={selectedPlatform}
+              onClear={() => handleSelectPlatform('Semua Platform')}
+              count={filteredMovies.length}
             />
-            
-            {/* Gradients */}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#08090d] via-[#08090d]/60 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#08090d] via-[#08090d]/70 to-transparent w-full md:w-3/4" />
-
-            {/* Content overlay */}
-            <div className="absolute inset-0 p-6 sm:p-10 md:p-14 flex flex-col justify-end max-w-3xl space-y-3 sm:space-y-4">
-              
-              {/* Badges */}
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-brand-600 text-white shadow-lg shadow-brand-600/30 flex items-center gap-1.5">
-                  <Film className="w-3.5 h-3.5" />
-                  Premiere Bioskop
-                </span>
-                <span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-white/15 backdrop-blur-md text-white border border-white/10">
-                  {marqueeMovie.quality}
-                </span>
-                <span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-white/15 backdrop-blur-md text-white border border-white/10">
-                  {marqueeMovie.audio}
-                </span>
-                <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30">
-                  ★ {marqueeMovie.rating}
-                </span>
-                <span className="text-xs text-slate-300 flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5" /> {marqueeMovie.duration}
-                </span>
-              </div>
-
-              {/* Title & Tagline */}
-              <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-none drop-shadow-md">
-                {marqueeMovie.title}
-              </h1>
-              
-              <p className="text-xs sm:text-base text-slate-300 line-clamp-2 sm:line-clamp-3 leading-relaxed">
-                {marqueeMovie.overview}
-              </p>
-
-              {/* Director and Cast credit */}
-              <div className="text-xs text-slate-400 flex flex-wrap gap-x-4 gap-y-1">
-                <span>Sutradara: <strong className="text-slate-200">{marqueeMovie.director}</strong></span>
-                <span>Pemeran: <strong className="text-slate-200">{marqueeMovie.cast.slice(0, 3).join(', ')}</strong></span>
-              </div>
-
-              {/* Actions */}
-              <div className="flex flex-wrap items-center gap-3 pt-2">
-                <button
-                  onClick={() => openPlayer(marqueeMovie)}
-                  className="px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-xs sm:text-sm font-bold flex items-center gap-2 transition-all hover:scale-105 active:scale-95 shadow-xl shadow-brand-600/30"
-                >
-                  <Play className="w-4 h-4 fill-white" />
-                  <span>Tonton Film Sekarang</span>
-                </button>
-
-                <button
-                  onClick={() => openDetail(marqueeMovie)}
-                  className="px-5 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold flex items-center gap-2 backdrop-blur-md transition-all"
-                >
-                  <Info className="w-4 h-4" />
-                  <span>Sinopsis & Trailer</span>
-                </button>
-
-                <button
-                  onClick={() => toggleWatchlist(marqueeMovie.id)}
-                  className={`p-3 rounded-xl border transition-all ${
-                    inWatchlist
-                      ? 'bg-brand-600/20 border-brand-500 text-brand-400'
-                      : 'bg-white/10 hover:bg-white/20 border-white/10 text-white'
-                  }`}
-                  title={inWatchlist ? 'Hapus dari Koleksi' : 'Tambah ke Koleksi'}
-                >
-                  {inWatchlist ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                </button>
-              </div>
-
-            </div>
-          </div>
+          )}
         </section>
-      )}
 
-      {/* Dual Billboard Ads under Marquee */}
-      <BillboardAd fluid placementIndex={1} />
-
-      {/* ========================================================
-          2. STUDIO & CINEMATIC UNIVERSE SPOTLIGHT TABS
-          ======================================================== */}
-      <section className="space-y-3">
+      {/* Studio & Cinematic Universe Spotlight Tabs */}
+      <section className="space-y-3 pt-2">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
-            <Clapperboard className="w-5 h-5 text-brand-400" />
-            <span>Koleksi Berdasarkan Kategori Studio</span>
+          <h2 className="text-sm sm:text-base font-bold text-slate-300 flex items-center gap-2">
+            <Clapperboard className="w-4 h-4 text-brand-400" />
+            <span>Kategori Tema Sinema</span>
           </h2>
           <span className="text-xs text-slate-400 font-mono">
             {filteredMovies.length} Film Bioskop
@@ -338,7 +372,7 @@ export const MoviesPage: React.FC = () => {
             <button
               key={uni.id}
               onClick={() => setActiveUniverse(uni.id)}
-              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
                 activeUniverse === uni.id
                   ? 'bg-brand-600 text-white shadow-md shadow-brand-600/25'
                   : 'bg-surface-800/80 text-slate-300 hover:text-white border border-white/5 hover:border-white/10'
@@ -355,6 +389,75 @@ export const MoviesPage: React.FC = () => {
           ======================================================== */}
       <section className="bg-surface-800/40 border border-white/5 rounded-2xl p-4 sm:p-5 space-y-4 shadow-xl backdrop-blur-md">
         
+        {/* Format Selector: Semua (Film & Serial) / Film / Serial TV */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/5 pb-3.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5 mr-1">
+              <Film className="w-3.5 h-3.5 text-brand-400" />
+              <span>Format Tayangan:</span>
+            </span>
+
+            <div className="flex items-center gap-1 bg-surface-900/90 p-1 rounded-xl border border-white/10">
+              <button
+                type="button"
+                onClick={() => handleSelectFormat('all')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                  selectedFormat === 'all'
+                    ? 'bg-brand-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <span>Semua (Film & Serial)</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                  selectedFormat === 'all' ? 'bg-white/20 text-white font-bold' : 'bg-white/5 text-slate-400'
+                }`}>
+                  {formatCounts.all}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleSelectFormat('movie')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                  selectedFormat === 'movie'
+                    ? 'bg-brand-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Film className="w-3.5 h-3.5" />
+                <span>Film</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                  selectedFormat === 'movie' ? 'bg-white/20 text-white font-bold' : 'bg-white/5 text-slate-400'
+                }`}>
+                  {formatCounts.movie}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleSelectFormat('tv')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                  selectedFormat === 'tv'
+                    ? 'bg-brand-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Tv className="w-3.5 h-3.5" />
+                <span>Serial TV</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                  selectedFormat === 'tv' ? 'bg-white/20 text-white font-bold' : 'bg-white/5 text-slate-400'
+                }`}>
+                  {formatCounts.tv}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <span className="text-xs text-slate-400 font-mono">
+            {filteredMovies.length} Tayangan Ditemukan
+          </span>
+        </div>
+
         {/* Top Control Bar: Search + Sort Dropdown + View Mode + Advanced Filter Button */}
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
           
@@ -365,7 +468,7 @@ export const MoviesPage: React.FC = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari judul film, aktor, atau sutradara..."
+              placeholder="Cari judul film, serial, aktor, atau sutradara..."
               className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-surface-900/90 border border-white/10 text-white text-xs sm:text-sm placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all shadow-inner"
             />
             {searchQuery && (
@@ -633,8 +736,41 @@ export const MoviesPage: React.FC = () => {
           
           <div className="flex flex-wrap items-center gap-1.5">
             <span>
-              Menampilkan <strong className="text-white font-semibold">{filteredMovies.length}</strong> dari {allMovies.length} Film Bioskop
+              Menampilkan <strong className="text-white font-semibold">{filteredMovies.length}</strong> dari {formatCounts[selectedFormat]} {selectedFormat === 'tv' ? 'Serial TV' : selectedFormat === 'movie' ? 'Film Bioskop' : 'Film & Serial'}
             </span>
+
+            {/* Active Platform chip */}
+            {selectedPlatform !== 'Semua Platform' && (
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-white text-[11px] font-bold shadow-md ${
+                selectedPlatform === 'Netflix' ? 'bg-[#E50914]' :
+                selectedPlatform === 'Disney+' ? 'bg-[#0063E5]' :
+                selectedPlatform === 'Prime Video' ? 'bg-[#00A8E1]' :
+                selectedPlatform === 'HBO' ? 'bg-[#9900FF]' : 'bg-brand-600'
+              }`}>
+                <span>Studio: {selectedPlatform}</span>
+                <button 
+                  onClick={() => handleSelectPlatform('Semua Platform')} 
+                  className="hover:bg-black/30 p-0.5 rounded-full transition-colors"
+                  title="Hapus filter studio"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+
+            {/* Active Format chip */}
+            {selectedFormat !== 'all' && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-brand-600/30 border border-brand-500/50 text-white text-[11px] font-semibold">
+                <span>Format: {selectedFormat === 'movie' ? 'Film Bioskop' : 'Serial TV'}</span>
+                <button 
+                  onClick={() => handleSelectFormat('all')} 
+                  className="hover:text-white p-0.5 rounded-full transition-colors"
+                  title="Hapus filter format"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
 
             {/* Active chips */}
             {searchQuery && (
@@ -763,9 +899,9 @@ export const MoviesPage: React.FC = () => {
             <Film className="w-8 h-8" />
           </div>
           <div className="space-y-1.5">
-            <h3 className="text-xl font-bold text-white">Tidak Ada Film Yang Sesuai</h3>
+            <h3 className="text-xl font-bold text-white">Tidak Ada Tayangan Yang Sesuai</h3>
             <p className="text-xs sm:text-sm text-slate-400 max-w-sm mx-auto leading-relaxed">
-              Tidak ditemukan film dengan kriteria filter saat ini. Coba bersihkan pencarian atau ubah filter durasi, rating, dan genre.
+              Tidak ditemukan film atau serial dengan kriteria filter saat ini. Coba bersihkan pencarian atau ubah filter format, durasi, rating, dan genre.
             </p>
           </div>
           <button
@@ -818,6 +954,7 @@ export const MoviesPage: React.FC = () => {
         </div>
       </section>
 
-    </div>
+      </div>
+    </main>
   );
 };
