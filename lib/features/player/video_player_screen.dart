@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:video_player/video_player.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/ad_model.dart';
+import '../../models/episode_model.dart';
 import '../../models/movie_model.dart';
 import '../../providers/ad_provider.dart';
 import '../../providers/auth_provider.dart';
@@ -46,9 +47,19 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
   AdCampaign? _activePrerollAd;
   bool _hasRecordedAdImpression = false;
 
+  // Auto-Play Next Episode State (5s Countdown)
+  bool _showAutoPlayNextOverlay = false;
+  int _autoPlayCountdown = 5;
+  Timer? _autoPlayTimer;
+  Episode? _nextEpisode;
+
   @override
   void initState() {
     super.initState();
+    if (widget.movie.seasons.isNotEmpty &&
+        widget.movie.seasons.first.episodes.length > 1) {
+      _nextEpisode = widget.movie.seasons.first.episodes[1];
+    }
     _initController();
   }
 
@@ -112,7 +123,17 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
     }
 
     _controller.addListener(() {
-      if (mounted) setState(() {});
+      if (mounted) {
+        final pos = _controller.value.position;
+        final dur = _controller.value.duration;
+        if (dur > Duration.zero &&
+            pos >= dur &&
+            !_showAutoPlayNextOverlay &&
+            _nextEpisode != null) {
+          _triggerAutoPlayNext();
+        }
+        setState(() {});
+      }
     });
   }
 
@@ -172,6 +193,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
 
   @override
   void dispose() {
+    _autoPlayTimer?.cancel();
     _prerollTimer?.cancel();
     _resumeBannerTimer?.cancel();
     _hideControlsTimer?.cancel();
@@ -180,6 +202,63 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
       DeviceOrientation.portraitUp,
     ]);
     super.dispose();
+  }
+
+  void _triggerAutoPlayNext() {
+    _autoPlayTimer?.cancel();
+    setState(() {
+      _showAutoPlayNextOverlay = true;
+      _autoPlayCountdown = 5;
+    });
+    _autoPlayTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_autoPlayCountdown <= 1) {
+        timer.cancel();
+        _playNextEpisode();
+      } else {
+        setState(() {
+          _autoPlayCountdown--;
+        });
+      }
+    });
+  }
+
+  void _cancelAutoPlayNext() {
+    _autoPlayTimer?.cancel();
+    setState(() {
+      _showAutoPlayNextOverlay = false;
+      _autoPlayCountdown = 5;
+    });
+  }
+
+  void _playNextEpisode() async {
+    _autoPlayTimer?.cancel();
+    setState(() {
+      _showAutoPlayNextOverlay = false;
+    });
+    if (_nextEpisode != null) {
+      final nextVideoUrl = _nextEpisode!.videoUrl.isNotEmpty
+          ? _nextEpisode!.videoUrl
+          : widget.movie.videoUrl;
+      try {
+        _controller.pause();
+        await _controller.dispose();
+        _controller = VideoPlayerController.networkUrl(Uri.parse(nextVideoUrl));
+        await _controller.initialize();
+        _controller.play();
+        if (mounted) {
+          setState(() {
+            _isInitialized = true;
+          });
+          _showResumeBanner('Episode ${_nextEpisode!.episodeNumber}');
+        }
+      } catch (e) {
+        debugPrint('Error loading next episode: $e');
+      }
+    }
   }
 
   void _startHideTimer() {
@@ -868,13 +947,18 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
                           children: [
                             IconButton(
                               icon: const Icon(Icons.skip_next_rounded, color: Colors.white, size: 24),
+                              tooltip: 'Episode Berikutnya',
                               onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Memuat episode berikutnya...'),
-                                    backgroundColor: AppColors.primaryContainer,
-                                  ),
-                                );
+                                if (_nextEpisode != null) {
+                                  _triggerAutoPlayNext();
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Ini adalah episode terakhir.'),
+                                      backgroundColor: AppColors.surfaceContainerHigh,
+                                    ),
+                                  );
+                                }
                               },
                             ),
                             IconButton(
@@ -983,7 +1067,87 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
               ),
             ),
 
-          // 8. Pre-Roll Ad Layer (when active)
+          // 8. Auto-Play Next Episode Overlay (Countdown 5s)
+          if (_showAutoPlayNextOverlay)
+            Positioned(
+              bottom: 40,
+              right: 24,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceContainerHigh.withValues(alpha: 0.96),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: AppColors.primaryContainer.withValues(alpha: 0.6),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.auto_awesome_motion_rounded, color: AppColors.primary, size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Episode Selanjutnya',
+                          style: GoogleFonts.outfit(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      _nextEpisode != null
+                          ? 'Episode ${_nextEpisode!.episodeNumber}: ${_nextEpisode!.title}'
+                          : 'Memuat episode berikutnya...',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        color: Colors.white70,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryContainer,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          onPressed: _playNextEpisode,
+                          icon: const Icon(Icons.play_arrow_rounded, size: 16, color: Colors.white),
+                          label: Text(
+                            'Putar Sekarang ($_autoPlayCountdown)',
+                            style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        TextButton(
+                          onPressed: _cancelAutoPlayNext,
+                          child: Text(
+                            'Batal',
+                            style: GoogleFonts.outfit(fontSize: 12, color: Colors.white60),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          // 9. Pre-Roll Ad Layer (when active)
           if (_prerollActive && _activePrerollAd != null)
             Positioned.fill(
               child: _buildPrerollOverlay(_activePrerollAd!),
