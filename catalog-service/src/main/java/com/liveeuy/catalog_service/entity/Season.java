@@ -27,4 +27,19 @@ public class Season {
 
     @OneToMany(mappedBy = "season", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Episode> episodes = new ArrayList<>();
+
+    public Episode addEpisode(String title, String overview, Integer durationSeconds, String videoUrl) {
+        int nextEpisodeNumber = this.episodes.size() + 1;
+        
+        Episode episode = new Episode();
+        episode.setSeason(this);
+        episode.setEpisodeNumber(nextEpisodeNumber);
+        episode.setTitle(title);
+        episode.setOverview(overview);
+        episode.setDurationSeconds(durationSeconds);
+        episode.setVideoUrl(videoUrl);
+
+        this.episodes.add(episode);
+        return episode;
+    }
 }

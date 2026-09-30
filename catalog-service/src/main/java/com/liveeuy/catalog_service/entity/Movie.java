@@ -24,4 +24,14 @@ public class Movie extends Media {
     public MediaType getType() {
         return MediaType.MOVIE;
     }
+
+    public void assignVideo(String videoUrl, Integer durationSeconds, VideoQuality quality, String audio) {
+        if (durationSeconds != null && durationSeconds <= 0) {
+            throw new IllegalStateException("All video-related fields must be set for a Movie.");
+        }
+        this.videoUrl = videoUrl;
+        this.durationSeconds = durationSeconds;
+        this.quality = quality;
+        this.audio = audio;
+    }
 }

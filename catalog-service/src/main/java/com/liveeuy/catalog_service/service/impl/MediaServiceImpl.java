@@ -111,7 +111,8 @@ public class MediaServiceImpl implements MediaService {
                 media.getCastAndCrew().add(mediaCast);
             });
         }
-
+        
+        media.markAsCreated();
         Media savedMedia = mediaRepository.save(media);
         
         return mediaMapper.toDTO(savedMedia);
