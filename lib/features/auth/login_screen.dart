@@ -26,10 +26,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   late int _activeTabIndex;
 
   // Masuk Form controllers
-  final _masukEmailController = TextEditingController(text: 'alex@streamflix.id');
-  final _masukPassController = TextEditingController(text: 'Password123!');
+  final _masukEmailController = TextEditingController(text: 'hafiz@liveeuy.id');
+  final _masukPassController = TextEditingController(text: 'LiveEuy#2026');
   bool _masukPassObscure = true;
   bool _rememberMe = true;
+
+  // Brute-force rate limiting state (Section 5.1 & Matriks QA #11)
+  int _failedLoginAttempts = 0;
+  int _lockoutSecondsRemaining = 0;
+  Timer? _lockoutTimer;
 
   // Daftar Form controllers
   final _daftarNameController = TextEditingController();
@@ -74,12 +79,35 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   void dispose() {
+    _lockoutTimer?.cancel();
     _masukEmailController.dispose();
     _masukPassController.dispose();
     _daftarNameController.dispose();
     _daftarEmailController.dispose();
     _daftarPassController.dispose();
     super.dispose();
+  }
+
+  void _startLockoutCountdown() {
+    setState(() {
+      _lockoutSecondsRemaining = 60;
+    });
+    _lockoutTimer?.cancel();
+    _lockoutTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        if (_lockoutSecondsRemaining > 1) {
+          _lockoutSecondsRemaining--;
+        } else {
+          _lockoutSecondsRemaining = 0;
+          _failedLoginAttempts = 0;
+          timer.cancel();
+        }
+      });
+    });
   }
 
   void _showToast(String title, String message, {IconData icon = Icons.verified_rounded}) {
@@ -160,6 +188,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final email = _masukEmailController.text.trim();
     final pass = _masukPassController.text.trim();
 
+    if (_lockoutSecondsRemaining > 0) {
+      _showToast(
+        'Form Terkunci Sementara',
+        'Terlalu banyak percobaan gagal. Tunggu $_lockoutSecondsRemaining detik.',
+        icon: Icons.timer_outlined,
+      );
+      return;
+    }
+
     if (email.isEmpty) {
       _showToast('Validasi Gagal', 'Masukkan email atau username Anda', icon: Icons.warning_rounded);
       return;
@@ -182,20 +219,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
         if (success) {
+          _failedLoginAttempts = 0;
           _showToast('Verifikasi Berhasil', 'Selamat menonton film favoritmu!', icon: Icons.check_circle_rounded);
           Navigator.pop(context);
         } else {
-          _showToast('Masuk Gagal', 'Kredensial atau otentikasi tidak valid', icon: Icons.error_outline_rounded);
+          _failedLoginAttempts++;
+          if (_failedLoginAttempts >= 5) {
+            _startLockoutCountdown();
+            _showToast('Keamanan Terpicu', 'Form login dikunci 60 detik demi keamanan akun.', icon: Icons.lock_clock_rounded);
+          } else {
+            _showToast('Masuk Gagal', 'Kredensial atau otentikasi tidak valid (${5 - _failedLoginAttempts}x percobaan tersisa)', icon: Icons.error_outline_rounded);
+          }
         }
       }
     } on DioException catch (dioErr) {
       if (mounted) {
         setState(() => _isLoading = false);
-        _showToast(
-          'Masuk Gagal',
-          dioErr.message,
-          icon: Icons.error_outline_rounded,
-        );
+        _failedLoginAttempts++;
+        if (_failedLoginAttempts >= 5) {
+          _startLockoutCountdown();
+          _showToast('Keamanan Terpicu', 'Form login dikunci 60 detik demi keamanan akun.', icon: Icons.lock_clock_rounded);
+        } else {
+          _showToast(
+            'Masuk Gagal',
+            dioErr.message,
+            icon: Icons.error_outline_rounded,
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -745,33 +795,63 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ),
         const SizedBox(height: 18),
 
+        // Lockout Banner
+        if (_lockoutSecondsRemaining > 0)
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.redAccent.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.redAccent.withValues(alpha: 0.4)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.lock_clock_rounded, color: Colors.amberAccent, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Form terkunci sementara ($_lockoutSecondsRemaining detik). Terlalu banyak kegagalan autentikasi.',
+                    style: GoogleFonts.inter(fontSize: 11, color: Colors.white70),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
         // CTA Masuk Button
         GestureDetector(
-          onTap: _isLoading ? null : _handleMasuk,
+          onTap: (_isLoading || _lockoutSecondsRemaining > 0) ? null : _handleMasuk,
           child: Container(
             width: double.infinity,
             height: 48,
             decoration: BoxDecoration(
-              color: AppColors.primaryContainer,
+              color: _lockoutSecondsRemaining > 0
+                  ? AppColors.surfaceContainerHighest
+                  : AppColors.primaryContainer,
               borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primaryContainer.withValues(alpha: 0.3),
-                  blurRadius: 10,
-                  offset: const Offset(0, 3),
-                ),
-              ],
+              boxShadow: _lockoutSecondsRemaining > 0
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: AppColors.primaryContainer.withValues(alpha: 0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
             ),
             child: Center(
               child: _isLoading
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                   : Text(
-                      'Masuk ke Akun',
+                      _lockoutSecondsRemaining > 0
+                          ? 'Terkunci ($_lockoutSecondsRemaining dtk)'
+                          : 'Masuk ke Akun',
                       style: GoogleFonts.outfit(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.2,
-                        color: Colors.white,
+                        color: _lockoutSecondsRemaining > 0 ? AppColors.outline : Colors.white,
                       ),
                     ),
             ),

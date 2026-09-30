@@ -21,9 +21,7 @@ class ResponseInterceptorHandler {
 
 /// Handler untuk melanjutkan atau menyelesaikan error pada Interceptor.
 class ErrorInterceptorHandler {
-  void next(DioException err) {
-    throw err;
-  }
+  void next(DioException err) {}
 
   void resolve(Response response) {}
   void reject(DioException error) {
@@ -106,6 +104,58 @@ class ErrorInterceptor extends Interceptor {
     if (onErrorCallback != null) {
       onErrorCallback!(err);
     }
+    handler.next(err);
+  }
+}
+
+/// Interceptor keamanan sesi sesuai standar Section 2.2 ADMIN_INTEGRATION_GUIDE.md.
+/// Menangani:
+/// 1. Akun Ditangguhkan (HTTP 403, code: ACCOUNT_SUSPENDED)
+/// 2. Sesi Dicabut Paksa (HTTP 401, code: SESSION_REVOKED atau batas max-device Redis tercapai)
+class SessionSecurityInterceptor extends Interceptor {
+  final Future<void> Function(String reason)? onAccountSuspended;
+  final Future<void> Function(String reason)? onSessionRevoked;
+
+  SessionSecurityInterceptor({
+    this.onAccountSuspended,
+    this.onSessionRevoked,
+  });
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) async {
+    final response = err.response;
+    if (response != null) {
+      final statusCode = response.statusCode;
+      final responseData = response.data;
+      final errorCode = responseData is Map
+          ? (responseData['error_code'] ?? responseData['code'])?.toString()
+          : null;
+      final message = responseData is Map
+          ? (responseData['message'] ?? err.message).toString()
+          : err.message;
+
+      // 1. Kasus: Akun Ditangguhkan (Suspended by Admin)
+      if (statusCode == 403 &&
+          (errorCode == 'ACCOUNT_SUSPENDED' ||
+              message.toLowerCase().contains('ditangguhkan') ||
+              message.toLowerCase().contains('suspended'))) {
+        if (onAccountSuspended != null) {
+          await onAccountSuspended!(message);
+        }
+      }
+
+      // 2. Kasus: Sesi Dicabut Paksa (Force Remote Logout / Max Device Enforced)
+      if (statusCode == 401 &&
+          (errorCode == 'SESSION_REVOKED' ||
+              message.toLowerCase().contains('session_revoked') ||
+              message.toLowerCase().contains('revoked') ||
+              message.toLowerCase().contains('dicabut'))) {
+        if (onSessionRevoked != null) {
+          await onSessionRevoked!(message);
+        }
+      }
+    }
+
     handler.next(err);
   }
 }

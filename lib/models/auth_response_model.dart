@@ -1,3 +1,8 @@
+enum UserStatus {
+  active,
+  suspended,
+}
+
 class UserData {
   final String id;
   final String name;
@@ -5,6 +10,7 @@ class UserData {
   final String avatarUrl;
   final String membershipTier;
   final String role;
+  final UserStatus status;
   final int devices;
   final double watchHours;
   final String memberSince;
@@ -16,6 +22,7 @@ class UserData {
     required this.avatarUrl,
     this.membershipTier = 'REGULAR',
     this.role = 'user',
+    this.status = UserStatus.active,
     this.devices = 2,
     this.watchHours = 0.0,
     this.memberSince = '',
@@ -26,6 +33,8 @@ class UserData {
       membershipTier.toUpperCase().contains('ULTRA') ||
       email.toLowerCase().contains('hafiz') ||
       email.toLowerCase().contains('vip');
+
+  bool get isSuspended => status == UserStatus.suspended;
 
   factory UserData.fromJson(Map<String, dynamic> json) {
     return UserData(
@@ -39,6 +48,9 @@ class UserData {
           json['tier'] as String? ??
           'REGULAR',
       role: json['role'] as String? ?? 'user',
+      status: (json['status'] == 'suspended')
+          ? UserStatus.suspended
+          : UserStatus.active,
       devices: (json['devices'] as num?)?.toInt() ?? 2,
       watchHours: (json['watchHours'] as num?)?.toDouble() ?? 0.0,
       memberSince: json['memberSince'] as String? ?? '',
@@ -53,6 +65,7 @@ class UserData {
       'avatarUrl': avatarUrl,
       'membershipTier': membershipTier,
       'role': role,
+      'status': status == UserStatus.suspended ? 'suspended' : 'active',
       'devices': devices,
       'watchHours': watchHours,
       'memberSince': memberSince,
