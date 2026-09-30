@@ -94,6 +94,33 @@ services:
     networks:
       - liveeuy-network
 
+  transcoder-service:
+    build:
+      context: ./transcoder-service
+      dockerfile: Dockerfile
+    container_name: liveeuy-transcoder-service
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    environment:
+      - PORT=8082
+      - JWK_SET_URI=http://auth-service:8080/.well-known/jwks.json
+      - JWT_ISSUER=liveeuy-auth-service
+      - CATALOG_SERVICE_URL=http://catalog-service:8081/api/v1
+      - STORAGE_TYPE=local
+      - STORAGE_LOCAL_DIR=/app/storage
+      - MAX_CONCURRENT_JOBS=2
+      - PUBLIC_STREAM_BASE_URL=http://localhost/api/v1/transcoder/stream
+    volumes:
+      - transcoder_data:/app/storage
+    depends_on:
+      auth-service:
+        condition: service_started
+      catalog-service:
+        condition: service_started
+    networks:
+      - liveeuy-network
+
   nginx:
     build:
       context: ./nginx
@@ -111,6 +138,8 @@ services:
         condition: service_started
       trending-service:
         condition: service_started
+      transcoder-service:
+        condition: service_started
     networks:
       - liveeuy-network
 
@@ -118,6 +147,7 @@ volumes:
   pgdata:
   redisdata:
   auth_certs:
+  transcoder_data:
 
 networks:
   liveeuy-network:
