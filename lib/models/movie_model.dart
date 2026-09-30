@@ -13,6 +13,7 @@ class Movie {
   final String genre;
   final String durationOrSeasons; // e.g. "1 Jam 48 Min" or "2 Musim"
   final int releaseYear;
+  final String country;
   final String director;
   final List<String> cast;
   final bool isTop10;
@@ -34,6 +35,7 @@ class Movie {
     required this.genre,
     required this.durationOrSeasons,
     required this.releaseYear,
+    this.country = 'Indonesia',
     required this.director,
     required this.cast,
     this.isTop10 = false,
@@ -56,6 +58,7 @@ class Movie {
     String? genre,
     String? durationOrSeasons,
     int? releaseYear,
+    String? country,
     String? director,
     List<String>? cast,
     bool? isTop10,
@@ -77,6 +80,7 @@ class Movie {
       genre: genre ?? this.genre,
       durationOrSeasons: durationOrSeasons ?? this.durationOrSeasons,
       releaseYear: releaseYear ?? this.releaseYear,
+      country: country ?? this.country,
       director: director ?? this.director,
       cast: cast ?? this.cast,
       isTop10: isTop10 ?? this.isTop10,
@@ -163,6 +167,7 @@ class Movie {
       genre: genre,
       durationOrSeasons: formattedDuration,
       releaseYear: (json['releaseYear'] as num?)?.toInt() ?? 2024,
+      country: json['country'] as String? ?? 'Indonesia',
       director: director,
       cast: castList,
       isTop10: isTop10,
@@ -191,6 +196,7 @@ class Movie {
       'genre': genre,
       'durationOrSeasons': durationOrSeasons,
       'releaseYear': releaseYear,
+      'country': country,
       'director': director,
       'cast': cast,
       'isTop10': isTop10,

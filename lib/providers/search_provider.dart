@@ -7,6 +7,7 @@ import '../models/movie_model.dart';
 class SearchState {
   final String query;
   final String formatFilter; // 'Semua', 'Film', 'Serial'
+  final String countryFilter; // 'Semua', 'Indonesia', 'Korea Selatan', 'Jepang', 'Amerika Serikat'
   final Set<String> selectedGenres;
   final String sortBy; // 'Terpopuler', 'Rating Tertinggi', 'Rilis Terbaru'
   final List<Movie> results;
@@ -15,6 +16,7 @@ class SearchState {
   const SearchState({
     this.query = '',
     this.formatFilter = 'Semua',
+    this.countryFilter = 'Semua',
     this.selectedGenres = const {},
     this.sortBy = 'Terpopuler',
     this.results = const [],
@@ -24,6 +26,7 @@ class SearchState {
   SearchState copyWith({
     String? query,
     String? formatFilter,
+    String? countryFilter,
     Set<String>? selectedGenres,
     String? sortBy,
     List<Movie>? results,
@@ -32,6 +35,7 @@ class SearchState {
     return SearchState(
       query: query ?? this.query,
       formatFilter: formatFilter ?? this.formatFilter,
+      countryFilter: countryFilter ?? this.countryFilter,
       selectedGenres: selectedGenres ?? this.selectedGenres,
       sortBy: sortBy ?? this.sortBy,
       results: results ?? this.results,
@@ -67,6 +71,11 @@ class SearchNotifier extends StateNotifier<SearchState> {
 
   void setFormatFilter(String format) {
     state = state.copyWith(formatFilter: format);
+    performSearch(state.query);
+  }
+
+  void setCountryFilter(String country) {
+    state = state.copyWith(countryFilter: country);
     performSearch(state.query);
   }
 
@@ -113,13 +122,19 @@ class SearchNotifier extends StateNotifier<SearchState> {
         matchFormat = item.durationOrSeasons.contains('Musim');
       }
 
+      // Country filter
+      bool matchCountry = true;
+      if (state.countryFilter != 'Semua') {
+        matchCountry = item.country.toLowerCase().contains(state.countryFilter.toLowerCase());
+      }
+
       // Genre filter
       bool matchGenre = true;
       if (state.selectedGenres.isNotEmpty) {
         matchGenre = state.selectedGenres.any((g) => item.genre.toLowerCase().contains(g.toLowerCase()));
       }
 
-      return matchQuery && matchFormat && matchGenre;
+      return matchQuery && matchFormat && matchCountry && matchGenre;
     }).toList();
 
     // Sort

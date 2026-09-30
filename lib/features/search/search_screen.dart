@@ -186,11 +186,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         color: AppColors.onSurface,
                       ),
                     ),
-                    if (currentSearch.sortBy != 'Terpopuler' || currentSearch.formatFilter != 'Semua')
+                    if (currentSearch.sortBy != 'Terpopuler' ||
+                        currentSearch.formatFilter != 'Semua' ||
+                        currentSearch.countryFilter != 'Semua')
                       GestureDetector(
                         onTap: () {
                           notifier.setSortBy('Terpopuler');
                           notifier.setFormatFilter('Semua');
+                          notifier.setCountryFilter('Semua');
                           Navigator.pop(ctx);
                         },
                         child: Text(
@@ -223,6 +226,56 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     const SizedBox(width: 8),
                     _buildFormatChip('Serial', currentSearch, notifier, label: 'Serial TV'),
                   ],
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'NEGARA ASAL',
+                  style: GoogleFonts.outfit(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    'Semua',
+                    'Indonesia',
+                    'Korea Selatan',
+                    'Jepang',
+                    'Amerika Serikat',
+                  ].map((country) {
+                    final isSelected = currentSearch.countryFilter == country;
+                    return GestureDetector(
+                      onTap: () {
+                        notifier.setCountryFilter(country);
+                        setModalState(() {});
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: isSelected ? AppColors.primaryContainer : AppColors.surfaceContainerLowest,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSelected
+                                ? AppColors.primaryContainer
+                                : AppColors.outlineVariant.withValues(alpha: 0.25),
+                          ),
+                        ),
+                        child: Text(
+                          country,
+                          style: GoogleFonts.outfit(
+                            fontSize: 12,
+                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                            color: isSelected ? Colors.white : AppColors.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
                 ),
                 const SizedBox(height: 20),
                 Text(
@@ -508,19 +561,25 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               Icon(
                                 Icons.tune_rounded,
                                 size: 15,
-                                color: (searchState.sortBy != 'Terpopuler' || searchState.formatFilter != 'Semua')
+                                color: (searchState.sortBy != 'Terpopuler' ||
+                                        searchState.formatFilter != 'Semua' ||
+                                        searchState.countryFilter != 'Semua')
                                     ? AppColors.primary
                                     : AppColors.onSurfaceVariant,
                               ),
                               const SizedBox(width: 6),
                               Text(
-                                searchState.formatFilter == 'Semua'
-                                    ? searchState.sortBy
-                                    : '${searchState.formatFilter} • ${searchState.sortBy}',
+                                searchState.countryFilter != 'Semua'
+                                    ? '${searchState.countryFilter} • ${searchState.formatFilter != 'Semua' ? '${searchState.formatFilter} • ' : ''}${searchState.sortBy}'
+                                    : (searchState.formatFilter == 'Semua'
+                                        ? searchState.sortBy
+                                        : '${searchState.formatFilter} • ${searchState.sortBy}'),
                                 style: GoogleFonts.outfit(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: (searchState.sortBy != 'Terpopuler' || searchState.formatFilter != 'Semua')
+                                  color: (searchState.sortBy != 'Terpopuler' ||
+                                          searchState.formatFilter != 'Semua' ||
+                                          searchState.countryFilter != 'Semua')
                                       ? AppColors.primary
                                       : AppColors.onSurface,
                                 ),
