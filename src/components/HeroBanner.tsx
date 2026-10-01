@@ -161,16 +161,6 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ featuredItems }) => {
         >
           {/* Badges Bar (Fluid wrap for mobile & tablet) */}
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2.5 text-[10px] xs:text-[11px] sm:text-xs font-semibold">
-            {currentMedia.network && (
-              <span className={`px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-black uppercase text-white shadow-sm ${
-                currentMedia.network === 'Netflix' ? 'bg-[#E50914]' :
-                currentMedia.network === 'Disney+' ? 'bg-[#0063E5]' :
-                currentMedia.network === 'Prime Video' ? 'bg-[#00A8E1]' :
-                currentMedia.network === 'HBO' ? 'bg-[#9900FF]' : 'bg-brand-600'
-              }`}>
-                {currentMedia.network}
-              </span>
-            )}
             {currentMedia.topRank && (
               <span className="flex items-center gap-1 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-brand-600 text-white shadow-lg shadow-brand-600/30 text-[10px] sm:text-xs">
                 <Flame className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-white" />

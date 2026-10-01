@@ -165,16 +165,6 @@ export const DetailModal: React.FC = () => {
             {/* Banner Details & Action Buttons */}
             <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6 z-10 space-y-2 sm:space-y-3">
               <div className="flex flex-wrap items-center gap-2">
-                {detailItem.network && (
-                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider text-white shadow-lg ${
-                    detailItem.network === 'Netflix' ? 'bg-[#E50914] shadow-red-900/60' :
-                    detailItem.network === 'Disney+' ? 'bg-[#0063E5] shadow-blue-900/60' :
-                    detailItem.network === 'Prime Video' ? 'bg-[#00A8E1] shadow-sky-900/60' :
-                    detailItem.network === 'HBO' ? 'bg-[#9900FF] shadow-purple-900/60' : 'bg-brand-600'
-                  }`}>
-                    {detailItem.exclusiveTag || `Eksklusif ${detailItem.network}`}
-                  </span>
-                )}
                 <span className="px-2 py-0.5 rounded-full bg-brand-600 text-white text-[10px] sm:text-xs font-bold uppercase tracking-wider">
                   {detailItem.type === 'movie' ? 'Film Layar Lebar' : 'Serial Eksklusif'}
                 </span>
@@ -384,24 +374,6 @@ export const DetailModal: React.FC = () => {
 
                   {/* Sidebar metadata */}
                   <div className="bg-surface-800/60 p-4 rounded-2xl border border-white/5 space-y-3 text-xs">
-                    {detailItem.network && (
-                      <div>
-                        <span className="text-slate-400 block mb-1">Platform Eksklusif:</span>
-                        <div className="flex items-center gap-1.5">
-                          <span className={`px-2 py-0.5 rounded font-bold text-white text-[11px] ${
-                            detailItem.network === 'Netflix' ? 'bg-[#E50914]' :
-                            detailItem.network === 'Disney+' ? 'bg-[#0063E5]' :
-                            detailItem.network === 'Prime Video' ? 'bg-[#00A8E1]' :
-                            detailItem.network === 'HBO' ? 'bg-[#9900FF]' : 'bg-brand-600'
-                          }`}>
-                            {detailItem.network}
-                          </span>
-                          {detailItem.exclusiveTag && (
-                            <span className="text-slate-300 font-medium">({detailItem.exclusiveTag})</span>
-                          )}
-                        </div>
-                      </div>
-                    )}
 
                     <div>
                       <span className="text-slate-400 block mb-1">Negara Asal:</span>

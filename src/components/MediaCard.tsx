@@ -52,16 +52,6 @@ export const MediaCard: React.FC<MediaCardProps> = ({ item, layout = 'carousel' 
           
           {/* Top badges */}
           <div className="absolute top-2 left-2 flex items-center gap-1.5">
-            {item.network && (
-              <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider text-white shadow-md ${
-                item.network === 'Netflix' ? 'bg-[#E50914]' :
-                item.network === 'Disney+' ? 'bg-[#0063E5]' :
-                item.network === 'Prime Video' ? 'bg-[#00A8E1]' :
-                item.network === 'HBO' ? 'bg-[#9900FF]' : 'bg-brand-600'
-              }`}>
-                {item.network}
-              </span>
-            )}
             <span className="px-1.5 py-0.5 rounded-md bg-black/70 backdrop-blur-md text-[9px] font-bold text-white uppercase border border-white/10">
               {item.quality}
             </span>
@@ -83,16 +73,6 @@ export const MediaCard: React.FC<MediaCardProps> = ({ item, layout = 'carousel' 
               {item.title}
             </h3>
             <span className="text-xs text-slate-400 font-medium">({item.releaseYear})</span>
-            {item.network && (
-              <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold text-white shadow-sm ${
-                item.network === 'Netflix' ? 'bg-[#E50914]' :
-                item.network === 'Disney+' ? 'bg-[#0063E5]' :
-                item.network === 'Prime Video' ? 'bg-[#00A8E1]' :
-                item.network === 'HBO' ? 'bg-[#9900FF]' : 'bg-brand-600'
-              }`}>
-                {item.exclusiveTag || item.network}
-              </span>
-            )}
             {item.country && (
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30 font-semibold">
                 {item.country}
@@ -207,16 +187,6 @@ export const MediaCard: React.FC<MediaCardProps> = ({ item, layout = 'carousel' 
         {/* Top Badges */}
         <div className="absolute top-2 left-2 right-2 flex items-center justify-between pointer-events-none">
           <div className="flex items-center gap-1">
-            {item.network && (
-              <span className={`px-1.5 sm:px-2 py-0.5 rounded-md text-[9px] sm:text-[10px] font-black tracking-wider text-white shadow-md uppercase ${
-                item.network === 'Netflix' ? 'bg-[#E50914] shadow-red-950/60' :
-                item.network === 'Disney+' ? 'bg-[#0063E5] shadow-blue-950/60' :
-                item.network === 'Prime Video' ? 'bg-[#00A8E1] shadow-sky-950/60' :
-                item.network === 'HBO' ? 'bg-[#9900FF] shadow-purple-950/60' : 'bg-brand-600'
-              }`}>
-                {item.network === 'Disney+' ? 'Disney+' : item.network === 'Prime Video' ? 'Prime' : item.network}
-              </span>
-            )}
             <span className="px-1.5 sm:px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-md text-[9px] sm:text-[10px] font-bold tracking-wider text-white border border-white/10 uppercase">
               {item.quality}
             </span>
@@ -320,16 +290,6 @@ export const MediaCard: React.FC<MediaCardProps> = ({ item, layout = 'carousel' 
         </h3>
         <div className="flex items-center justify-between text-[11px] text-slate-400 mt-0.5">
           <div className="flex items-center gap-1.5 truncate">
-            {item.network && (
-              <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold text-white shrink-0 ${
-                item.network === 'Netflix' ? 'bg-[#E50914]' :
-                item.network === 'Disney+' ? 'bg-[#0063E5]' :
-                item.network === 'Prime Video' ? 'bg-[#00A8E1]' :
-                item.network === 'HBO' ? 'bg-[#9900FF]' : 'bg-brand-600'
-              }`}>
-                {item.network === 'Prime Video' ? 'Prime' : item.network}
-              </span>
-            )}
             <span>{item.releaseYear}</span>
             {item.country && (
               <>

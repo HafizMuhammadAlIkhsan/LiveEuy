@@ -1,3 +1,0 @@
-@echo off
-echo Menjalankan Emulator Android Pixel 4 (API 29 x86_64)...
-start "" "%LOCALAPPDATA%\Android\Sdk\emulator\emulator.exe" -avd Pixel_4
