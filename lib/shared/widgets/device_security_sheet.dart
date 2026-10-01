@@ -393,11 +393,11 @@ class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  '${otherDevices.length} sesi',
+                  '${sessions.length} / ${user.maxAllowedDevices} Perangkat (${user.membershipTier})',
                   style: GoogleFonts.inter(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.outline,
+                    color: AppColors.primary,
                   ),
                 ),
               ],

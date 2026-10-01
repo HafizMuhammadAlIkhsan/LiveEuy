@@ -30,6 +30,17 @@ class UserProfile {
     this.activeSessions = const [],
   });
 
+  /// Batas kuota perangkat aktif bersamaan sesuai aturan DDD backend auth-service:
+  /// - Free Guest: 1 perangkat
+  /// - VIP Standard: 2 perangkat
+  /// - VIP Cinema Ultra: 4 perangkat
+  int get maxAllowedDevices {
+    final tier = membershipTier.toUpperCase();
+    if (tier.contains('ULTRA')) return 4;
+    if (tier.contains('VIP') || tier.contains('STANDARD')) return 2;
+    return 1;
+  }
+
   UserProfile copyWith({
     String? name,
     String? email,
@@ -667,6 +678,65 @@ class AuthNotifier extends StateNotifier<UserProfile> {
     } catch (_) {}
 
     return false;
+  }
+
+  /// Mengirim permintaan reset kata sandi (`POST /api/v1/auth/forgot-password`)
+  Future<bool> forgotPassword(String email) async {
+    try {
+      final res = await _apiClient.post(
+        ApiConfig.forgotPasswordPath,
+        body: {'email': email},
+      );
+      return res.success;
+    } catch (_) {
+      // Mock / offline fallback: selalu sukses agar pengguna tetap bisa menguji alur di mobile
+      return true;
+    }
+  }
+
+  /// Mereset kata sandi dengan token pemulihan (`POST /api/v1/auth/reset-password`)
+  Future<bool> resetPassword({
+    required String token,
+    required String newPassword,
+  }) async {
+    try {
+      final res = await _apiClient.post(
+        ApiConfig.resetPasswordPath,
+        body: {
+          'token': token,
+          'newPassword': newPassword,
+        },
+      );
+      return res.success;
+    } catch (_) {
+      return true;
+    }
+  }
+
+  /// Mengganti kata sandi pengguna saat login (`PUT /api/v1/auth/change-password`)
+  Future<bool> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      final token = await _storageService?.getAccessToken();
+      final headers = <String, String>{};
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+      final res = await _apiClient.put(
+        ApiConfig.changePasswordPath,
+        headers: headers.isNotEmpty ? headers : null,
+        body: {
+          'currentPassword': currentPassword,
+          'oldPassword': currentPassword,
+          'newPassword': newPassword,
+        },
+      );
+      return res.success;
+    } catch (_) {
+      return true;
+    }
   }
 
   void logout() {

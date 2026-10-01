@@ -390,7 +390,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   void _handleForgotPassword() {
-    _showToast('Pemulihan Sandi', 'Tautan pemulihan dikirimkan ke email terdaftar', icon: Icons.mark_email_read_rounded);
+    final emailInitial = _masukEmailController.text.trim();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) => _ForgotPasswordSheet(
+        initialEmail: emailInitial,
+        onResetSuccess: (newPass) {
+          if (mounted) {
+            _masukPassController.text = newPass;
+            _showToast(
+              'Kata Sandi Berhasil Direset',
+              'Silakan masuk menggunakan kata sandi baru Anda.',
+              icon: Icons.check_circle_rounded,
+            );
+          }
+        },
+      ),
+    );
   }
 
   void _handleDemoPersona(String persona) async {
@@ -1266,6 +1284,453 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ForgotPasswordSheet extends ConsumerStatefulWidget {
+  final String initialEmail;
+  final ValueChanged<String> onResetSuccess;
+
+  const _ForgotPasswordSheet({
+    required this.initialEmail,
+    required this.onResetSuccess,
+  });
+
+  @override
+  ConsumerState<_ForgotPasswordSheet> createState() => _ForgotPasswordSheetState();
+}
+
+class _ForgotPasswordSheetState extends ConsumerState<_ForgotPasswordSheet> {
+  int _step = 1; // 1: Input email, 2: Input token & new password
+  late final TextEditingController _emailController;
+  final TextEditingController _tokenController = TextEditingController();
+  final TextEditingController _newPassController = TextEditingController();
+  final TextEditingController _confirmPassController = TextEditingController();
+
+  bool _obscureNewPass = true;
+  bool _obscureConfirmPass = true;
+  bool _isLoading = false;
+  String? _errorMessage;
+  String? _infoMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController = TextEditingController(text: widget.initialEmail);
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _tokenController.dispose();
+    _newPassController.dispose();
+    _confirmPassController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleSendResetLink() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty || !email.contains('@')) {
+      setState(() => _errorMessage = 'Masukkan alamat email yang valid.');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    final success = await ref.read(authProvider.notifier).forgotPassword(email);
+
+    if (!mounted) return;
+    setState(() {
+      _isLoading = false;
+      if (success) {
+        _step = 2;
+        _infoMessage = 'Tautan atau token pemulihan telah dikirim ke $email.';
+      } else {
+        _errorMessage = 'Gagal mengirim instruksi pemulihan. Pastikan email terdaftar.';
+      }
+    });
+  }
+
+  Future<void> _handleResetPassword() async {
+    final token = _tokenController.text.trim();
+    final newPass = _newPassController.text.trim();
+    final confirmPass = _confirmPassController.text.trim();
+
+    if (token.isEmpty) {
+      setState(() => _errorMessage = 'Token pemulihan tidak boleh kosong.');
+      return;
+    }
+    if (newPass.length < 6) {
+      setState(() => _errorMessage = 'Kata sandi baru minimal 6 karakter.');
+      return;
+    }
+    if (newPass != confirmPass) {
+      setState(() => _errorMessage = 'Konfirmasi kata sandi tidak cocok.');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    final success = await ref
+        .read(authProvider.notifier)
+        .resetPassword(token: token, newPassword: newPass);
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (success) {
+      Navigator.pop(context);
+      widget.onResetSuccess(newPass);
+    } else {
+      setState(() {
+        _errorMessage = 'Token tidak valid atau sudah kedaluwarsa. Silakan coba kembali.';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.85,
+      ),
+      padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + bottomInset),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerHigh.withValues(alpha: 0.98),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border.all(color: AppColors.glassBorder),
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceVariant,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryContainer.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.lock_reset_rounded,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      _step == 1 ? 'Lupa Kata Sandi' : 'Setel Ulang Sandi',
+                      style: GoogleFonts.outfit(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.onSurface,
+                      ),
+                    ),
+                  ],
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, color: AppColors.outline),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              _step == 1
+                  ? 'Masukkan email akun LiveEuy Anda untuk menerima token atau tautan pemulihan kata sandi.'
+                  : 'Masukkan token verifikasi yang dikirimkan ke email Anda dan tentukan kata sandi baru.',
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (_infoMessage != null) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryContainer.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.mark_email_read_rounded, color: AppColors.primary, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _infoMessage!,
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+            ],
+            if (_errorMessage != null) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.errorContainer.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.errorContainer),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error_outline_rounded, color: AppColors.error, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _errorMessage!,
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: AppColors.error,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+            ],
+            if (_step == 1) ...[
+              TextField(
+                key: const Key('forgot_password_email_field'),
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                style: GoogleFonts.inter(color: Colors.white, fontSize: 13),
+                decoration: InputDecoration(
+                  labelText: 'Alamat Email',
+                  hintText: 'nama@email.com',
+                  labelStyle: GoogleFonts.inter(color: AppColors.outline, fontSize: 12),
+                  hintStyle: GoogleFonts.inter(color: AppColors.outlineVariant, fontSize: 12),
+                  prefixIcon: const Icon(Icons.mail_outline_rounded, color: AppColors.outline, size: 20),
+                  filled: true,
+                  fillColor: AppColors.surfaceContainerLowest,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: AppColors.primary),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  key: const Key('forgot_password_send_link_button'),
+                  onPressed: _isLoading ? null : _handleSendResetLink,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryContainer,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : Text(
+                          'Kirim Tautan / Token',
+                          style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 14),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Center(
+                child: TextButton(
+                  key: const Key('forgot_password_switch_step_button'),
+                  onPressed: () => setState(() => _step = 2),
+                  child: Text(
+                    'Sudah punya token pemulihan? Masukkan di sini',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ] else ...[
+              TextField(
+                key: const Key('forgot_password_token_field'),
+                controller: _tokenController,
+                style: GoogleFonts.inter(color: Colors.white, fontSize: 13),
+                decoration: InputDecoration(
+                  labelText: 'Token Pemulihan',
+                  hintText: 'Contoh: rst-tok-8472...',
+                  labelStyle: GoogleFonts.inter(color: AppColors.outline, fontSize: 12),
+                  hintStyle: GoogleFonts.inter(color: AppColors.outlineVariant, fontSize: 12),
+                  prefixIcon: const Icon(Icons.vpn_key_outlined, color: AppColors.outline, size: 20),
+                  filled: true,
+                  fillColor: AppColors.surfaceContainerLowest,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: AppColors.primary),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                key: const Key('forgot_password_new_pass_field'),
+                controller: _newPassController,
+                obscureText: _obscureNewPass,
+                style: GoogleFonts.inter(color: Colors.white, fontSize: 13),
+                decoration: InputDecoration(
+                  labelText: 'Kata Sandi Baru (Min. 6 Karakter)',
+                  labelStyle: GoogleFonts.inter(color: AppColors.outline, fontSize: 12),
+                  prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppColors.outline, size: 20),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureNewPass ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                      color: AppColors.outline,
+                      size: 18,
+                    ),
+                    onPressed: () => setState(() => _obscureNewPass = !_obscureNewPass),
+                  ),
+                  filled: true,
+                  fillColor: AppColors.surfaceContainerLowest,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: AppColors.primary),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                key: const Key('forgot_password_confirm_pass_field'),
+                controller: _confirmPassController,
+                obscureText: _obscureConfirmPass,
+                style: GoogleFonts.inter(color: Colors.white, fontSize: 13),
+                decoration: InputDecoration(
+                  labelText: 'Konfirmasi Kata Sandi Baru',
+                  labelStyle: GoogleFonts.inter(color: AppColors.outline, fontSize: 12),
+                  prefixIcon: const Icon(Icons.check_circle_outline_rounded, color: AppColors.outline, size: 20),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureConfirmPass ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                      color: AppColors.outline,
+                      size: 18,
+                    ),
+                    onPressed: () => setState(() => _obscureConfirmPass = !_obscureConfirmPass),
+                  ),
+                  filled: true,
+                  fillColor: AppColors.surfaceContainerLowest,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: AppColors.primary),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  key: const Key('forgot_password_submit_button'),
+                  onPressed: _isLoading ? null : _handleResetPassword,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryContainer,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : Text(
+                          'Perbarui Kata Sandi',
+                          style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 14),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Center(
+                child: TextButton(
+                  onPressed: () => setState(() => _step = 1),
+                  child: Text(
+                    'Kembali ke Kirim Tautan',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: AppColors.outline,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

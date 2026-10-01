@@ -143,6 +143,8 @@ class ApiConfig {
   static const String mePath = '/auth/me';
   static const String profilePath = '/auth/profile';
   static const String changePasswordPath = '/auth/change-password';
+  static const String forgotPasswordPath = '/auth/forgot-password';
+  static const String resetPasswordPath = '/auth/reset-password';
   static const String logoutPath = '/auth/logout';
   static const String logoutAllPath = '/auth/logout-all';
   static String revokeDevicePath(String deviceId) => '/auth/devices/$deviceId';

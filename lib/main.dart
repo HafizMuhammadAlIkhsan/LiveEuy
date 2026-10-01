@@ -1183,6 +1183,250 @@ class _AkunTabState extends ConsumerState<_AkunTab> {
     );
   }
 
+  void _showChangePasswordDialog(BuildContext context) {
+    final currentPassController = TextEditingController();
+    final newPassController = TextEditingController();
+    final confirmPassController = TextEditingController();
+    bool obscureCurrent = true;
+    bool obscureNew = true;
+    bool obscureConfirm = true;
+    bool isSubmitting = false;
+    String? errorMessage;
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: AppColors.surfaceContainerHigh,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryContainer.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.lock_reset_rounded, color: AppColors.primary, size: 20),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'Ganti Kata Sandi',
+                style: GoogleFonts.outfit(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.onSurface,
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Masukkan kata sandi saat ini dan buat kata sandi baru (minimal 6 karakter).',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (errorMessage != null) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppColors.errorContainer.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.errorContainer),
+                    ),
+                    child: Text(
+                      errorMessage!,
+                      style: GoogleFonts.inter(fontSize: 11, color: AppColors.error),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                TextField(
+                  key: const Key('change_password_current_field'),
+                  controller: currentPassController,
+                  obscureText: obscureCurrent,
+                  style: GoogleFonts.inter(color: Colors.white, fontSize: 13),
+                  decoration: InputDecoration(
+                    labelText: 'Kata Sandi Saat Ini',
+                    labelStyle: GoogleFonts.inter(color: AppColors.outline, fontSize: 12),
+                    filled: true,
+                    fillColor: AppColors.surfaceContainerLowest,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        obscureCurrent ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                        color: AppColors.outline,
+                        size: 18,
+                      ),
+                      onPressed: () => setDialogState(() => obscureCurrent = !obscureCurrent),
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.primary),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  key: const Key('change_password_new_field'),
+                  controller: newPassController,
+                  obscureText: obscureNew,
+                  style: GoogleFonts.inter(color: Colors.white, fontSize: 13),
+                  decoration: InputDecoration(
+                    labelText: 'Kata Sandi Baru (Min. 6 Karakter)',
+                    labelStyle: GoogleFonts.inter(color: AppColors.outline, fontSize: 12),
+                    filled: true,
+                    fillColor: AppColors.surfaceContainerLowest,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        obscureNew ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                        color: AppColors.outline,
+                        size: 18,
+                      ),
+                      onPressed: () => setDialogState(() => obscureNew = !obscureNew),
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.primary),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  key: const Key('change_password_confirm_field'),
+                  controller: confirmPassController,
+                  obscureText: obscureConfirm,
+                  style: GoogleFonts.inter(color: Colors.white, fontSize: 13),
+                  decoration: InputDecoration(
+                    labelText: 'Konfirmasi Kata Sandi Baru',
+                    labelStyle: GoogleFonts.inter(color: AppColors.outline, fontSize: 12),
+                    filled: true,
+                    fillColor: AppColors.surfaceContainerLowest,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        obscureConfirm ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                        color: AppColors.outline,
+                        size: 18,
+                      ),
+                      onPressed: () => setDialogState(() => obscureConfirm = !obscureConfirm),
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.primary),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isSubmitting ? null : () => Navigator.pop(dialogCtx),
+              child: Text(
+                'Batal',
+                style: GoogleFonts.outfit(color: AppColors.outline),
+              ),
+            ),
+            ElevatedButton(
+              key: const Key('change_password_submit_button'),
+              onPressed: isSubmitting
+                  ? null
+                  : () async {
+                      final currentPass = currentPassController.text.trim();
+                      final newPass = newPassController.text.trim();
+                      final confirmPass = confirmPassController.text.trim();
+
+                      if (currentPass.isEmpty) {
+                        setDialogState(() => errorMessage = 'Kata sandi saat ini tidak boleh kosong.');
+                        return;
+                      }
+                      if (newPass.length < 6) {
+                        setDialogState(() => errorMessage = 'Kata sandi baru minimal 6 karakter.');
+                        return;
+                      }
+                      if (newPass != confirmPass) {
+                        setDialogState(() => errorMessage = 'Konfirmasi kata sandi tidak cocok.');
+                        return;
+                      }
+
+                      setDialogState(() {
+                        isSubmitting = true;
+                        errorMessage = null;
+                      });
+
+                      final success = await ref
+                          .read(authProvider.notifier)
+                          .changePassword(currentPassword: currentPass, newPassword: newPass);
+
+                      if (context.mounted) {
+                        Navigator.pop(dialogCtx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              success
+                                  ? 'Kata sandi berhasil diperbarui.'
+                                  : 'Gagal memperbarui kata sandi. Periksa kata sandi lama Anda.',
+                              style: GoogleFonts.outfit(),
+                            ),
+                            backgroundColor: success
+                                ? AppColors.surfaceContainerHighest
+                                : AppColors.errorContainer,
+                          ),
+                        );
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryContainer,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: isSubmitting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : Text(
+                      'Simpan',
+                      style: GoogleFonts.outfit(fontWeight: FontWeight.w700),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = widget.userProfile;
@@ -1650,6 +1894,28 @@ class _AkunTabState extends ConsumerState<_AkunTab> {
                   return;
                 }
                 DeviceSecuritySheet.show(context);
+              },
+            ),
+            _buildSettingsTile(
+              icon: Icons.lock_reset_rounded,
+              title: 'Ganti Kata Sandi',
+              subtitle: user.isLoggedIn
+                  ? 'Perbarui kata sandi akun Anda secara berkala'
+                  : 'Masuk untuk mengatur kata sandi',
+              onTap: () {
+                if (!user.isLoggedIn) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Silakan masuk terlebih dahulu untuk mengganti kata sandi.',
+                        style: GoogleFonts.outfit(),
+                      ),
+                      backgroundColor: AppColors.surfaceContainerHighest,
+                    ),
+                  );
+                  return;
+                }
+                _showChangePasswordDialog(context);
               },
             ),
 

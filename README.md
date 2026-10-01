@@ -64,6 +64,10 @@ Klien mobile streaming film dan serial televisi berbasis Flutter (Android dan iO
   - Opsi kualitas video dan pembatasan unduh hanya melalui jaringan Wi-Fi.
   - Toggle lewati intro otomatis dan pembersihan cache lokal.
   - Manajemen sesi login dengan opsi Ingat Saya.
+- Pemulihan & Manajemen Keamanan Sandi (Milestone 1 / `dev-backend-auth`):
+  - **Alur Lupa & Reset Sandi**: Modal interaktif 2 tahap (`_ForgotPasswordSheet`) untuk pengiriman tautan/token pemulihan via `POST /api/v1/auth/forgot-password` dan penyetelan kata sandi baru via `POST /api/v1/auth/reset-password`.
+  - **Ganti Kata Sandi di Akun**: Menu langsung pada tab Akun (`_showChangePasswordDialog`) dengan verifikasi kata sandi lama dan enkripsi sandi baru via `PUT /api/v1/auth/change-password`.
+  - **Penegakan Kuota Perangkat per Tier**: Indikator batas sesi aktif bersamaan selaras dengan aturan Domain-Driven Design (DDD) backend (`Free Guest: 1`, `VIP Standard: 2`, `VIP Cinema Ultra: 4 Perangkat`).
 
 ---
 
@@ -152,6 +156,7 @@ LiveEuy Mobile mengintegrasikan dispatcher notifikasi lokal yang terhubung denga
 Komponen antarmuka:
 - In-App Toast Banner: menampilkan pemberitahuan melayang dengan tombol aksi langsung.
 - Lembar Riwayat Notifikasi: modal bottom sheet dengan penanda status belum dibaca (unread dot). Riwayat tersimpan di penyimpanan lokal sehingga tidak hilang saat aplikasi ditutup.
+- Interaksi Fleksibel: gestur geser (*swipe-to-dismiss*) untuk menghapus notifikasi dengan SnackBar *Urungkan (Undo)*, tombol *Bersihkan semua* notifikasi, serta deduping otomatis pada reminder *Continue Watching*.
 
 ---
 
@@ -209,8 +214,10 @@ Pemetaan endpoint backend (`origin/dev-backend`) dengan klien mobile:
 | **Detail & Episode** | Tersedia (`catalog-service` :8081) | Memetakan Season & Episode DTO lengkap beserta durasi tayang. |
 | **Batch Fetch Media** | Tersedia (`catalog-service` :8081) | Mengambil daftar tayangan sekaligus via `POST /api/v1/media/batch`. |
 | **Login, Register & Refresh** | Tersedia (`auth-service` :8080) | Klien menyimpan token JWT di `FlutterSecureStorage` dan mendukung refresh token otomatis. |
+| **Lupa & Reset Sandi** | Tersedia (`auth-service` :8080) | Alur 2-tahap via `POST /api/v1/auth/forgot-password` dan `POST /api/v1/auth/reset-password`. |
+| **Ganti Kata Sandi** | Tersedia (`auth-service` :8080) | Dialog interaktif via `PUT /api/v1/auth/change-password` dengan field `currentPassword`. |
 | **Persona Demo Login** | Tersedia (`auth-service` :8080) | Tombol cepat persona di `LoginScreen` (`Tamu 1 Dev`, `VIP 2 Dev`, `Ultra 4 Dev`). |
-| **Profil & Ganti Sandi** | Tersedia (`auth-service` :8080) | Sinkronisasi metrik `devices`, `watchHours`, `memberSince`, dan update kata sandi. |
+| **Profil & Kuota Perangkat** | Tersedia (`auth-service` :8080) | Sinkronisasi metrik `devices`, `watchHours`, `memberSince`, dan kuota perangkat per tier. |
 | **Sesi & Keamanan Perangkat**| Tersedia (`auth-service` :8080) | Mengirimkan header `X-Device-Type: Mobile` dan mengelola multi-sesi via `DeviceSecuritySheet`. |
 | **User Watchlist** | Fallback offline-first | Disimpan lokal di `LocalStorageService`; disinkronkan saat endpoint user service aktif. |
 | **Continue Watching** | Fallback offline-first | Disimpan di `SharedPreferences` dan disinkronkan otomatis saat online. |
@@ -367,6 +374,7 @@ liveeuy_mob/
 └── test/                              # Pengujian unit dan widget
     ├── account_settings_test.dart
     ├── ad_system_test.dart            # Pengujian komprehensif sistem iklan hybrid & VIP
+    ├── auth_milestone_test.dart       # Pengujian alur lupa/reset sandi, ganti sandi, dan kuota tier
     ├── notification_test.dart
     ├── vip_subscription_test.dart
     ├── widget_test.dart

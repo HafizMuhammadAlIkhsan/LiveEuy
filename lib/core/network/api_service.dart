@@ -379,11 +379,34 @@ class ApiService {
       ApiConfig.changePasswordPath,
       headers: headers.isNotEmpty ? headers : null,
       body: {
+        'currentPassword': oldPassword,
         'oldPassword': oldPassword,
         'newPassword': newPassword,
       },
     );
     return response.success;
+  }
+
+  /// Mengirim permintaan reset kata sandi melalui email (`POST /api/v1/auth/forgot-password`)
+  Future<ApiResponse<dynamic>> forgotPassword(String email) async {
+    return await _authClient.post<dynamic>(
+      ApiConfig.forgotPasswordPath,
+      body: {'email': email},
+    );
+  }
+
+  /// Mereset kata sandi menggunakan token yang diterima (`POST /api/v1/auth/reset-password`)
+  Future<ApiResponse<dynamic>> resetPassword({
+    required String token,
+    required String newPassword,
+  }) async {
+    return await _authClient.post<dynamic>(
+      ApiConfig.resetPasswordPath,
+      body: {
+        'token': token,
+        'newPassword': newPassword,
+      },
+    );
   }
 
   /// Mengakhiri sesi login pengguna saat ini (`POST /api/v1/auth/logout`)

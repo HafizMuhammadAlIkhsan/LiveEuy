@@ -101,6 +101,43 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     _persist();
   }
 
+  void removeNotification(String id) {
+    final updated = state.items.where((item) => item.id != id).toList();
+    final anyUnread = updated.any((item) => !item.isRead);
+    state = NotificationState(items: updated, hasUnread: anyUnread);
+    _persist();
+  }
+
+  void clearAll() {
+    state = const NotificationState(items: [], hasUnread: false);
+    _persist();
+  }
+
+  void triggerContinueWatchingReminder({
+    required String mediaId,
+    required String title,
+    required double progressPercent,
+  }) {
+    final alreadyExists = state.items.any(
+      (item) => item.targetMediaId == mediaId && !item.isRead,
+    );
+    if (alreadyExists) return;
+
+    final percentStr = (progressPercent * 100).toInt();
+    final newItem = NotificationItem(
+      id: 'notif_cw_${mediaId}_${DateTime.now().millisecondsSinceEpoch}',
+      title: 'Lanjutkan: $title',
+      message: 'Tersisa ${100 - percentStr}% lagi. Yuk lanjutkan tontonanmu!',
+      time: 'Baru saja',
+      iconType: 'flame',
+      targetMediaId: mediaId,
+      deepLinkUrl: 'liveeuy://watch/$mediaId',
+      isRead: false,
+      createdAt: DateTime.now(),
+    );
+    addNotification(newItem);
+  }
+
   bool openNotification(NotificationItem item) {
     markAsRead(item.id);
     final deepLink = _deepLinkService;

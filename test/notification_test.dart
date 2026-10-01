@@ -73,6 +73,69 @@ void main() {
       // Tap 'Baca semua'
       await tester.tap(find.text('Baca semua'));
       await tester.pumpAndSettle();
+
+      // Verify clear all button exists and taps it
+      final clearAllBtn = find.byKey(const Key('clear_all_notifications_button'));
+      expect(clearAllBtn, findsOneWidget);
+      await tester.tap(clearAllBtn);
+      await tester.pumpAndSettle();
+
+      // Verify empty state is displayed
+      expect(find.text('Belum ada notifikasi'), findsOneWidget);
+    });
+
+    test('removeNotification removes specific item and updates unread flag', () {
+      final container = ProviderContainer();
+      final notifier = container.read(notificationProvider.notifier);
+
+      notifier.removeNotification('notif_1');
+      var state = container.read(notificationProvider);
+      expect(state.items.length, 1);
+      expect(state.items.first.id, 'notif_2');
+      expect(state.hasUnread, true);
+
+      notifier.removeNotification('notif_2');
+      state = container.read(notificationProvider);
+      expect(state.items.isEmpty, true);
+      expect(state.hasUnread, false);
+    });
+
+    test('clearAll empties all notifications immediately', () {
+      final container = ProviderContainer();
+      final notifier = container.read(notificationProvider.notifier);
+
+      expect(container.read(notificationProvider).items.isNotEmpty, true);
+      notifier.clearAll();
+      final state = container.read(notificationProvider);
+      expect(state.items.isEmpty, true);
+      expect(state.hasUnread, false);
+    });
+
+    test('triggerContinueWatchingReminder adds reminder item without duplication', () {
+      final container = ProviderContainer();
+      final notifier = container.read(notificationProvider.notifier);
+
+      notifier.triggerContinueWatchingReminder(
+        mediaId: 'm_test_99',
+        title: 'Film Aksi Keren',
+        progressPercent: 0.45,
+      );
+
+      var state = container.read(notificationProvider);
+      final addedItem = state.items.firstWhere((i) => i.targetMediaId == 'm_test_99');
+      expect(addedItem.title, 'Lanjutkan: Film Aksi Keren');
+      expect(addedItem.message.contains('55%'), true);
+      expect(addedItem.deepLinkUrl, 'liveeuy://watch/m_test_99');
+
+      // Duplicate trigger while unread should not add another
+      final countBefore = state.items.length;
+      notifier.triggerContinueWatchingReminder(
+        mediaId: 'm_test_99',
+        title: 'Film Aksi Keren',
+        progressPercent: 0.50,
+      );
+      state = container.read(notificationProvider);
+      expect(state.items.length, countBefore);
     });
   });
 }

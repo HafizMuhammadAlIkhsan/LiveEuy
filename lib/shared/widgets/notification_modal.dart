@@ -200,6 +200,19 @@ void showNotificationSheet(
                                 ),
                               ),
                             ),
+                            if (notifState.items.isNotEmpty) ...[
+                              const SizedBox(width: 2),
+                              IconButton(
+                                key: const Key('clear_all_notifications_button'),
+                                tooltip: 'Bersihkan semua',
+                                icon: const Icon(Icons.delete_sweep_outlined, color: AppColors.outline, size: 19),
+                                onPressed: () {
+                                  ref.read(notificationProvider.notifier).clearAll();
+                                },
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                              ),
+                            ],
                             IconButton(
                               icon: const Icon(Icons.close_rounded, color: AppColors.outline),
                               onPressed: () => Navigator.pop(ctx),
@@ -252,8 +265,71 @@ void showNotificationSheet(
                             : Icons.local_fire_department_rounded;
 
                         return Padding(
+                          key: ValueKey(item.id),
                           padding: const EdgeInsets.only(bottom: 10.0),
-                          child: InkWell(
+                          child: Dismissible(
+                            key: Key('dismiss_${item.id}'),
+                            direction: DismissDirection.endToStart,
+                            background: Container(
+                              alignment: Alignment.centerRight,
+                              padding: const EdgeInsets.only(right: 20),
+                              decoration: BoxDecoration(
+                                color: Colors.redAccent.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: Colors.redAccent.withValues(alpha: 0.35),
+                                ),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Hapus',
+                                    style: TextStyle(
+                                      color: Colors.redAccent,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  SizedBox(width: 6),
+                                  Icon(
+                                    Icons.delete_outline_rounded,
+                                    color: Colors.redAccent,
+                                    size: 20,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            onDismissed: (_) {
+                              ref
+                                  .read(notificationProvider.notifier)
+                                  .removeNotification(item.id);
+                              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Notifikasi dihapus',
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 12,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  backgroundColor: AppColors.surfaceContainerHigh,
+                                  behavior: SnackBarBehavior.floating,
+                                  duration: const Duration(seconds: 3),
+                                  action: SnackBarAction(
+                                    label: 'Urungkan',
+                                    textColor: AppColors.primary,
+                                    onPressed: () {
+                                      ref
+                                          .read(notificationProvider.notifier)
+                                          .addNotification(item);
+                                    },
+                                  ),
+                                ),
+                              );
+                            },
+                            child: InkWell(
                             borderRadius: BorderRadius.circular(16),
                             onTap: () {
                               ref
@@ -356,8 +432,9 @@ void showNotificationSheet(
                               ),
                             ),
                           ),
-                        );
-                      }),
+                        ),
+                      );
+                    }),
                   ],
                 ),
               ),
