@@ -411,6 +411,29 @@ class ApiService {
     );
   }
 
+  /// Memverifikasi PIN pendaftaran email pengguna (`POST /api/v1/auth/verify-email`)
+  Future<ApiResponse<dynamic>> verifyEmailPin({
+    required String email,
+    required String pin,
+  }) async {
+    return await _authClient.post<dynamic>(
+      ApiConfig.verifyEmailPath,
+      body: {
+        'email': email.trim(),
+        'pin': pin.trim(),
+        'code': pin.trim(),
+      },
+    );
+  }
+
+  /// Mengirim ulang kode PIN verifikasi registrasi ke email (`POST /api/v1/auth/resend-verification`)
+  Future<ApiResponse<dynamic>> resendVerificationPin(String email) async {
+    return await _authClient.post<dynamic>(
+      ApiConfig.resendVerificationPath,
+      body: {'email': email.trim()},
+    );
+  }
+
   /// Mengakhiri sesi login pengguna saat ini (`POST /api/v1/auth/logout`)
   Future<bool> logout({String? accessToken}) async {
     final headers = <String, String>{};

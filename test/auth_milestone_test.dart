@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:liveeuy_mob/core/deeplink/deep_link_service.dart';
 import 'package:liveeuy_mob/core/network/api_client.dart';
 import 'package:liveeuy_mob/core/network/api_service.dart';
 import 'package:liveeuy_mob/features/auth/login_screen.dart';
@@ -394,6 +395,90 @@ void main() {
       // Verify modal is closed and toast is shown
       expect(find.text('Setel Ulang Sandi'), findsNothing);
       expect(find.text('Kata Sandi Berhasil Direset'), findsOneWidget);
+    });
+  });
+
+  group('Frontend Parity: Verify Email Pin, Resend Verification, and Auth Deep Links (Ref: dev-frontend)', () {
+    test('ApiConfig contains verifyEmailPath and resendVerificationPath', () {
+      expect(ApiConfig.verifyEmailPath, equals('/auth/verify-email'));
+      expect(ApiConfig.resendVerificationPath, equals('/auth/resend-verification'));
+    });
+
+    test('ApiService supports verifyEmailPin and resendVerificationPin matching frontend api.ts', () async {
+      final mockClient = MockClient((request) async {
+        if (request.url.path.endsWith('/auth/verify-email')) {
+          expect(request.method, equals('POST'));
+          final body = jsonDecode(request.body) as Map<String, dynamic>;
+          expect(body['email'], equals('test@liveeuy.id'));
+          expect(body['pin'], equals('123456'));
+          return http.Response(
+            jsonEncode({'success': true, 'message': 'Email verified'}),
+            200,
+          );
+        }
+        if (request.url.path.endsWith('/auth/resend-verification')) {
+          expect(request.method, equals('POST'));
+          final body = jsonDecode(request.body) as Map<String, dynamic>;
+          expect(body['email'], equals('test@liveeuy.id'));
+          return http.Response(
+            jsonEncode({'success': true, 'message': 'Pin resent'}),
+            200,
+          );
+        }
+        return http.Response('{"error": "not found"}', 404);
+      });
+
+      final apiClient = ApiClient(httpClient: mockClient, baseUrl: 'http://localhost:8080/api/v1');
+      final apiService = ApiService(client: apiClient, authClient: apiClient);
+
+      final verifyRes = await apiService.verifyEmailPin(
+        email: 'test@liveeuy.id',
+        pin: '123456',
+      );
+      expect(verifyRes.success, isTrue);
+
+      final resendRes = await apiService.resendVerificationPin('test@liveeuy.id');
+      expect(resendRes.success, isTrue);
+    });
+
+    test('AuthNotifier executes verifyEmailPin and resendVerificationPin with 4-6 digits', () async {
+      final container = ProviderContainer();
+      final notifier = container.read(authProvider.notifier);
+
+      expect(await notifier.verifyEmailPin('user@liveeuy.id', '1234'), isTrue);
+      expect(await notifier.verifyEmailPin('user@liveeuy.id', '123456'), isTrue);
+      expect(await notifier.verifyEmailPin('user@liveeuy.id', '12'), isFalse);
+      expect(await notifier.verifyEmailPin('user@liveeuy.id', '12345'), isFalse);
+      expect(await notifier.verifyEmailPin('user@liveeuy.id', 'abcdef'), isFalse);
+
+      expect(await notifier.resendVerificationPin('user@liveeuy.id'), isTrue);
+    });
+
+    test('DeepLinkService parses forgot-password, reset-password, and verify-email targets', () {
+      final service = DeepLinkService();
+
+      // Custom scheme
+      final parsedForgot = service.parse('liveeuy://forgot-password');
+      expect(parsedForgot.target, equals(DeepLinkTarget.forgotPassword));
+
+      final parsedReset = service.parse('liveeuy://reset-password?token=tok-abc-999');
+      expect(parsedReset.target, equals(DeepLinkTarget.resetPassword));
+      expect(parsedReset.queryParameters['token'], equals('tok-abc-999'));
+
+      final parsedVerify = service.parse('liveeuy://verify-email?email=user@liveeuy.id&pin=654321');
+      expect(parsedVerify.target, equals(DeepLinkTarget.verifyEmail));
+      expect(parsedVerify.queryParameters['email'], equals('user@liveeuy.id'));
+      expect(parsedVerify.queryParameters['pin'], equals('654321'));
+
+      // Universal / App links
+      final parsedWebReset = service.parse('https://liveeuy.id/reset-password?token=tok-web-777');
+      expect(parsedWebReset.target, equals(DeepLinkTarget.resetPassword));
+      expect(parsedWebReset.queryParameters['token'], equals('tok-web-777'));
+
+      final parsedWebVerify = service.parse('https://liveeuy.id/verify-email?email=web@liveeuy.id&pin=112233');
+      expect(parsedWebVerify.target, equals(DeepLinkTarget.verifyEmail));
+      expect(parsedWebVerify.queryParameters['email'], equals('web@liveeuy.id'));
+      expect(parsedWebVerify.queryParameters['pin'], equals('112233'));
     });
   });
 }

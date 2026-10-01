@@ -13,6 +13,9 @@ enum DeepLinkTarget {
   collection,
   account,
   login,
+  forgotPassword,
+  resetPassword,
+  verifyEmail,
   home,
   unknown,
 }
@@ -121,6 +124,30 @@ class DeepLinkService {
         );
       }
 
+      if (host == 'forgot-password' || host == 'forgotpassword') {
+        return ParsedDeepLink(
+          uri: uri,
+          target: DeepLinkTarget.forgotPassword,
+          queryParameters: queryParams,
+        );
+      }
+
+      if (host == 'reset-password' || host == 'resetpassword') {
+        return ParsedDeepLink(
+          uri: uri,
+          target: DeepLinkTarget.resetPassword,
+          queryParameters: queryParams,
+        );
+      }
+
+      if (host == 'verify-email' || host == 'verifyemail' || host == 'verify-pin') {
+        return ParsedDeepLink(
+          uri: uri,
+          target: DeepLinkTarget.verifyEmail,
+          queryParameters: queryParams,
+        );
+      }
+
       if (host == 'home') {
         return ParsedDeepLink(
           uri: uri,
@@ -175,6 +202,30 @@ class DeepLinkService {
         return ParsedDeepLink(
           uri: uri,
           target: DeepLinkTarget.collection,
+          queryParameters: queryParams,
+        );
+      }
+
+      if (pathSegments.contains('forgot-password') || pathSegments.contains('forgotpassword')) {
+        return ParsedDeepLink(
+          uri: uri,
+          target: DeepLinkTarget.forgotPassword,
+          queryParameters: queryParams,
+        );
+      }
+
+      if (pathSegments.contains('reset-password') || pathSegments.contains('resetpassword')) {
+        return ParsedDeepLink(
+          uri: uri,
+          target: DeepLinkTarget.resetPassword,
+          queryParameters: queryParams,
+        );
+      }
+
+      if (pathSegments.contains('verify-email') || pathSegments.contains('verifyemail') || pathSegments.contains('verify-pin')) {
+        return ParsedDeepLink(
+          uri: uri,
+          target: DeepLinkTarget.verifyEmail,
           queryParameters: queryParams,
         );
       }
@@ -237,6 +288,39 @@ class DeepLinkService {
       case DeepLinkTarget.login:
         navigatorKey.currentState?.push(
           MaterialPageRoute(builder: (_) => const LoginScreen()),
+        );
+        return true;
+
+      case DeepLinkTarget.forgotPassword:
+        navigatorKey.currentState?.push(
+          MaterialPageRoute(
+            builder: (_) => const LoginScreen(
+              openForgotPasswordImmediately: true,
+            ),
+          ),
+        );
+        return true;
+
+      case DeepLinkTarget.resetPassword:
+        navigatorKey.currentState?.push(
+          MaterialPageRoute(
+            builder: (_) => LoginScreen(
+              openForgotPasswordImmediately: true,
+              initialResetToken: parsed.queryParameters['token'],
+            ),
+          ),
+        );
+        return true;
+
+      case DeepLinkTarget.verifyEmail:
+        navigatorKey.currentState?.push(
+          MaterialPageRoute(
+            builder: (_) => LoginScreen(
+              initialTabIndex: 1,
+              initialVerifyEmail: parsed.queryParameters['email'],
+              initialVerifyPin: parsed.queryParameters['pin'] ?? parsed.queryParameters['code'],
+            ),
+          ),
         );
         return true;
 

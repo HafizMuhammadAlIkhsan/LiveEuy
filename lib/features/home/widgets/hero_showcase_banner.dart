@@ -311,6 +311,9 @@ class _HeroShowcaseBannerState extends State<HeroShowcaseBanner> {
             aspectRatio: 4 / 5,
             child: NotificationListener<ScrollNotification>(
               onNotification: (notification) {
+                // Abaikan notifikasi scroll vertikal dari parent CustomScrollView
+                if (notification.depth != 0) return false;
+
                 if (notification is ScrollStartNotification &&
                     notification.dragDetails != null) {
                   _isUserInteracting = true;
@@ -799,15 +802,6 @@ class _HeroShowcaseBannerState extends State<HeroShowcaseBanner> {
                           decoration: BoxDecoration(
                             color: AppColors.primaryContainer,
                             borderRadius: BorderRadius.circular(2),
-                            boxShadow: factor > 0
-                                ? [
-                                    BoxShadow(
-                                      color: AppColors.primaryContainer
-                                          .withValues(alpha: 0.8),
-                                      blurRadius: 4,
-                                    ),
-                                  ]
-                                : null,
                           ),
                         ),
                       );

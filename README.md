@@ -74,11 +74,11 @@ Klien mobile streaming film dan serial televisi berbasis Flutter (Android dan iO
   - **Alur Lupa & Reset Sandi**: Modal interaktif 2 tahap (`_ForgotPasswordSheet`) untuk pengiriman tautan/token pemulihan via `POST /api/v1/auth/forgot-password` dan penyetelan kata sandi baru via `POST /api/v1/auth/reset-password`, dilengkapi simulasi token demo cepat (`123456`) untuk pengujian tanpa server email.
   - **Ganti Kata Sandi di Akun**: Menu langsung pada tab Akun (`_showChangePasswordDialog`) dengan verifikasi kata sandi lama dan enkripsi sandi baru via `PUT /api/v1/auth/change-password`.
   - **Penegakan Kuota Perangkat per Tier**: Indikator batas sesi aktif bersamaan selaras dengan aturan Domain-Driven Design (DDD) backend (`Free Guest: 1`, `VIP Standard: 2`, `VIP Cinema Ultra: 4 Perangkat`).
-- Verifikasi PIN Registrasi Pertama Kali (Ref: `dev-frontend` Family Profiles & PIN Contract):
-  - **Verifikasi PIN Keamanan Akun Baru (`_RegisterPinVerificationSheet`)**: Setelah pengisian formulir pendaftaran, sistem membuka sheet interaktif untuk verifikasi 4-digit PIN keamanan sebelum akun diaktifkan.
-  - **Visual 4-Digit Box Anti-Slop**: 4 kotak digit elegan dengan active focus highlight dan respons instan terhadap input angka.
+- Verifikasi PIN Registrasi & Verifikasi Email (Ref: `dev-frontend` Auth & PIN Contract):
+  - **Verifikasi PIN Keamanan Akun Baru (`_RegisterPinVerificationSheet`)**: Setelah pengisian formulir pendaftaran, sistem membuka sheet interaktif untuk verifikasi PIN keamanan sebelum akun diaktifkan.
+  - **Dukungan Format Fleksibel 4–6 Digit**: Mendukung PIN keamanan profil 4 digit serta kode verifikasi email 6 digit, terhubung ke `POST /api/v1/auth/verify-email` dengan body `{ email, pin, code }`.
+  - **Pengiriman Ulang Kode PIN (`resendVerificationPin`)**: Terintegrasi ke `POST /api/v1/auth/resend-verification` dengan body `{ email }` dan tombol hitung mundur 60 detik anti-spam.
   - **Pill Aksi Cepat PIN Demo (`1234`)**: Tombol *"Gunakan PIN Demo: 1234"* yang selaras dengan demo PIN profil keluarga klien web (`FamilyProfilesModal.tsx`).
-  - **Timer Hitung Mundur Kirim Ulang (30s)**: Timer hitung mundur 30 detik sebelum pengguna dapat meminta pengiriman ulang kode PIN.
   - **Penyimpanan Security PIN di Profil**: `UserProfile` menyimpan `securityPin` terenkripsi dan tersimpan ke sesi lokal saat `rememberMe` aktif.
 
 ---
@@ -100,7 +100,7 @@ Arsitektur backend LiveEuy (`dev-backend`) mengadopsi pola microservices terpisa
 1. **`auth-service` (Port 8080)**:
    - Framework: Go 1.22 + Gin Web Framework
    - Basis Data & Cache: PostgreSQL 16 & Redis 7
-   - Endpoint: `/api/v1/auth/*` (Login, Register, Demo Persona Login, Refresh Token Rotation, Profil, Ubah Sandi, Perangkat Terhubung)
+   - Endpoint: `/api/v1/auth/*` (Login, Register, Demo Persona Login, Refresh Token Rotation, Profil, Ubah Sandi, Lupa Sandi, Reset Sandi, Verifikasi Email, Kirim Ulang Verifikasi, Perangkat Terhubung)
 2. **`catalog-service` (Port 8081)**:
    - Framework: Spring Boot 3.4.3 (Java 21)
    - Basis Data: PostgreSQL (JPA / Hibernate)
@@ -139,6 +139,9 @@ Aplikasi mendukung navigasi langsung melalui custom URI scheme (`liveeuy://`) da
 | Koleksi / Watchlist | `liveeuy://collection` atau `liveeuy://watchlist` | Membuka tab Koleksi pengguna |
 | Profil dan Pengaturan | `liveeuy://account` atau `liveeuy://profile` | Membuka tab Akun pengguna |
 | Halaman Masuk | `liveeuy://login` | Membuka layar autentikasi |
+| Lupa Kata Sandi | `liveeuy://forgot-password` atau `https://liveeuy.id/forgot-password` | Membuka modal Lupa Kata Sandi |
+| Setel Ulang Sandi | `liveeuy://reset-password?token={token}` atau `https://liveeuy.id/reset-password?token={token}` | Membuka modal Reset Sandi dengan token terisi |
+| Verifikasi Email / PIN | `liveeuy://verify-email?email={email}&pin={pin}` atau `https://liveeuy.id/verify-email?email={email}&pin={pin}` | Membuka alur verifikasi kode PIN pendaftaran |
 
 ### Konfigurasi Native Platform
 - Android (`android/app/src/main/AndroidManifest.xml`): intent-filter untuk `liveeuy` scheme dan host `liveeuy.id`.

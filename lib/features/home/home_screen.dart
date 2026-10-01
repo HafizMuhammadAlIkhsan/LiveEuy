@@ -111,10 +111,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _handleScroll() {
-    final inView = _scrollController.offset < 400;
-    if (inView != _isHeroInView) {
+    if (!_scrollController.hasClients) return;
+    final offset = _scrollController.offset;
+    // Deadband hysteresis antara 350px dan 450px untuk mencegah loop setState cepat
+    if (_isHeroInView && offset > 450) {
       setState(() {
-        _isHeroInView = inView;
+        _isHeroInView = false;
+      });
+    } else if (!_isHeroInView && offset < 350) {
+      setState(() {
+        _isHeroInView = true;
       });
     }
   }
@@ -621,9 +627,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         primary: false,
         physics: const BouncingScrollPhysics(),
         slivers: [
-          // 1. Fixed / Floating StreamFlix Top App Bar
+          // 1. Fixed / Pinned StreamFlix Top App Bar
           SliverAppBar(
-            floating: true,
+            floating: false,
             pinned: true,
             backgroundColor: AppColors.background.withValues(alpha: 0.85),
             elevation: 8,
@@ -1076,7 +1082,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         );
       },
       isBookmarked: (movie) =>
-          ref.watch(mediaProvider).watchlistIds.contains(movie.id),
+          ref.read(mediaProvider).watchlistIds.contains(movie.id),
     );
   }
 

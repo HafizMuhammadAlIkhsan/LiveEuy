@@ -12,10 +12,18 @@ import '../../shared/widgets/streamflix_logo.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   final int initialTabIndex; // 0 for Masuk, 1 for Daftar
+  final String? initialResetToken;
+  final bool openForgotPasswordImmediately;
+  final String? initialVerifyEmail;
+  final String? initialVerifyPin;
 
   const LoginScreen({
     super.key,
     this.initialTabIndex = 0,
+    this.initialResetToken,
+    this.openForgotPasswordImmediately = false,
+    this.initialVerifyEmail,
+    this.initialVerifyPin,
   });
 
   @override
@@ -75,6 +83,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void initState() {
     super.initState();
     _activeTabIndex = widget.initialTabIndex;
+
+    if (widget.initialVerifyEmail != null && widget.initialVerifyEmail!.isNotEmpty) {
+      _activeTabIndex = 1;
+      _daftarEmailController.text = widget.initialVerifyEmail!;
+      _daftarNameController.text = widget.initialVerifyEmail!.split('@').first;
+    }
+
+    if (widget.openForgotPasswordImmediately ||
+        (widget.initialResetToken != null && widget.initialResetToken!.isNotEmpty)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _handleForgotPassword(initialToken: widget.initialResetToken);
+        }
+      });
+    } else if (widget.initialVerifyEmail != null && widget.initialVerifyEmail!.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _showRegisterPinVerificationSheet(
+            name: _daftarNameController.text.isNotEmpty ? _daftarNameController.text : 'Pengguna Baru',
+            email: widget.initialVerifyEmail!,
+            pass: '',
+            initialPin: widget.initialVerifyPin,
+          );
+        }
+      });
+    }
   }
 
   @override
@@ -359,6 +393,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     required String name,
     required String email,
     required String pass,
+    String? initialPin,
   }) {
     showModalBottomSheet(
       context: context,
@@ -368,6 +403,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         name: name,
         email: email,
         password: pass,
+        initialPin: initialPin,
         onVerificationSuccess: () {
           if (mounted) {
             _showToast(
@@ -392,7 +428,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
   }
 
-  void _handleForgotPassword() {
+  void _handleForgotPassword({String? initialToken}) {
     final emailInitial = _masukEmailController.text.trim();
     showModalBottomSheet(
       context: context,
@@ -400,6 +436,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       backgroundColor: Colors.transparent,
       builder: (sheetCtx) => _ForgotPasswordSheet(
         initialEmail: emailInitial,
+        initialToken: initialToken,
         onResetSuccess: (newPass) {
           if (mounted) {
             _masukPassController.text = newPass;
@@ -1300,10 +1337,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
 class _ForgotPasswordSheet extends ConsumerStatefulWidget {
   final String initialEmail;
+  final String? initialToken;
   final ValueChanged<String> onResetSuccess;
 
   const _ForgotPasswordSheet({
     required this.initialEmail,
+    this.initialToken,
     required this.onResetSuccess,
   });
 
@@ -1328,6 +1367,11 @@ class _ForgotPasswordSheetState extends ConsumerState<_ForgotPasswordSheet> {
   void initState() {
     super.initState();
     _emailController = TextEditingController(text: widget.initialEmail);
+    if (widget.initialToken != null && widget.initialToken!.isNotEmpty) {
+      _step = 2;
+      _tokenController.text = widget.initialToken!;
+      _infoMessage = 'Token verifikasi terdeteksi dari tautan reset sandi.';
+    }
   }
 
   @override
@@ -1783,12 +1827,14 @@ class _RegisterPinVerificationSheet extends ConsumerStatefulWidget {
   final String name;
   final String email;
   final String password;
+  final String? initialPin;
   final VoidCallback onVerificationSuccess;
 
   const _RegisterPinVerificationSheet({
     required this.name,
     required this.email,
     required this.password,
+    this.initialPin,
     required this.onVerificationSuccess,
   });
 
@@ -1807,6 +1853,9 @@ class _RegisterPinVerificationSheetState extends ConsumerState<_RegisterPinVerif
   @override
   void initState() {
     super.initState();
+    if (widget.initialPin != null && widget.initialPin!.isNotEmpty) {
+      _pinController.text = widget.initialPin!;
+    }
     _startTimer();
   }
 
@@ -1833,19 +1882,28 @@ class _RegisterPinVerificationSheetState extends ConsumerState<_RegisterPinVerif
     super.dispose();
   }
 
-  void _handleResendPin() {
+  Future<void> _handleResendPin() async {
     setState(() {
-      _countdown = 30;
-      _infoMessage = 'Kode PIN verifikasi baru telah dikirimkan ke ${widget.email}.';
+      _countdown = 60;
+      _infoMessage = 'Mengirimkan kode PIN verifikasi ke ${widget.email}...';
       _errorMessage = null;
     });
     _startTimer();
+    final res = await ref.read(authProvider.notifier).resendVerificationPin(widget.email);
+    if (!mounted) return;
+    setState(() {
+      if (res) {
+        _infoMessage = 'Kode PIN verifikasi baru telah dikirimkan ke ${widget.email}.';
+      } else {
+        _errorMessage = 'Gagal mengirim ulang kode PIN. Silakan coba lagi.';
+      }
+    });
   }
 
   Future<void> _handleVerifyAndRegister() async {
     final pin = _pinController.text.trim();
-    if (pin.length != 4 || int.tryParse(pin) == null) {
-      setState(() => _errorMessage = 'Masukkan 4 digit PIN berupa angka.');
+    if (pin.length < 4 || pin.length > 6 || int.tryParse(pin) == null) {
+      setState(() => _errorMessage = 'Masukkan PIN berupa 4-6 digit angka.');
       return;
     }
 

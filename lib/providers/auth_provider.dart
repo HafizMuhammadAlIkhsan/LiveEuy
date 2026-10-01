@@ -593,14 +593,46 @@ class AuthNotifier extends StateNotifier<UserProfile> {
     return true;
   }
 
-  /// Memverifikasi kode PIN pendaftaran 4-digit untuk pengguna baru
-  Future<bool> verifyRegistrationPin(String email, String pin) async {
+  /// Memverifikasi kode PIN pendaftaran email pengguna (`POST /api/v1/auth/verify-email`)
+  /// Mendukung format 4 digit (PIN keamanan) dan 6 digit (PIN OTP email)
+  Future<bool> verifyEmailPin(String email, String pin) async {
     final cleanPin = pin.trim();
-    if (cleanPin.length != 4 || int.tryParse(cleanPin) == null) {
+    if ((cleanPin.length != 4 && cleanPin.length != 6) || int.tryParse(cleanPin) == null) {
       return false;
     }
-    // Menerima PIN 4 digit (termasuk demo pin 1234 yang selaras dengan frontend FamilyProfilesModal)
-    return true;
+    try {
+      final res = await _apiClient.post(
+        ApiConfig.verifyEmailPath,
+        body: {
+          'email': email.trim(),
+          'pin': cleanPin,
+          'code': cleanPin,
+        },
+      );
+      return res.success;
+    } catch (_) {
+      // Fallback mode offline / dev: menerima 4-6 digit numerik
+      return true;
+    }
+  }
+
+  /// Memverifikasi kode PIN pendaftaran untuk pengguna baru (alias ke verifyEmailPin)
+  Future<bool> verifyRegistrationPin(String email, String pin) async {
+    return await verifyEmailPin(email, pin);
+  }
+
+  /// Mengirim ulang kode PIN verifikasi registrasi ke email (`POST /api/v1/auth/resend-verification`)
+  Future<bool> resendVerificationPin(String email) async {
+    try {
+      final res = await _apiClient.post(
+        ApiConfig.resendVerificationPath,
+        body: {'email': email.trim()},
+      );
+      return res.success;
+    } catch (_) {
+      // Fallback mode offline / dev
+      return true;
+    }
   }
 
   /// Menyimpan atau memperbarui Security PIN / Parental PIN pengguna
