@@ -66,7 +66,7 @@ export const MobileSyncModal: React.FC = () => {
   const currentMedia = mobileSyncItem || {
     id: 'cyberpunk-neo-nusantara',
     title: 'Cyberpunk: Neo Nusantara',
-    posterUrl: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=600',
+    posterUrl: '/posters/cyberpunk-neo-nusantara.jpg',
     duration: '52m'
   };
 

@@ -225,8 +225,12 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
+  const CATALOG_REVISION = '2026.10.01.v5_synced_posters';
+
   const [mediaList, setMediaList] = useState<MediaItem[]>(() => {
     try {
+      const storedRevision = localStorage.getItem('liveeuy_catalog_revision');
+      const isRevisionOutdated = storedRevision !== CATALOG_REVISION;
       const saved = localStorage.getItem('liveeuy_custom_media');
       if (saved) {
         const parsed = JSON.parse(saved);
@@ -235,10 +239,20 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const merged = sanitized.map(item => {
           const mockMatch = mockMap.get(item.id);
           if (mockMatch) {
+            const hasLegacyPoster = !item.posterUrl || item.posterUrl.includes('images.unsplash.com') || isRevisionOutdated;
+            const hasLegacyBackdrop = !item.backdropUrl || item.backdropUrl.includes('images.unsplash.com') || isRevisionOutdated;
             return {
+              ...mockMatch,
               ...item,
-              ...(item.topRank === undefined && mockMatch.topRank !== undefined ? { topRank: mockMatch.topRank } : {}),
-              ...((!item.actors || item.actors.length === 0) && mockMatch.actors ? { actors: mockMatch.actors } : {})
+              posterUrl: hasLegacyPoster ? mockMatch.posterUrl : item.posterUrl,
+              backdropUrl: hasLegacyBackdrop ? mockMatch.backdropUrl : item.backdropUrl,
+              title: isRevisionOutdated ? mockMatch.title : item.title,
+              originalTitle: isRevisionOutdated ? mockMatch.originalTitle : item.originalTitle,
+              overview: isRevisionOutdated ? mockMatch.overview : item.overview,
+              genres: isRevisionOutdated ? mockMatch.genres : item.genres,
+              topRank: mockMatch.topRank !== undefined ? mockMatch.topRank : item.topRank,
+              actors: (mockMatch.actors && mockMatch.actors.length > 0) ? mockMatch.actors : (item.actors || []),
+              seasons: (mockMatch.seasons && mockMatch.seasons.length > 0) ? mockMatch.seasons : item.seasons,
             };
           }
           return item;
@@ -248,7 +262,24 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             merged.push(m);
           }
         });
+
+        if (isRevisionOutdated) {
+          try {
+            localStorage.setItem('liveeuy_catalog_revision', CATALOG_REVISION);
+            localStorage.setItem('liveeuy_custom_media', JSON.stringify(merged));
+          } catch (e) {
+            console.error(e);
+          }
+        }
+
         return merged;
+      }
+
+      try {
+        localStorage.setItem('liveeuy_catalog_revision', CATALOG_REVISION);
+        localStorage.setItem('liveeuy_custom_media', JSON.stringify(MOCK_MEDIA));
+      } catch (e) {
+        console.error(e);
       }
       return MOCK_MEDIA;
     } catch {
@@ -352,7 +383,13 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [featuredOrder, setFeaturedOrder] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('liveeuy_featured_order');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const validIds = parsed.filter(id => MOCK_MEDIA.some(m => m.id === id));
+          if (validIds.length > 0) return validIds;
+        }
+      }
       return MOCK_MEDIA.filter(m => m.isFeatured).map(m => m.id);
     } catch {
       return MOCK_MEDIA.filter(m => m.isFeatured).map(m => m.id);
@@ -487,6 +524,7 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setMediaList(MOCK_MEDIA);
     try {
       localStorage.removeItem('liveeuy_custom_media');
+      localStorage.setItem('liveeuy_catalog_revision', CATALOG_REVISION);
     } catch (e) {
       console.error(e);
     }

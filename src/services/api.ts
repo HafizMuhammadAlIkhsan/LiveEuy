@@ -774,7 +774,26 @@ class LiveEuyApiService {
         const parsed = JSON.parse(saved);
         const { sanitized } = sanitizeMediaCatalog(parsed);
         if (sanitized.length > 0) {
-          sourceItems = sanitized;
+          const mockMap = new Map(MOCK_MEDIA.map(m => [m.id, m]));
+          sourceItems = sanitized.map(item => {
+            const mockMatch = mockMap.get(item.id);
+            if (mockMatch) {
+              const isLegacyPoster = !item.posterUrl || item.posterUrl.includes('images.unsplash.com');
+              const isLegacyBackdrop = !item.backdropUrl || item.backdropUrl.includes('images.unsplash.com');
+              return {
+                ...mockMatch,
+                ...item,
+                posterUrl: isLegacyPoster ? mockMatch.posterUrl : item.posterUrl,
+                backdropUrl: isLegacyBackdrop ? mockMatch.backdropUrl : item.backdropUrl,
+              };
+            }
+            return item;
+          });
+          MOCK_MEDIA.forEach(m => {
+            if (!sourceItems.some(item => item.id === m.id)) {
+              sourceItems.push(m);
+            }
+          });
         }
       }
     } catch {
