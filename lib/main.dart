@@ -18,12 +18,25 @@ import 'core/storage/local_storage_service.dart';
 import 'shared/widgets/device_security_sheet.dart';
 import 'shared/widgets/streamflix_logo.dart';
 
+import 'package:hive_flutter/hive_flutter.dart';
+import 'core/storage/offline_storage_service.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SharedPreferences? prefs;
   try {
     prefs = await SharedPreferences.getInstance();
   } catch (_) {}
+
+  // Inisialisasi Database Lokal Hive untuk Offline Downloads
+  OfflineStorageService? offlineStorage;
+  try {
+    await Hive.initFlutter();
+    final box = await Hive.openBox<Map>(OfflineStorageService.boxName);
+    offlineStorage = OfflineStorageService(box: box);
+  } catch (e) {
+    debugPrint('Hive init error: $e');
+  }
 
   final localStorage = prefs != null ? LocalStorageService(prefs: prefs) : null;
 
@@ -32,6 +45,8 @@ Future<void> main() async {
       overrides: [
         if (localStorage != null)
           localStorageServiceProvider.overrideWithValue(localStorage),
+        if (offlineStorage != null)
+          offlineStorageServiceProvider.overrideWithValue(offlineStorage),
       ],
       child: const LiveEuyApp(),
     ),

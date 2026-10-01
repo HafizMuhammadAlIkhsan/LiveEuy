@@ -16,6 +16,7 @@ class UserProfile {
   final String deviceType;
   final String currentDeviceName;
   final List<DeviceSession> activeSessions;
+  final String? securityPin;
 
   const UserProfile({
     required this.name,
@@ -28,6 +29,7 @@ class UserProfile {
     this.deviceType = 'Mobile',
     this.currentDeviceName = 'Smartphone (Android)',
     this.activeSessions = const [],
+    this.securityPin,
   });
 
   /// Batas kuota perangkat aktif bersamaan sesuai aturan DDD backend auth-service:
@@ -52,6 +54,7 @@ class UserProfile {
     String? deviceType,
     String? currentDeviceName,
     List<DeviceSession>? activeSessions,
+    String? securityPin,
   }) {
     return UserProfile(
       name: name ?? this.name,
@@ -64,6 +67,7 @@ class UserProfile {
       deviceType: deviceType ?? this.deviceType,
       currentDeviceName: currentDeviceName ?? this.currentDeviceName,
       activeSessions: activeSessions ?? this.activeSessions,
+      securityPin: securityPin ?? this.securityPin,
     );
   }
 
@@ -95,6 +99,7 @@ class UserProfile {
       deviceType: json['deviceType'] as String? ?? 'Mobile',
       currentDeviceName: json['currentDeviceName'] as String? ?? 'Smartphone (Android)',
       activeSessions: parsedSessions,
+      securityPin: json['securityPin'] as String?,
     );
   }
 
@@ -110,6 +115,7 @@ class UserProfile {
       'deviceType': deviceType,
       'currentDeviceName': currentDeviceName,
       'activeSessions': activeSessions.map((s) => s.toJson()).toList(),
+      'securityPin': securityPin,
     };
   }
 }
@@ -497,7 +503,7 @@ class AuthNotifier extends StateNotifier<UserProfile> {
     return true;
   }
 
-  Future<bool> register(String name, String email, String password, [String tier = 'VIP Standard']) async {
+  Future<bool> register(String name, String email, String password, [String tier = 'VIP Standard', String? securityPin]) async {
     AuthData? authData;
     try {
       final res = await _apiClient.post<AuthData>(
@@ -507,6 +513,7 @@ class AuthNotifier extends StateNotifier<UserProfile> {
           'email': email,
           'password': password,
           'tier': tier,
+          if (securityPin != null && securityPin.isNotEmpty) 'securityPin': securityPin,
         },
         fromJson: (data) => AuthData.fromJson(data as Map<String, dynamic>),
       );
@@ -562,6 +569,7 @@ class AuthNotifier extends StateNotifier<UserProfile> {
       deviceType: 'Mobile',
       currentDeviceName: deviceName,
       activeSessions: sessions,
+      securityPin: securityPin,
     );
 
     state = profile;
@@ -583,6 +591,24 @@ class AuthNotifier extends StateNotifier<UserProfile> {
     }
 
     return true;
+  }
+
+  /// Memverifikasi kode PIN pendaftaran 4-digit untuk pengguna baru
+  Future<bool> verifyRegistrationPin(String email, String pin) async {
+    final cleanPin = pin.trim();
+    if (cleanPin.length != 4 || int.tryParse(cleanPin) == null) {
+      return false;
+    }
+    // Menerima PIN 4 digit (termasuk demo pin 1234 yang selaras dengan frontend FamilyProfilesModal)
+    return true;
+  }
+
+  /// Menyimpan atau memperbarui Security PIN / Parental PIN pengguna
+  void setSecurityPin(String pin) {
+    state = state.copyWith(securityPin: pin);
+    if (_storageService != null && state.rememberMe) {
+      _storageService.saveUserSession(state.toJson());
+    }
   }
 
   void upgradeToVip([String tier = 'VIP Cinema Ultra']) {

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:io';
+import 'package:hive/hive.dart';
 import 'package:liveeuy_mob/core/network/api_client.dart';
 import 'package:liveeuy_mob/core/storage/local_storage_service.dart';
 import 'package:liveeuy_mob/features/home/widgets/in_feed_sponsor_billboard.dart';
@@ -13,6 +15,11 @@ import 'package:liveeuy_mob/providers/player_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  setUpAll(() {
+    final tempDir = Directory.systemTemp.createTempSync();
+    Hive.init(tempDir.path);
+  });
+
   setUp(() {
     SharedPreferences.setMockInitialValues({});
   });

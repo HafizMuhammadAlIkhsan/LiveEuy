@@ -1,12 +1,15 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:video_player/video_player.dart';
+import '../../core/download/offline_download_manager.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/ad_model.dart';
+import '../../models/download_item.dart';
 import '../../models/episode_model.dart';
 import '../../models/movie_model.dart';
 import '../../providers/ad_provider.dart';
@@ -17,12 +20,16 @@ class VideoPlayerScreen extends ConsumerStatefulWidget {
   final Movie movie;
   final double? startProgress;
   final Duration? startPosition;
+  final String? localFilePath;
+  final DownloadItem? offlineItem;
 
   const VideoPlayerScreen({
     super.key,
     required this.movie,
     this.startProgress,
     this.startPosition,
+    this.localFilePath,
+    this.offlineItem,
   });
 
   @override
@@ -53,6 +60,10 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
   Timer? _autoPlayTimer;
   Episode? _nextEpisode;
 
+  // Offline Playback State (YouTube-Style Offline)
+  bool _isOfflinePlayback = false;
+  DownloadItem? _resolvedOfflineItem;
+
   @override
   void initState() {
     super.initState();
@@ -60,7 +71,106 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
         widget.movie.seasons.first.episodes.length > 1) {
       _nextEpisode = widget.movie.seasons.first.episodes[1];
     }
+    _checkOfflineAndInit();
+  }
+
+  void _checkOfflineAndInit() {
+    final downloadMgr = ref.read(offlineDownloadManagerProvider.notifier);
+    final item = widget.offlineItem ?? downloadMgr.getDownload(widget.movie.id);
+
+    if (item != null && (widget.localFilePath != null || File(item.localFilePath).existsSync())) {
+      _resolvedOfflineItem = item;
+      _isOfflinePlayback = true;
+
+      if (item.isExpired) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _showLicenseExpiredDialog(item);
+        });
+        return;
+      }
+    }
+
     _initController();
+  }
+
+  void _showLicenseExpiredDialog(DownloadItem item) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceContainerHigh,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.timer_off_rounded, color: AppColors.error, size: 24),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Lisensi Offline Kedaluwarsa',
+                style: GoogleFonts.outfit(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 17,
+                  color: AppColors.onSurface,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'Tayangan offline ini telah melewati batas waktu 30 hari tanpa koneksi. Sambungkan perangkat ke internet untuk memperbarui lisensi hak tonton tanpa perlu mengunduh ulang file.',
+          style: GoogleFonts.inter(
+            fontSize: 13,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.pop(context);
+            },
+            child: Text('Kembali', style: GoogleFonts.outfit(color: AppColors.outline)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Memperbarui lisensi offline ke server...'),
+                  backgroundColor: AppColors.surfaceContainerHighest,
+                ),
+              );
+              final success = await ref
+                  .read(offlineDownloadManagerProvider.notifier)
+                  .renewLicense(item.id);
+              if (success && mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Lisensi berhasil diperpanjang 30 hari! Memulai video...'),
+                    backgroundColor: AppColors.surfaceContainerHighest,
+                  ),
+                );
+                _initController();
+              } else if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Gagal memperbarui lisensi. Periksa koneksi internet Anda.'),
+                    backgroundColor: AppColors.errorContainer,
+                  ),
+                );
+                Navigator.pop(context);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryContainer,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text('Perbarui Lisensi', style: GoogleFonts.outfit(fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showResumeBanner(String timeText) {
@@ -79,12 +189,18 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
   }
 
   void _initController() async {
-    _controller = VideoPlayerController.networkUrl(
-      Uri.parse(widget.movie.videoUrl),
-    );
+    if (_isOfflinePlayback && _resolvedOfflineItem != null) {
+      final filePath = widget.localFilePath ?? _resolvedOfflineItem!.localFilePath;
+      _controller = VideoPlayerController.file(File(filePath));
+    } else {
+      _controller = VideoPlayerController.networkUrl(
+        Uri.parse(widget.movie.videoUrl),
+      );
+    }
 
     final user = ref.read(authProvider);
-    final prerollAd = ref.read(adProvider.notifier).getPrerollAd(user.isVip);
+    // Unduhan offline bebas iklan (ad-free) seperti YouTube Premium
+    final prerollAd = _isOfflinePlayback ? null : ref.read(adProvider.notifier).getPrerollAd(user.isVip);
 
     if (prerollAd != null) {
       _activePrerollAd = prerollAd;

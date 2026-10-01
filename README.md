@@ -71,9 +71,15 @@ Klien mobile streaming film dan serial televisi berbasis Flutter (Android dan iO
   - Toggle lewati intro otomatis dan pembersihan cache lokal.
   - Manajemen sesi login dengan opsi Ingat Saya.
 - Pemulihan & Manajemen Keamanan Sandi (Milestone 1 / `dev-backend-auth`):
-  - **Alur Lupa & Reset Sandi**: Modal interaktif 2 tahap (`_ForgotPasswordSheet`) untuk pengiriman tautan/token pemulihan via `POST /api/v1/auth/forgot-password` dan penyetelan kata sandi baru via `POST /api/v1/auth/reset-password`.
+  - **Alur Lupa & Reset Sandi**: Modal interaktif 2 tahap (`_ForgotPasswordSheet`) untuk pengiriman tautan/token pemulihan via `POST /api/v1/auth/forgot-password` dan penyetelan kata sandi baru via `POST /api/v1/auth/reset-password`, dilengkapi simulasi token demo cepat (`123456`) untuk pengujian tanpa server email.
   - **Ganti Kata Sandi di Akun**: Menu langsung pada tab Akun (`_showChangePasswordDialog`) dengan verifikasi kata sandi lama dan enkripsi sandi baru via `PUT /api/v1/auth/change-password`.
   - **Penegakan Kuota Perangkat per Tier**: Indikator batas sesi aktif bersamaan selaras dengan aturan Domain-Driven Design (DDD) backend (`Free Guest: 1`, `VIP Standard: 2`, `VIP Cinema Ultra: 4 Perangkat`).
+- Verifikasi PIN Registrasi Pertama Kali (Ref: `dev-frontend` Family Profiles & PIN Contract):
+  - **Verifikasi PIN Keamanan Akun Baru (`_RegisterPinVerificationSheet`)**: Setelah pengisian formulir pendaftaran, sistem membuka sheet interaktif untuk verifikasi 4-digit PIN keamanan sebelum akun diaktifkan.
+  - **Visual 4-Digit Box Anti-Slop**: 4 kotak digit elegan dengan active focus highlight dan respons instan terhadap input angka.
+  - **Pill Aksi Cepat PIN Demo (`1234`)**: Tombol *"Gunakan PIN Demo: 1234"* yang selaras dengan demo PIN profil keluarga klien web (`FamilyProfilesModal.tsx`).
+  - **Timer Hitung Mundur Kirim Ulang (30s)**: Timer hitung mundur 30 detik sebelum pengguna dapat meminta pengiriman ulang kode PIN.
+  - **Penyimpanan Security PIN di Profil**: `UserProfile` menyimpan `securityPin` terenkripsi dan tersimpan ke sesi lokal saat `rememberMe` aktif.
 
 ---
 

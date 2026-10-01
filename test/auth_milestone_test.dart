@@ -260,4 +260,140 @@ void main() {
       expect(find.text('Kata sandi berhasil diperbarui.'), findsOneWidget);
     });
   });
+
+  group('Milestone 1: Registration Flow & PIN Verification Tests (Ref: dev-frontend)', () {
+    test('AuthNotifier verifyRegistrationPin and register with securityPin stores PIN', () async {
+      final container = ProviderContainer();
+      final notifier = container.read(authProvider.notifier);
+
+      // Invalid PINs
+      expect(await notifier.verifyRegistrationPin('user@test.id', '12'), isFalse);
+      expect(await notifier.verifyRegistrationPin('user@test.id', 'abcd'), isFalse);
+      expect(await notifier.verifyRegistrationPin('user@test.id', '12345'), isFalse);
+
+      // Valid 4-digit PIN (matching frontend FamilyProfilesModal demo standard)
+      expect(await notifier.verifyRegistrationPin('user@test.id', '1234'), isTrue);
+
+      // Register with security PIN
+      final registered = await notifier.register(
+        'Budi Pratama',
+        'budi@streamflix.id',
+        'Password#2026',
+        'VIP Standard',
+        '1234',
+      );
+      expect(registered, isTrue);
+
+      final user = container.read(authProvider);
+      expect(user.isLoggedIn, isTrue);
+      expect(user.name, equals('Budi Pratama'));
+      expect(user.email, equals('budi@streamflix.id'));
+      expect(user.securityPin, equals('1234'));
+
+      // setSecurityPin updates PIN
+      notifier.setSecurityPin('5678');
+      expect(container.read(authProvider).securityPin, equals('5678'));
+    });
+
+    testWidgets('Registration triggers PIN verification sheet, validates PIN, and completes registration', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      final container = ProviderContainer();
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(
+            home: LoginScreen(initialTabIndex: 1),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Verify form fields
+      expect(find.byKey(const Key('daftar_name_field')), findsOneWidget);
+      expect(find.byKey(const Key('daftar_email_field')), findsOneWidget);
+      expect(find.byKey(const Key('daftar_pass_field')), findsOneWidget);
+      expect(find.byKey(const Key('daftar_submit_button')), findsOneWidget);
+
+      // Enter details
+      await tester.enterText(find.byKey(const Key('daftar_name_field')), 'Ahmad Faisal');
+      await tester.enterText(find.byKey(const Key('daftar_email_field')), 'ahmad@streamflix.id');
+      await tester.enterText(find.byKey(const Key('daftar_pass_field')), 'SecretPass#2026');
+      await tester.pumpAndSettle();
+
+      // Tap submit button to trigger PIN verification sheet
+      await tester.tap(find.byKey(const Key('daftar_submit_button')));
+      await tester.pumpAndSettle();
+
+      // Verify PIN verification sheet is shown
+      expect(find.text('Verifikasi PIN Akun'), findsOneWidget);
+      expect(find.byKey(const Key('register_pin_input_field')), findsOneWidget);
+      expect(find.byKey(const Key('register_pin_demo_button')), findsOneWidget);
+      expect(find.byKey(const Key('register_pin_submit_button')), findsOneWidget);
+
+      // Tap demo button to auto-fill 1234
+      await tester.tap(find.byKey(const Key('register_pin_demo_button')));
+      await tester.pumpAndSettle();
+
+      // Verify PIN input has '1234'
+      final pinField = tester.widget<TextField>(find.byKey(const Key('register_pin_input_field')));
+      expect(pinField.controller?.text, equals('1234'));
+
+      // Tap submit on PIN sheet
+      await tester.tap(find.byKey(const Key('register_pin_submit_button')));
+      await tester.pumpAndSettle();
+
+      // Verify sheet is dismissed
+      expect(find.text('Verifikasi PIN Akun'), findsNothing);
+
+      // Verify user state
+      final user = container.read(authProvider);
+      expect(user.isLoggedIn, isTrue);
+      expect(user.securityPin, equals('1234'));
+      expect(user.name, equals('Ahmad Faisal'));
+    });
+
+    testWidgets('Forgot password sheet Step 2 quick demo token fills and resets password', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(
+            home: LoginScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Tap Lupa Password
+      await tester.tap(find.text('Lupa Password?'));
+      await tester.pumpAndSettle();
+
+      // Switch directly to Step 2 using switch button
+      await tester.tap(find.byKey(const Key('forgot_password_switch_step_button')));
+      await tester.pumpAndSettle();
+
+      // Tap demo token button
+      expect(find.byKey(const Key('forgot_password_demo_token_button')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('forgot_password_demo_token_button')));
+      await tester.pumpAndSettle();
+
+      // Verify pre-filled values
+      final tokenField = tester.widget<TextField>(find.byKey(const Key('forgot_password_token_field')));
+      expect(tokenField.controller?.text, equals('123456'));
+
+      // Submit reset
+      await tester.tap(find.byKey(const Key('forgot_password_submit_button')));
+      await tester.pumpAndSettle();
+
+      // Verify modal is closed and toast is shown
+      expect(find.text('Setel Ulang Sandi'), findsNothing);
+      expect(find.text('Kata Sandi Berhasil Direset'), findsOneWidget);
+    });
+  });
 }

@@ -330,7 +330,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  void _handleDaftar() async {
+  void _handleDaftar() {
     final name = _daftarNameController.text.trim();
     final email = _daftarEmailController.text.trim();
     final pass = _daftarPassController.text.trim();
@@ -352,31 +352,34 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
 
-    setState(() => _isLoading = true);
-    try {
-      final success = await ref.read(authProvider.notifier).register(name, email, pass);
-      if (mounted) {
-        setState(() => _isLoading = false);
-        if (success) {
-          _showToast('Pendaftaran Berhasil', 'Akun Anda berhasil didaftarkan. Selamat datang!', icon: Icons.check_circle_rounded);
-          Navigator.pop(context);
-        }
-      }
-    } on DioException catch (dioErr) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-        _showToast(
-          'Pendaftaran Gagal',
-          dioErr.message,
-          icon: Icons.error_outline_rounded,
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-        _showToast('Pendaftaran Gagal', 'Terjadi kesalahan sistem: $e', icon: Icons.error_outline_rounded);
-      }
-    }
+    _showRegisterPinVerificationSheet(name: name, email: email, pass: pass);
+  }
+
+  void _showRegisterPinVerificationSheet({
+    required String name,
+    required String email,
+    required String pass,
+  }) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) => _RegisterPinVerificationSheet(
+        name: name,
+        email: email,
+        password: pass,
+        onVerificationSuccess: () {
+          if (mounted) {
+            _showToast(
+              'Pendaftaran Berhasil',
+              'Akun dan PIN keamanan berhasil dibuat. Selamat datang!',
+              icon: Icons.check_circle_rounded,
+            );
+            Navigator.pop(context);
+          }
+        },
+      ),
+    );
   }
 
   void _handleSocial(String platform) {
@@ -928,6 +931,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ),
         const SizedBox(height: 6),
         _buildTextField(
+          fieldKey: const Key('daftar_name_field'),
           controller: _daftarNameController,
           hint: 'Rian Pratama',
           icon: Icons.badge_outlined,
@@ -941,6 +945,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ),
         const SizedBox(height: 6),
         _buildTextField(
+          fieldKey: const Key('daftar_email_field'),
           controller: _daftarEmailController,
           hint: 'rian@example.com',
           icon: Icons.alternate_email_rounded,
@@ -954,6 +959,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ),
         const SizedBox(height: 6),
         _buildTextField(
+          fieldKey: const Key('daftar_pass_field'),
           controller: _daftarPassController,
           hint: 'Minimal 8 karakter',
           icon: Icons.key_rounded,
@@ -995,6 +1001,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
         // Terms Agreement
         GestureDetector(
+          key: const Key('daftar_terms_checkbox'),
           onTap: () => setState(() => _termsAgree = !_termsAgree),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1039,6 +1046,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
         // CTA Daftar Button
         GestureDetector(
+          key: const Key('daftar_submit_button'),
           onTap: _isLoading ? null : _handleDaftar,
           child: Container(
             width: double.infinity,
@@ -1074,6 +1082,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Widget _buildTextField({
+    Key? fieldKey,
     required TextEditingController controller,
     required String hint,
     required IconData icon,
@@ -1088,6 +1097,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         borderRadius: BorderRadius.circular(10),
       ),
       child: TextField(
+        key: fieldKey,
         controller: controller,
         obscureText: isPassword ? obscureText : false,
         onChanged: onChanged,
@@ -1348,7 +1358,8 @@ class _ForgotPasswordSheetState extends ConsumerState<_ForgotPasswordSheet> {
       _isLoading = false;
       if (success) {
         _step = 2;
-        _infoMessage = 'Tautan atau token pemulihan telah dikirim ke $email.';
+        _tokenController.text = '123456';
+        _infoMessage = 'Tautan atau token pemulihan (123456) telah dikirim ke $email.';
       } else {
         _errorMessage = 'Gagal mengirim instruksi pemulihan. Pastikan email terdaftar.';
       }
@@ -1595,6 +1606,39 @@ class _ForgotPasswordSheetState extends ConsumerState<_ForgotPasswordSheet> {
                 ),
               ),
             ] else ...[
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  Text(
+                    'Simulasi Cepat Token:',
+                    style: GoogleFonts.inter(fontSize: 11, color: AppColors.onSurfaceVariant),
+                  ),
+                  TextButton.icon(
+                    key: const Key('forgot_password_demo_token_button'),
+                    onPressed: () {
+                      setState(() {
+                        _tokenController.text = '123456';
+                        _newPassController.text = 'PasswordBaru#2026';
+                        _confirmPassController.text = 'PasswordBaru#2026';
+                        _errorMessage = null;
+                      });
+                    },
+                    icon: const Icon(Icons.bolt_rounded, size: 14, color: AppColors.accentGold),
+                    label: Text(
+                      'Isi Token Demo (123456)',
+                      style: GoogleFonts.outfit(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.accentGold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
               TextField(
                 key: const Key('forgot_password_token_field'),
                 controller: _tokenController,
@@ -1734,3 +1778,439 @@ class _ForgotPasswordSheetState extends ConsumerState<_ForgotPasswordSheet> {
     );
   }
 }
+
+class _RegisterPinVerificationSheet extends ConsumerStatefulWidget {
+  final String name;
+  final String email;
+  final String password;
+  final VoidCallback onVerificationSuccess;
+
+  const _RegisterPinVerificationSheet({
+    required this.name,
+    required this.email,
+    required this.password,
+    required this.onVerificationSuccess,
+  });
+
+  @override
+  ConsumerState<_RegisterPinVerificationSheet> createState() => _RegisterPinVerificationSheetState();
+}
+
+class _RegisterPinVerificationSheetState extends ConsumerState<_RegisterPinVerificationSheet> {
+  final TextEditingController _pinController = TextEditingController();
+  int _countdown = 30;
+  Timer? _countdownTimer;
+  bool _isLoading = false;
+  String? _errorMessage;
+  String? _infoMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _countdownTimer?.cancel();
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_countdown > 1) {
+        setState(() => _countdown--);
+      } else {
+        setState(() => _countdown = 0);
+        timer.cancel();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _countdownTimer?.cancel();
+    _pinController.dispose();
+    super.dispose();
+  }
+
+  void _handleResendPin() {
+    setState(() {
+      _countdown = 30;
+      _infoMessage = 'Kode PIN verifikasi baru telah dikirimkan ke ${widget.email}.';
+      _errorMessage = null;
+    });
+    _startTimer();
+  }
+
+  Future<void> _handleVerifyAndRegister() async {
+    final pin = _pinController.text.trim();
+    if (pin.length != 4 || int.tryParse(pin) == null) {
+      setState(() => _errorMessage = 'Masukkan 4 digit PIN berupa angka.');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final isValid = await ref.read(authProvider.notifier).verifyRegistrationPin(widget.email, pin);
+      if (!isValid) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _errorMessage = 'PIN tidak valid. Harap periksa kembali.';
+          });
+        }
+        return;
+      }
+
+      final success = await ref.read(authProvider.notifier).register(
+        widget.name,
+        widget.email,
+        widget.password,
+        'VIP Standard',
+        pin,
+      );
+
+      if (mounted) {
+        setState(() => _isLoading = false);
+        if (success) {
+          Navigator.pop(context);
+          widget.onVerificationSuccess();
+        } else {
+          setState(() => _errorMessage = 'Pendaftaran gagal. Silakan coba kembali.');
+        }
+      }
+    } on DioException catch (dioErr) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = dioErr.message;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Terjadi kesalahan sistem: $e';
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.88,
+      ),
+      padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + bottomInset),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerHigh.withValues(alpha: 0.98),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border.all(color: AppColors.glassBorder),
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceVariant,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryContainer.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.pin_outlined,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Verifikasi PIN Akun',
+                      style: GoogleFonts.outfit(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.onSurface,
+                      ),
+                    ),
+                  ],
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, color: AppColors.outline),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Buat 4-digit PIN keamanan untuk memverifikasi akun (${widget.email}) dan mengaktifkan profil tontonan keluarga.',
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            if (_infoMessage != null) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryContainer.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.mark_email_read_rounded, color: AppColors.primary, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _infoMessage!,
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+            ],
+
+            if (_errorMessage != null) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.errorContainer.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.errorContainer),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error_outline_rounded, color: AppColors.error, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _errorMessage!,
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: AppColors.error,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+            ],
+
+            // 4 PIN Boxes display
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(4, (index) {
+                final hasVal = _pinController.text.length > index;
+                final val = hasVal ? _pinController.text[index] : '';
+                final isCurrent = _pinController.text.length == index;
+                return Container(
+                  width: 52,
+                  height: 56,
+                  margin: const EdgeInsets.symmetric(horizontal: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isCurrent
+                          ? AppColors.primary
+                          : (hasVal
+                              ? AppColors.primaryContainer
+                              : AppColors.outlineVariant.withValues(alpha: 0.3)),
+                      width: isCurrent ? 2 : 1,
+                    ),
+                    boxShadow: isCurrent
+                        ? [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.25),
+                              blurRadius: 8,
+                            )
+                          ]
+                        : null,
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    hasVal ? val : '—',
+                    style: GoogleFonts.outfit(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: hasVal ? Colors.white : AppColors.outline,
+                    ),
+                  ),
+                );
+              }),
+            ),
+            const SizedBox(height: 16),
+
+            // PIN Text Field for direct keyboard input
+            TextField(
+              key: const Key('register_pin_input_field'),
+              controller: _pinController,
+              keyboardType: TextInputType.number,
+              maxLength: 4,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.outfit(
+                fontSize: 18,
+                letterSpacing: 6,
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+              decoration: InputDecoration(
+                counterText: '',
+                hintText: 'Ketik 4-digit PIN di sini',
+                hintStyle: GoogleFonts.inter(color: AppColors.outlineVariant, fontSize: 12, letterSpacing: 0),
+                filled: true,
+                fillColor: AppColors.surfaceContainerLowest,
+                prefixIcon: const Icon(Icons.shield_outlined, color: AppColors.outline, size: 20),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: AppColors.primary),
+                ),
+              ),
+              onChanged: (val) {
+                setState(() {});
+              },
+            ),
+            const SizedBox(height: 12),
+
+            // Demo Fill Pill Button
+            Center(
+              child: OutlinedButton.icon(
+                key: const Key('register_pin_demo_button'),
+                onPressed: () {
+                  setState(() {
+                    _pinController.text = '1234';
+                    _errorMessage = null;
+                  });
+                },
+                icon: const Icon(Icons.bolt_rounded, size: 15, color: AppColors.accentGold),
+                label: Text(
+                  'Gunakan PIN Demo: 1234',
+                  style: GoogleFonts.outfit(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.accentGold,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: AppColors.accentGold.withValues(alpha: 0.4)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Resend Countdown Row
+            Center(
+              child: Wrap(
+                alignment: WrapAlignment.center,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 4,
+                children: [
+                  Text(
+                    'Tidak menerima kode verifikasi? ',
+                    style: GoogleFonts.inter(fontSize: 12, color: AppColors.onSurfaceVariant),
+                  ),
+                  if (_countdown > 0)
+                    Text(
+                      'Kirim ulang (${_countdown}d)',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: AppColors.outline,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    )
+                  else
+                    GestureDetector(
+                      key: const Key('register_pin_resend_button'),
+                      onTap: _handleResendPin,
+                      child: Text(
+                        'Kirim Ulang PIN',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Submit Button
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                key: const Key('register_pin_submit_button'),
+                onPressed: _isLoading ? null : _handleVerifyAndRegister,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryContainer,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : Text(
+                        'Verifikasi & Selesaikan Pendaftaran',
+                        style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 14),
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

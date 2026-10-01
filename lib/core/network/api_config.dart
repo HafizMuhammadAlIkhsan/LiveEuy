@@ -149,5 +149,11 @@ class ApiConfig {
   static const String logoutAllPath = '/auth/logout-all';
   static String revokeDevicePath(String deviceId) => '/auth/devices/$deviceId';
   static String deviceCheckPath(String email) => '/auth/device-check?email=${Uri.encodeComponent(email)}';
+
+  // Offline Downloads & Cloudflare R2 paths
+  static const String downloadRequestPath = '/downloads/request';
+  static const String downloadRenewLicensePath = '/downloads/renew-license';
+  static String downloadDeletePath(String downloadId) => '/downloads/$downloadId';
+  static const String downloadSyncPath = '/downloads/sync';
 }
 

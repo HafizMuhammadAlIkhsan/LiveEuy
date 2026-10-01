@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/data/mock_data.dart';
+import '../../core/download/offline_download_manager.dart';
 import '../../core/theme/app_theme.dart';
+import '../../models/download_item.dart';
 import '../../models/movie_model.dart';
 import '../../models/episode_model.dart';
 import '../../providers/auth_provider.dart';
@@ -32,11 +34,8 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
   final Set<String> _likedReviewIds = {};
 
   bool _isSynopsisExpanded = false;
-  bool _isDownloadingAll = false;
   bool _isEpisodeAscending = true;
   int _userSelectedRating = 0;
-  final Set<String> _downloadedEpisodes = {'gk_ep1'};
-  final Set<String> _downloadingEpisodes = {};
 
   final List<String> _castList = [
     'Dian Sastrowardoyo',
@@ -99,28 +98,138 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
     );
   }
 
-  void _toggleEpisodeDownload(String epId, String epTitle) {
-    if (_downloadedEpisodes.contains(epId)) {
-      setState(() {
-        _downloadedEpisodes.remove(epId);
-      });
-      _showToast('Unduhan episode dihapus', icon: Icons.delete_outline_rounded, color: AppColors.outline);
-    } else {
-      setState(() {
-        _downloadingEpisodes.add(epId);
-      });
-      _showToast('Mengunduh $epTitle...', icon: Icons.downloading_rounded, color: AppColors.tertiary);
+  void _handleMovieDownload(DownloadItem? currentDownload) {
+    final downloadMgr = ref.read(offlineDownloadManagerProvider.notifier);
+    final movieId = widget.movie.id;
 
-      Future.delayed(const Duration(milliseconds: 1400), () {
-        if (mounted) {
-          setState(() {
-            _downloadingEpisodes.remove(epId);
-            _downloadedEpisodes.add(epId);
-          });
-          _showToast('Episode selesai diunduh', icon: Icons.download_done_rounded, color: AppColors.tertiary);
-        }
-      });
+    if (currentDownload != null && currentDownload.status == DownloadStatus.completed) {
+      _showManageDownloadSheet(currentDownload);
+    } else if (currentDownload != null && currentDownload.status == DownloadStatus.downloading) {
+      downloadMgr.cancelDownload(movieId);
+      _showToast('Unduhan film dibatalkan', icon: Icons.close_rounded, color: AppColors.outline);
+    } else {
+      downloadMgr.startDownload(movie: widget.movie);
+      _showToast('Mengunduh ${widget.movie.title} ke penyimpanan offline...', icon: Icons.downloading_rounded, color: AppColors.tertiary);
     }
+  }
+
+  void _handleEpisodeDownload(Episode ep, DownloadItem? currentEpDownload) {
+    final downloadMgr = ref.read(offlineDownloadManagerProvider.notifier);
+    final downloadKey = '${widget.movie.id}_${ep.id}';
+
+    if (currentEpDownload != null && currentEpDownload.status == DownloadStatus.completed) {
+      _showManageDownloadSheet(currentEpDownload);
+    } else if (currentEpDownload != null && currentEpDownload.status == DownloadStatus.downloading) {
+      downloadMgr.cancelDownload(downloadKey);
+      _showToast('Unduhan episode dibatalkan', icon: Icons.close_rounded, color: AppColors.outline);
+    } else {
+      downloadMgr.startDownload(movie: widget.movie, episode: ep);
+      _showToast('Mengunduh ${ep.title}...', icon: Icons.downloading_rounded, color: AppColors.tertiary);
+    }
+  }
+
+  void _showManageDownloadSheet(DownloadItem item) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceContainerHigh.withValues(alpha: 0.98),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border.all(color: AppColors.glassBorder),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceVariant,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                const Icon(Icons.offline_pin_rounded, color: AppColors.tertiary, size: 22),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.outfit(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.onSurface,
+                        ),
+                      ),
+                      Text(
+                        '${item.formattedSize} • Kualitas ${item.quality} • ${item.isExpired ? "Lisensi Habis" : "Sisa ${item.remainingDays} hari"}',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: item.isExpired ? AppColors.error : AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            ListTile(
+              leading: const Icon(Icons.play_circle_fill_rounded, color: AppColors.primaryContainer),
+              title: Text('Putar Video Offline', style: GoogleFonts.outfit(color: AppColors.onSurface, fontWeight: FontWeight.w600)),
+              subtitle: Text('Memutar langsung dari memori perangkat tanpa kuota internet', style: GoogleFonts.inter(fontSize: 11, color: AppColors.textSecondary)),
+              onTap: () {
+                Navigator.pop(sheetCtx);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => VideoPlayerScreen(
+                      movie: widget.movie,
+                      localFilePath: item.localFilePath,
+                      offlineItem: item,
+                    ),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.autorenew_rounded, color: AppColors.primary),
+              title: Text('Perbarui Lisensi Offline (30 Hari)', style: GoogleFonts.outfit(color: AppColors.onSurface, fontWeight: FontWeight.w600)),
+              subtitle: Text('Perpanjang masa aktif tonton offline tanpa mengunduh ulang', style: GoogleFonts.inter(fontSize: 11, color: AppColors.textSecondary)),
+              onTap: () async {
+                Navigator.pop(sheetCtx);
+                final ok = await ref.read(offlineDownloadManagerProvider.notifier).renewLicense(item.id);
+                _showToast(
+                  ok ? 'Lisensi offline berhasil diperpanjang 30 hari!' : 'Gagal memperbarui lisensi',
+                  icon: ok ? Icons.check_circle_rounded : Icons.error_outline_rounded,
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
+              title: Text('Hapus Unduhan', style: GoogleFonts.outfit(color: AppColors.error, fontWeight: FontWeight.w600)),
+              subtitle: Text('Bebaskan ruang penyimpanan di perangkat', style: GoogleFonts.inter(fontSize: 11, color: AppColors.textSecondary)),
+              onTap: () {
+                Navigator.pop(sheetCtx);
+                ref.read(offlineDownloadManagerProvider.notifier).deleteDownload(item.id);
+                _showToast('File unduhan offline berhasil dihapus', icon: Icons.delete_outline_rounded, color: AppColors.outline);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _handleQuickRate() {
@@ -168,6 +277,8 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
     final mediaState = ref.watch(mediaProvider);
     final user = ref.watch(authProvider);
     final isWatchlist = mediaState.watchlistIds.contains(widget.movie.id);
+    final downloads = ref.watch(offlineDownloadsListProvider);
+    final movieDownload = downloads.where((d) => d.id == widget.movie.id).firstOrNull;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -493,21 +604,22 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
                       // 3. Unduh
                       Expanded(
                         child: _buildUtilityButton(
-                          icon: _isDownloadingAll ? Icons.download_done_rounded : Icons.download_rounded,
-                          label: _isDownloadingAll ? 'Terunduh' : 'Unduh',
-                          iconColor: _isDownloadingAll ? AppColors.tertiary : AppColors.onSurface,
-                          onTap: () {
-                            setState(() {
-                              _isDownloadingAll = !_isDownloadingAll;
-                            });
-                            _showToast(
-                              _isDownloadingAll
-                                  ? 'Mengunduh Musim 1 (5 Episode)'
-                                  : 'Semua unduhan episode telah dibatalkan',
-                              icon: _isDownloadingAll ? Icons.downloading_rounded : Icons.delete_outline_rounded,
-                              color: AppColors.tertiary,
-                            );
-                          },
+                          icon: movieDownload?.status == DownloadStatus.completed
+                              ? (movieDownload!.isExpired ? Icons.warning_amber_rounded : Icons.download_done_rounded)
+                              : movieDownload?.status == DownloadStatus.downloading
+                                  ? Icons.downloading_rounded
+                                  : Icons.download_rounded,
+                          label: movieDownload?.status == DownloadStatus.completed
+                              ? (movieDownload!.isExpired ? 'Kedaluwarsa' : 'Terunduh')
+                              : movieDownload?.status == DownloadStatus.downloading
+                                  ? '${(movieDownload!.progress * 100).toInt()}%'
+                                  : 'Unduh',
+                          iconColor: movieDownload?.status == DownloadStatus.completed
+                              ? (movieDownload!.isExpired ? AppColors.error : AppColors.tertiary)
+                              : movieDownload?.status == DownloadStatus.downloading
+                                  ? AppColors.tertiary
+                                  : AppColors.onSurface,
+                          onTap: () => _handleMovieDownload(movieDownload),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -888,6 +1000,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
 
   // 2. Tab: Episode & Musim (Default Active)
   Widget _buildEpisodesTab() {
+    final downloads = ref.watch(offlineDownloadsListProvider);
     final episodes = MockData.gadiskretekEpisodes;
     final sortedEpisodes = _isEpisodeAscending
         ? (List<Episode>.from(episodes)..sort((a, b) => a.episodeNumber.compareTo(b.episodeNumber)))
@@ -975,8 +1088,11 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
 
           // Episodes List
           ...sortedEpisodes.map((ep) {
-            final isDownloaded = _downloadedEpisodes.contains(ep.id);
-            final isDownloading = _downloadingEpisodes.contains(ep.id);
+            final epDownload = downloads
+                .where((d) => d.id == '${widget.movie.id}_${ep.id}')
+                .firstOrNull;
+            final isDownloaded = epDownload?.isCompleted ?? false;
+            final isDownloading = epDownload?.isDownloading ?? false;
 
             return Container(
               margin: const EdgeInsets.only(bottom: 12),
@@ -1061,7 +1177,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
                                   ),
                                 ),
                                 GestureDetector(
-                                  onTap: () => _toggleEpisodeDownload(ep.id, ep.title),
+                                  onTap: () => _handleEpisodeDownload(ep, epDownload),
                                   child: Container(
                                     width: 30,
                                     height: 30,

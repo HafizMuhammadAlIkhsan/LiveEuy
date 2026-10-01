@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/data/mock_data.dart';
+import '../../core/download/offline_download_manager.dart';
 import '../../core/theme/app_theme.dart';
+import '../../models/download_item.dart';
 import '../../models/movie_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/media_provider.dart';
@@ -509,6 +511,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
   Widget build(BuildContext context) {
     final MediaState mediaState = widget.mediaState ?? ref.watch(mediaProvider);
     final user = ref.watch(authProvider);
+    final offlineDownloads = ref.watch(offlineDownloadsListProvider);
 
     // Ambil data watchlist lengkap dari MockData
     final allMovies = MockData.getAllMovies();
@@ -794,6 +797,8 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                               _buildFilterChip('Film', filmItems.length),
                               const SizedBox(width: 8),
                               _buildFilterChip('Serial TV', seriesItems.length),
+                              const SizedBox(width: 8),
+                              _buildFilterChip('Unduhan', offlineDownloads.length),
                             ],
                           ),
                         ),
@@ -802,8 +807,26 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                   ),
                 ),
 
-                // 4. ISI DAFTAR KOLEKSI: GRID CARD ATAU EMPTY STATE
-                if (watchlistItems.isEmpty)
+                // 4. ISI DAFTAR KOLEKSI: GRID CARD, UNDUHAN OFFLINE, ATAU EMPTY STATE
+                if (_selectedCategory == 'Unduhan') ...[
+                  if (offlineDownloads.isEmpty)
+                    SliverToBoxAdapter(
+                      child: _buildEmptyDownloadsState(),
+                    )
+                  else
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) {
+                            final item = offlineDownloads[index];
+                            return _buildOfflineCard(item);
+                          },
+                          childCount: offlineDownloads.length,
+                        ),
+                      ),
+                    ),
+                ] else if (watchlistItems.isEmpty)
                   SliverToBoxAdapter(
                     child: _buildEmptyWatchlistState(),
                   )
@@ -1468,6 +1491,400 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                 'Tampilkan Semua',
                 style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 13),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// State kosong untuk tab unduhan offline
+  Widget _buildEmptyDownloadsState() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 40, 20, 40),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceContainerLowest,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.2)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.surfaceContainerHigh,
+                ),
+                child: const Icon(
+                  Icons.file_download_off_rounded,
+                  size: 28,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                'Belum Ada Unduhan Offline',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.outfit(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.onSurface,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Unduh film dan serial favorit Anda di LiveEuy untuk ditonton kapan saja tanpa kuota internet.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                  height: 1.45,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Card untuk setiap video yang diunduh secara offline
+  Widget _buildOfflineCard(DownloadItem item) {
+    final movie = MockData.getMovieById(item.movieId) ??
+        Movie(
+          id: item.movieId,
+          title: item.title,
+          synopsis: '',
+          posterUrl: item.thumbnailUrl,
+          backdropUrl: item.thumbnailUrl,
+          videoUrl: '',
+          matchScore: 95.0,
+          ageRating: '13+',
+          resolutionBadges: [item.quality],
+          genre: 'Offline',
+          durationOrSeasons: '',
+          releaseYear: DateTime.now().year,
+          director: '',
+          cast: const [],
+        );
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: item.isExpired
+              ? AppColors.error.withValues(alpha: 0.4)
+              : AppColors.outlineVariant.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => VideoPlayerScreen(
+                  movie: movie,
+                  localFilePath: item.localFilePath,
+                  offlineItem: item,
+                ),
+              ),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Row(
+              children: [
+                // Thumbnail 16:9
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Stack(
+                    children: [
+                      CachedNetworkImage(
+                        imageUrl: item.thumbnailUrl,
+                        width: 120,
+                        height: 70,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(
+                          width: 120,
+                          height: 70,
+                          color: AppColors.surfaceContainerHigh,
+                        ),
+                        errorWidget: (context, url, err) => Container(
+                          width: 120,
+                          height: 70,
+                          color: AppColors.surfaceContainerHigh,
+                          child: const Icon(Icons.movie_rounded, color: AppColors.outline),
+                        ),
+                      ),
+                      Positioned.fill(
+                        child: Container(
+                          color: Colors.black.withValues(alpha: 0.3),
+                          child: Center(
+                            child: Container(
+                              width: 30,
+                              height: 30,
+                              decoration: BoxDecoration(
+                                color: AppColors.surface.withValues(alpha: 0.85),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.play_arrow_rounded,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (item.isDownloading)
+                        Positioned(
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          child: LinearProgressIndicator(
+                            value: item.progress,
+                            backgroundColor: AppColors.surfaceVariant,
+                            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.tertiary),
+                            minHeight: 3,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+
+                // Info & Expiry Badge
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.outfit(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.onSurface,
+                        ),
+                      ),
+                      if (item.episodeTitle != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          item.episodeTitle!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceContainerHigh,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              '${item.quality} • ${item.formattedSize}',
+                              style: GoogleFonts.outfit(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: item.isExpired
+                                  ? AppColors.errorContainer.withValues(alpha: 0.4)
+                                  : item.isDownloading
+                                      ? AppColors.tertiaryContainer.withValues(alpha: 0.4)
+                                      : const Color(0xFF059669).withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              item.isExpired
+                                  ? 'Lisensi Habis'
+                                  : item.isDownloading
+                                      ? '${(item.progress * 100).toInt()}% Unduh'
+                                      : 'Sisa ${item.remainingDays} hari',
+                              style: GoogleFonts.outfit(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: item.isExpired
+                                    ? AppColors.error
+                                    : item.isDownloading
+                                        ? AppColors.tertiary
+                                        : Colors.greenAccent,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Options Menu
+                IconButton(
+                  icon: const Icon(Icons.more_vert_rounded, color: AppColors.outline, size: 20),
+                  onPressed: () => _showOfflineOptions(item),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showOfflineOptions(DownloadItem item) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceContainerHigh.withValues(alpha: 0.98),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border.all(color: AppColors.glassBorder),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceVariant,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                const Icon(Icons.offline_pin_rounded, color: AppColors.tertiary, size: 22),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.outfit(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.onSurface,
+                        ),
+                      ),
+                      Text(
+                        '${item.formattedSize} • Kualitas ${item.quality} • ${item.isExpired ? "Lisensi Habis" : "Sisa ${item.remainingDays} hari"}',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: item.isExpired ? AppColors.error : AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            ListTile(
+              leading: const Icon(Icons.play_circle_fill_rounded, color: AppColors.primaryContainer),
+              title: Text('Putar Video Offline', style: GoogleFonts.outfit(color: AppColors.onSurface, fontWeight: FontWeight.w600)),
+              subtitle: Text('Memutar langsung dari memori perangkat tanpa kuota internet', style: GoogleFonts.inter(fontSize: 11, color: AppColors.textSecondary)),
+              onTap: () {
+                Navigator.pop(sheetCtx);
+                final movie = MockData.getMovieById(item.movieId) ??
+                    Movie(
+                      id: item.movieId,
+                      title: item.title,
+                      synopsis: '',
+                      posterUrl: item.thumbnailUrl,
+                      backdropUrl: item.thumbnailUrl,
+                      videoUrl: '',
+                      matchScore: 95.0,
+                      ageRating: '13+',
+                      resolutionBadges: [item.quality],
+                      genre: 'Offline',
+                      durationOrSeasons: '',
+                      releaseYear: DateTime.now().year,
+                      director: '',
+                      cast: const [],
+                    );
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => VideoPlayerScreen(
+                      movie: movie,
+                      localFilePath: item.localFilePath,
+                      offlineItem: item,
+                    ),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.autorenew_rounded, color: AppColors.primary),
+              title: Text('Perbarui Lisensi Offline (30 Hari)', style: GoogleFonts.outfit(color: AppColors.onSurface, fontWeight: FontWeight.w600)),
+              subtitle: Text('Perpanjang masa aktif tonton offline tanpa mengunduh ulang', style: GoogleFonts.inter(fontSize: 11, color: AppColors.textSecondary)),
+              onTap: () async {
+                Navigator.pop(sheetCtx);
+                final ok = await ref.read(offlineDownloadManagerProvider.notifier).renewLicense(item.id);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        ok ? 'Lisensi offline berhasil diperpanjang 30 hari!' : 'Gagal memperbarui lisensi offline',
+                        style: GoogleFonts.inter(fontWeight: FontWeight.w500),
+                      ),
+                      backgroundColor: AppColors.surfaceContainerHighest,
+                    ),
+                  );
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
+              title: Text('Hapus Unduhan', style: GoogleFonts.outfit(color: AppColors.error, fontWeight: FontWeight.w600)),
+              subtitle: Text('Bebaskan ruang penyimpanan di perangkat', style: GoogleFonts.inter(fontSize: 11, color: AppColors.textSecondary)),
+              onTap: () {
+                Navigator.pop(sheetCtx);
+                ref.read(offlineDownloadManagerProvider.notifier).deleteDownload(item.id);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Unduhan ${item.title} dihapus dari perangkat',
+                      style: GoogleFonts.inter(fontWeight: FontWeight.w500),
+                    ),
+                    backgroundColor: AppColors.surfaceContainerHighest,
+                  ),
+                );
+              },
             ),
           ],
         ),

@@ -423,6 +423,85 @@ class ApiService {
     );
     return response.success;
   }
+
+  // ==========================================
+  // 6. Unduhan Offline & Cloudflare R2
+  // ==========================================
+
+  /// Meminta izin unduhan dan mendapatkan Presigned URL Cloudflare R2 (`POST /api/v1/downloads/request`)
+  Future<Map<String, dynamic>?> requestDownload({
+    required String mediaId,
+    String? episodeId,
+    String quality = '1080p',
+    String? deviceId,
+  }) async {
+    try {
+      final response = await _client.post<Map<String, dynamic>>(
+        ApiConfig.downloadRequestPath,
+        body: {
+          'mediaId': mediaId,
+          if (episodeId != null) 'episodeId': episodeId,
+          'quality': quality,
+          if (deviceId != null) 'deviceId': deviceId,
+        },
+        fromJson: (data) => data is Map<String, dynamic> ? data : {},
+      );
+      return response.data;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Memperbarui lisensi tontonan offline tanpa mengunduh ulang file video (`POST /api/v1/downloads/renew-license`)
+  Future<Map<String, dynamic>?> renewDownloadLicense({
+    required String downloadId,
+    required String mediaId,
+    String? episodeId,
+    required String currentLicenseToken,
+    String? deviceId,
+  }) async {
+    try {
+      final response = await _client.post<Map<String, dynamic>>(
+        ApiConfig.downloadRenewLicensePath,
+        body: {
+          'downloadId': downloadId,
+          'mediaId': mediaId,
+          if (episodeId != null) 'episodeId': episodeId,
+          'currentLicenseToken': currentLicenseToken,
+          if (deviceId != null) 'deviceId': deviceId,
+        },
+        fromJson: (data) => data is Map<String, dynamic> ? data : {},
+      );
+      return response.data;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Menghapus sesi unduhan dari server untuk membebaskan kuota perangkat (`DELETE /api/v1/downloads/{id}`)
+  Future<bool> notifyDownloadDeleted(String downloadId) async {
+    try {
+      final response = await _client.delete<dynamic>(
+        ApiConfig.downloadDeletePath(downloadId),
+      );
+      return response.success;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Sinkronisasi metrik/durasi tontonan offline saat online kembali (`POST /api/v1/downloads/sync`)
+  Future<bool> syncOfflineSessions(List<Map<String, dynamic>> sessions) async {
+    try {
+      final response = await _client.post<dynamic>(
+        ApiConfig.downloadSyncPath,
+        body: {'sessions': sessions},
+      );
+      return response.success;
+    } catch (_) {
+      return false;
+    }
+  }
 }
 
 
