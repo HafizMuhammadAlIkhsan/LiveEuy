@@ -41,10 +41,16 @@ Klien mobile streaming film dan serial televisi berbasis Flutter (Android dan iO
 - Lanjutkan Menonton (Continue Watching): menampilkan kartu riwayat tontonan terakhir beserta persentase durasi yang tersimpan.
 - Pengelompokan baris konten tematik: Film Populer, Aksi, Drama, dan Fiksi Ilmiah.
 
-### 6. Pencarian dan Filter
-- Bilah pencarian teks dengan mekanisme debouncing untuk membatasi frekuensi query saat pengguna mengetik.
-- Filter berdasarkan kategori format (Semua, Film, Serial) dan pilihan chip genre.
-- Grid hasil pencarian yang langsung terhubung ke halaman detail atau pemutar.
+### 6. Pencarian, Filter & Paginasi Katalog (Milestone 2 / PRD 5.5)
+- **Bilah Pencarian Cerdas**: Debouncing query 250ms untuk membatasi frekuensi request saat pengguna mengetik.
+- **Filter Multi-Dimensi**: Filter format tayangan (Semua, Film, Serial TV), negara asal (Indonesia, Korea Selatan, Jepang, AS), chip genre, dan opsi pengurutan (*Terpopuler, Rating Tertinggi, Rilis Terbaru*).
+- **Pembatalan Request In-Flight (`CancelToken`)**: Setiap ketikan pencarian baru atau penggantian filter secara otomatis membatalkan (*cancel*) request HTTP in-flight sebelumnya untuk mengeliminasi *race conditions* jaringan.
+- **Infinite Scroll Pagination Otomatis**:
+  - `ScrollController` mendeteksi posisi gulir 300px sebelum batas bawah layar dan memicu `loadMore()` secara instan.
+  - Paginasi adaptif: memuat potongan data bertahap (`pageSize: 10`) dengan deduplikasi ID otomatis.
+  - Indikator dinamis: Shimmer spinner loading saat memuat halaman berikutnya, dan pembatas elegan *"Semua tayangan telah ditampilkan"* ketika seluruh katalog telah dimuat (`hasMore: false`).
+- **Antarmuka Anti-Slop & Status Kosong**: Tampilan status kosong minimalis (*Empty State*) jika tidak ada tayangan yang cocok, tanpa distorsi visual.
+- **Aksi Cepat Poster**: Tombol play mengambang pada poster grid untuk langsung memutar video atau membuka layar detail konten.
 
 ### 7. Detail Konten
 - Tab Ringkasan: sinopsis lengkap, sutradara, pemeran utama, genre, tahun rilis, dan durasi.
@@ -96,13 +102,16 @@ Arsitektur backend LiveEuy (`dev-backend`) mengadopsi pola microservices terpisa
    - Endpoint: `/api/v1/media/*` (Katalog Pageable, Pencarian, Top 10, Batch Media, Serial TV & Episodes)
 
 ### Lapisan Jaringan dan Penanganan Error (Dio)
-- Arsitektur jaringan mengimplementasikan spesifikasi Dio 5.x dengan hirarki `DioException`.
+- Arsitektur jaringan mengimplementasikan spesifikasi Dio 5.x dengan hirarki `DioException` dan mekanisme pembatalan request `CancelToken`.
+- **Mekanisme `CancelToken`**:
+  - Mendukung pembatalan token asinkron (`cancel([reason])`, `whenCancelled`, dan `throwIfCancelled()`).
+  - `ApiClient._sendRequest` melakukan race asynchronous antara timeout koneksi dan event pembatalan token, menghentikan transmisi seketika dan melempar `DioException(type: DioExceptionType.cancel)` yang aman ditangani oleh presentasi layer.
 - Klasifikasi status jaringan:
   - `badResponse`: menangani status HTTP 4xx dan 5xx dengan ekstraksi pesan JSON backend (`BadRequestException`, `UnauthorizedException`, `ForbiddenException`, `NotFoundException`, `ConflictException`, `ServerException`).
   - `connectionTimeout`, `sendTimeout`, `receiveTimeout`: batas waktu request terlampaui (`ApiTimeoutException`).
   - `connectionError`: koneksi terputus atau host tidak dapat dijangkau (`NetworkException`).
   - `badCertificate`: sertifikat SSL/TLS tidak valid.
-  - `cancel`: pembatalan request aktif saat pengguna berpindah rute.
+  - `cancel`: pembatalan request aktif saat pengguna mengetik baru, mengganti filter, atau berpindah rute.
   - `unknown`: kegagalan tak terduga lainnya.
 - Pipeline Interceptor:
   - `LoggingInterceptor`: mencatat siklus HTTP request, response status, dan error.

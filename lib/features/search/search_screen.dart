@@ -48,13 +48,23 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   void initState() {
     super.initState();
     _scrollController = ScrollController();
-    // Default state: clean search bar, no pre-selected query or genre
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.position.pixels;
+    if (currentScroll >= maxScroll - 300) {
+      ref.read(searchProvider.notifier).loadMore();
+    }
   }
 
   @override
   void dispose() {
     _debounce?.cancel();
     _searchController.dispose();
+    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
   }
@@ -777,10 +787,46 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
                 const SizedBox(height: 14),
 
-                // 2-Column Responsive Movie Poster Grid (HTML grid-cols-2 gap-3.5)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: GridView.builder(
+                // 2-Column Responsive Movie Poster Grid or Empty State
+                if (searchState.results.isEmpty && !searchState.isLoading)
+                  Padding(
+                    key: const Key('search_empty_state'),
+                    padding: const EdgeInsets.symmetric(vertical: 48.0, horizontal: 24.0),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.search_off_rounded,
+                            size: 48,
+                            color: AppColors.onSurfaceVariant.withValues(alpha: 0.4),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Tidak ada judul yang cocok',
+                            style: GoogleFonts.outfit(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Coba gunakan kata kunci lain atau setel ulang filter pencarian Anda.',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: GridView.builder(
                     padding: EdgeInsets.zero,
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
@@ -997,33 +1043,67 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   ),
                 ),
 
-                // Infinite Scroll Async Shimmer Indicator (HTML section: Infinite Scroll Async Shimmer Loader)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
-                  child: Center(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryContainer),
+                // Infinite Scroll Loader & End-of-List Indicator
+                if (searchState.isLoadingMore)
+                  Padding(
+                    key: const Key('search_loading_more_indicator'),
+                    padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
+                    child: Center(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryContainer),
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          'Memuat judul lainnya secara instan...',
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            color: AppColors.textSecondary,
+                          const SizedBox(width: 10),
+                          Text(
+                            'Memuat judul lainnya secara instan...',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
+                    ),
+                  )
+                else if (!searchState.hasMore && searchState.results.isNotEmpty)
+                  Padding(
+                    key: const Key('search_end_of_results_indicator'),
+                    padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
+                    child: Center(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 28,
+                            height: 1,
+                            color: AppColors.outlineVariant.withValues(alpha: 0.3),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Semua tayangan telah ditampilkan',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Container(
+                            width: 28,
+                            height: 1,
+                            color: AppColors.outlineVariant.withValues(alpha: 0.3),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
 
                 const SizedBox(height: 80),
               ],

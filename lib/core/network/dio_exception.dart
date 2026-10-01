@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'api_exception.dart';
 
@@ -28,6 +29,53 @@ enum DioExceptionType {
   unknown,
 }
 
+/// Token pembatalan request HTTP asynchronous (mirip `CancelToken` pada Dio 5.x).
+/// Digunakan untuk membatalkan request jaringan yang sedang berjalan secara instan,
+/// misalnya saat pengguna mengetik di form pencarian atau beralih filter.
+class CancelToken {
+  final Completer<DioException> _completer = Completer<DioException>();
+  DioException? _cancelError;
+  String? _cancelReason;
+
+  /// Mengembalikan `true` apabila token ini telah dibatalkan.
+  bool get isCancelled => _cancelError != null || _completer.isCompleted;
+
+  /// Instance [DioException] yang dihasilkan dari pembatalan token ini.
+  DioException? get cancelError => _cancelError;
+
+  /// Pesan atau alasan opsional pembatalan yang diberikan saat memanggil [cancel].
+  String? get reason => _cancelReason;
+
+  /// Future yang akan selesai seketika saat [cancel] dipanggil.
+  Future<DioException> get whenCancelled => _completer.future;
+
+  /// Membatalkan request yang menggunakan token ini dengan alasan opsional [reason].
+  void cancel([String? reason]) {
+    if (isCancelled) return;
+    _cancelReason = reason;
+    final exception = DioException(
+      requestOptions: RequestOptions(path: ''),
+      type: DioExceptionType.cancel,
+      message: reason ?? 'Permintaan dibatalkan oleh pengguna.',
+    );
+    _cancelError = exception;
+    if (!_completer.isCompleted) {
+      _completer.complete(exception);
+    }
+  }
+
+  /// Memeriksa apakah token telah dibatalkan; jika sudah dibatalkan, langsung
+  /// melemparkan [DioException] bertipe [DioExceptionType.cancel].
+  void throwIfCancelled([RequestOptions? requestOptions]) {
+    if (isCancelled) {
+      throw DioException.cancel(
+        requestOptions: requestOptions ?? _cancelError?.requestOptions ?? RequestOptions(path: ''),
+        reason: _cancelReason ?? _cancelError?.message,
+      );
+    }
+  }
+}
+
 /// Opsi konfigurasi request HTTP (mirip RequestOptions pada Dio).
 class RequestOptions {
   final String path;
@@ -39,6 +87,7 @@ class RequestOptions {
   final Duration? connectTimeout;
   final Duration? receiveTimeout;
   final Duration? sendTimeout;
+  final CancelToken? cancelToken;
   final Map<String, dynamic> extra;
 
   RequestOptions({
@@ -51,6 +100,7 @@ class RequestOptions {
     this.connectTimeout,
     this.receiveTimeout,
     this.sendTimeout,
+    this.cancelToken,
     Map<String, dynamic>? extra,
   })  : headers = headers ?? <String, dynamic>{},
         extra = extra ?? <String, dynamic>{};
@@ -86,6 +136,7 @@ class RequestOptions {
     Duration? connectTimeout,
     Duration? receiveTimeout,
     Duration? sendTimeout,
+    CancelToken? cancelToken,
     Map<String, dynamic>? extra,
   }) {
     return RequestOptions(
@@ -98,6 +149,7 @@ class RequestOptions {
       connectTimeout: connectTimeout ?? this.connectTimeout,
       receiveTimeout: receiveTimeout ?? this.receiveTimeout,
       sendTimeout: sendTimeout ?? this.sendTimeout,
+      cancelToken: cancelToken ?? this.cancelToken,
       extra: extra ?? this.extra,
     );
   }

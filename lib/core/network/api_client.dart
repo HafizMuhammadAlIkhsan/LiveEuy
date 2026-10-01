@@ -65,6 +65,7 @@ class ApiClient {
     Map<String, String>? headers,
     T Function(dynamic data)? fromJson,
     Duration? timeout,
+    CancelToken? cancelToken,
   }) async {
     final uri = _buildUri(path, queryParams);
     final requestOptions = RequestOptions(
@@ -77,6 +78,7 @@ class ApiClient {
       },
       queryParameters: queryParams,
       connectTimeout: timeout ?? ApiConfig.timeout,
+      cancelToken: cancelToken,
     );
 
     return _sendRequest<T>(
@@ -89,6 +91,7 @@ class ApiClient {
       requestOptions: requestOptions,
       fromJson: fromJson,
       timeout: timeout,
+      cancelToken: cancelToken,
     );
   }
 
@@ -100,6 +103,7 @@ class ApiClient {
     Map<String, String>? headers,
     T Function(dynamic data)? fromJson,
     Duration? timeout,
+    CancelToken? cancelToken,
   }) async {
     final uri = _buildUri(path, queryParams);
     final encodedBody = _encodeBody(body);
@@ -114,6 +118,7 @@ class ApiClient {
       queryParameters: queryParams,
       data: body,
       connectTimeout: timeout ?? ApiConfig.timeout,
+      cancelToken: cancelToken,
     );
 
     return _sendRequest<T>(
@@ -127,6 +132,7 @@ class ApiClient {
       requestOptions: requestOptions,
       fromJson: fromJson,
       timeout: timeout,
+      cancelToken: cancelToken,
     );
   }
 
@@ -138,6 +144,7 @@ class ApiClient {
     Map<String, String>? headers,
     T Function(dynamic data)? fromJson,
     Duration? timeout,
+    CancelToken? cancelToken,
   }) async {
     final uri = _buildUri(path, queryParams);
     final encodedBody = _encodeBody(body);
@@ -152,6 +159,7 @@ class ApiClient {
       queryParameters: queryParams,
       data: body,
       connectTimeout: timeout ?? ApiConfig.timeout,
+      cancelToken: cancelToken,
     );
 
     return _sendRequest<T>(
@@ -165,6 +173,7 @@ class ApiClient {
       requestOptions: requestOptions,
       fromJson: fromJson,
       timeout: timeout,
+      cancelToken: cancelToken,
     );
   }
 
@@ -176,6 +185,7 @@ class ApiClient {
     Map<String, String>? headers,
     T Function(dynamic data)? fromJson,
     Duration? timeout,
+    CancelToken? cancelToken,
   }) async {
     final uri = _buildUri(path, queryParams);
     final encodedBody = _encodeBody(body);
@@ -190,6 +200,7 @@ class ApiClient {
       queryParameters: queryParams,
       data: body,
       connectTimeout: timeout ?? ApiConfig.timeout,
+      cancelToken: cancelToken,
     );
 
     return _sendRequest<T>(
@@ -203,6 +214,7 @@ class ApiClient {
       requestOptions: requestOptions,
       fromJson: fromJson,
       timeout: timeout,
+      cancelToken: cancelToken,
     );
   }
 
@@ -214,6 +226,7 @@ class ApiClient {
     Map<String, String>? headers,
     T Function(dynamic data)? fromJson,
     Duration? timeout,
+    CancelToken? cancelToken,
   }) async {
     final uri = _buildUri(path, queryParams);
     final encodedBody = _encodeBody(body);
@@ -228,6 +241,7 @@ class ApiClient {
       queryParameters: queryParams,
       data: body,
       connectTimeout: timeout ?? ApiConfig.timeout,
+      cancelToken: cancelToken,
     );
 
     return _sendRequest<T>(
@@ -241,6 +255,7 @@ class ApiClient {
       requestOptions: requestOptions,
       fromJson: fromJson,
       timeout: timeout,
+      cancelToken: cancelToken,
     );
   }
 
@@ -250,6 +265,7 @@ class ApiClient {
     Map<String, dynamic>? queryParams,
     Map<String, String>? headers,
     Duration? timeout,
+    CancelToken? cancelToken,
   }) async {
     final uri = _buildUri(path, queryParams);
     final requestOptions = RequestOptions(
@@ -262,6 +278,7 @@ class ApiClient {
       },
       queryParameters: queryParams,
       connectTimeout: timeout ?? ApiConfig.timeout,
+      cancelToken: cancelToken,
     );
 
     return _sendRequest<T>(
@@ -273,6 +290,7 @@ class ApiClient {
       uri: uri,
       requestOptions: requestOptions,
       timeout: timeout,
+      cancelToken: cancelToken,
     );
   }
 
@@ -285,6 +303,7 @@ class ApiClient {
     dynamic data,
     Map<String, String>? headers,
     Duration? timeout,
+    CancelToken? cancelToken,
   }) async {
     final uri = _buildUri(path, queryParams);
     final requestOptions = RequestOptions(
@@ -298,6 +317,7 @@ class ApiClient {
       queryParameters: queryParams,
       data: data,
       connectTimeout: timeout ?? ApiConfig.timeout,
+      cancelToken: cancelToken,
     );
 
     final apiResponse = await _sendRequest<dynamic>(
@@ -318,6 +338,7 @@ class ApiClient {
       uri: uri,
       requestOptions: requestOptions,
       timeout: timeout,
+      cancelToken: cancelToken,
     );
 
     return Response<T>(
@@ -341,8 +362,13 @@ class ApiClient {
     required RequestOptions requestOptions,
     T Function(dynamic data)? fromJson,
     Duration? timeout,
+    CancelToken? cancelToken,
   }) async {
     final requestTimeout = timeout ?? ApiConfig.timeout;
+    final activeToken = cancelToken ?? requestOptions.cancelToken;
+
+    // Check if token has already been cancelled prior to starting
+    activeToken?.throwIfCancelled(requestOptions);
 
     // Run onRequest interceptors
     for (final interceptor in interceptors) {
@@ -352,7 +378,41 @@ class ApiClient {
     }
 
     try {
-      final response = await requestFn().timeout(requestTimeout);
+      final Future<http.Response> networkFuture = requestFn().timeout(requestTimeout);
+
+      final http.Response response;
+      if (activeToken != null) {
+        final cancelCompleter = Completer<http.Response>();
+
+        activeToken.whenCancelled.then((err) {
+          if (!cancelCompleter.isCompleted) {
+            cancelCompleter.completeError(
+              DioException.cancel(
+                requestOptions: requestOptions,
+                reason: activeToken.reason ?? err.message,
+              ),
+            );
+          }
+        });
+
+        networkFuture.then((res) {
+          if (!cancelCompleter.isCompleted) {
+            cancelCompleter.complete(res);
+          }
+        }).catchError((err, st) {
+          if (!cancelCompleter.isCompleted) {
+            cancelCompleter.completeError(err, st);
+          }
+        });
+
+        response = await cancelCompleter.future;
+      } else {
+        response = await networkFuture;
+      }
+
+      // Check if cancellation occurred while waiting
+      activeToken?.throwIfCancelled(requestOptions);
+
       final responseBody = utf8.decode(response.bodyBytes);
 
       dynamic decodedData;

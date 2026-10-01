@@ -6,7 +6,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:liveeuy_mob/core/network/api_client.dart';
-import 'package:liveeuy_mob/core/network/api_config.dart';
 import 'package:liveeuy_mob/core/network/api_service.dart';
 import 'package:liveeuy_mob/features/auth/login_screen.dart';
 import 'package:liveeuy_mob/main.dart';

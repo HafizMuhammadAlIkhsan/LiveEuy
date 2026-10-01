@@ -27,7 +27,7 @@ class ApiService {
   // ==========================================
 
   /// Mengambil semua daftar media film dan serial (`GET /api/v1/media`)
-  /// Mendukung filter tipe, genre, search, dan pagination dari backend Spring Boot
+  /// Mendukung filter tipe, genre, search, pagination, dan cancel token dari backend Spring Boot
   Future<List<Movie>> getAllMedia({
     String? type,
     String? genre,
@@ -35,6 +35,7 @@ class ApiService {
     String? sortBy,
     int? page,
     int? size,
+    CancelToken? cancelToken,
   }) async {
     final queryParams = <String, dynamic>{};
     if (type != null && type.isNotEmpty && type != 'Semua') queryParams['type'] = type;
@@ -47,6 +48,7 @@ class ApiService {
     final response = await _catalogClient.get<List<Movie>>(
       ApiConfig.mediaPath,
       queryParams: queryParams.isNotEmpty ? queryParams : null,
+      cancelToken: cancelToken,
       fromJson: (data) {
         final list = data is List
             ? data
