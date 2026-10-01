@@ -26,6 +26,8 @@ const TrendingPage = React.lazy(() => import('./pages/TrendingPage').then(m => (
 const WatchlistPage = React.lazy(() => import('./pages/WatchlistPage').then(m => ({ default: m.WatchlistPage })));
 const SearchPage = React.lazy(() => import('./pages/SearchPage').then(m => ({ default: m.SearchPage })));
 const AdminPage = React.lazy(() => import('./pages/AdminPage'));
+const ResetPasswordPage = React.lazy(() => import('./pages/ResetPasswordPage').then(m => ({ default: m.ResetPasswordPage })));
+const VerifyEmailPage = React.lazy(() => import('./pages/VerifyEmailPage').then(m => ({ default: m.VerifyEmailPage })));
 const NotFoundPage = React.lazy(() => import('./pages/ErrorPages').then(m => ({ default: m.NotFoundPage })));
 const ForbiddenPage = React.lazy(() => import('./pages/ErrorPages').then(m => ({ default: m.ForbiddenPage })));
 const ServerErrorPage = React.lazy(() => import('./pages/ErrorPages').then(m => ({ default: m.ServerErrorPage })));
@@ -104,6 +106,9 @@ const MainContent: React.FC = () => {
                   </AdminRouteGuard>
                 } 
               />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/forgot-password" element={<ResetPasswordPage />} />
+              <Route path="/verify-email" element={<VerifyEmailPage />} />
               <Route path="/403" element={<ForbiddenPage />} />
               <Route path="/500" element={<ServerErrorPage />} />
               <Route path="/404" element={<NotFoundPage />} />

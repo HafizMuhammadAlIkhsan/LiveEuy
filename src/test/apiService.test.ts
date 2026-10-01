@@ -303,4 +303,143 @@ describe('LiveEuyApiService (Dual-Token Auth & 401 Interceptor)', () => {
       localStorage.removeItem('liveeuy_custom_media');
     });
   });
+
+  describe('Forgot & Reset Password API Endpoints', () => {
+    it('sends POST /api/v1/auth/forgot-password with email payload', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string, opts: RequestInit) => {
+        if (url.includes('/auth/forgot-password') && opts.method === 'POST') {
+          const body = JSON.parse(opts.body as string);
+          expect(body.email).toBe('user@example.com');
+          return new Response(JSON.stringify({
+            success: true,
+            message: 'Jika email terdaftar, tautan pengaturan ulang kata sandi telah dikirimkan ke kotak masuk Anda.'
+          }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }
+        return new Response(null, { status: 404 });
+      });
+      global.fetch = mockFetch;
+
+      const res = await apiService.forgotPassword('user@example.com');
+      expect(res.success).toBe(true);
+      expect(res.message).toContain('Jika email terdaftar');
+    });
+
+    it('handles offline network error for forgotPassword gracefully', async () => {
+      global.fetch = vi.fn().mockRejectedValue(new Error('Network offline'));
+
+      const res = await apiService.forgotPassword('user@example.com');
+      expect(res.success).toBe(false);
+      expect(res.message).toContain('Tidak dapat terhubung ke server autentikasi');
+    });
+
+    it('sends POST /api/v1/auth/reset-password with token and newPassword payload', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string, opts: RequestInit) => {
+        if (url.includes('/auth/reset-password') && opts.method === 'POST') {
+          const body = JSON.parse(opts.body as string);
+          expect(body.token).toBe('valid-secret-token');
+          expect(body.newPassword).toBe('NewSecurePass123!');
+          return new Response(JSON.stringify({
+            success: true,
+            message: 'Kata sandi Anda telah berhasil direset. Silakan login kembali.'
+          }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }
+        return new Response(null, { status: 404 });
+      });
+      global.fetch = mockFetch;
+
+      const res = await apiService.resetPassword('valid-secret-token', 'NewSecurePass123!');
+      expect(res.success).toBe(true);
+      expect(res.message).toContain('Kata sandi Anda telah berhasil direset');
+    });
+
+    it('handles invalid or expired token error from backend reset-password', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string, opts: RequestInit) => {
+        if (url.includes('/auth/reset-password')) {
+          return new Response(JSON.stringify({
+            success: false,
+            message: 'Token reset kata sandi tidak valid atau sudah kedaluwarsa.'
+          }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+        }
+        return new Response(null, { status: 404 });
+      });
+      global.fetch = mockFetch;
+
+      const res = await apiService.resetPassword('expired-token', 'NewSecurePass123!');
+      expect(res.success).toBe(false);
+      expect(res.message).toContain('tidak valid atau sudah kedaluwarsa');
+    });
+  });
+
+  describe('Registration Email PIN Verification API Endpoints', () => {
+    it('sends POST /api/v1/auth/verify-email with email and pin payload', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string, opts: RequestInit) => {
+        if (url.includes('/auth/verify-email') && opts.method === 'POST') {
+          const body = JSON.parse(opts.body as string);
+          expect(body.email).toBe('newuser@liveeuy.id');
+          expect(body.pin).toBe('654321');
+          return new Response(JSON.stringify({
+            success: true,
+            message: 'Email berhasil diverifikasi! Selamat datang di LiveEuy.',
+            data: {
+              accessToken: 'jwt-verified-token',
+              user: { name: 'New User', email: 'newuser@liveeuy.id', tier: 'VIP Standard' }
+            }
+          }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }
+        return new Response(null, { status: 404 });
+      });
+      global.fetch = mockFetch;
+
+      const res = await apiService.verifyEmailPin('newuser@liveeuy.id', '654321');
+      expect(res.success).toBe(true);
+      expect(res.message).toContain('Email berhasil diverifikasi');
+      expect(apiService.getAccessToken()).toBe('jwt-verified-token');
+    });
+
+    it('handles invalid PIN response from backend', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/auth/verify-email')) {
+          return new Response(JSON.stringify({
+            success: false,
+            message: 'PIN verifikasi salah atau telah kedaluwarsa.'
+          }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+        }
+        return new Response(null, { status: 404 });
+      });
+      global.fetch = mockFetch;
+
+      const res = await apiService.verifyEmailPin('newuser@liveeuy.id', '000000');
+      expect(res.success).toBe(false);
+      expect(res.message).toContain('PIN verifikasi salah atau telah kedaluwarsa');
+    });
+
+    it('sends POST /api/v1/auth/resend-verification for resend PIN request', async () => {
+      const mockFetch = vi.fn().mockImplementation(async (url: string, opts: RequestInit) => {
+        if (url.includes('/auth/resend-verification') && opts.method === 'POST') {
+          const body = JSON.parse(opts.body as string);
+          expect(body.email).toBe('newuser@liveeuy.id');
+          return new Response(JSON.stringify({
+            success: true,
+            message: 'Kode PIN verifikasi baru telah dikirimkan ke email Anda.'
+          }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }
+        return new Response(null, { status: 404 });
+      });
+      global.fetch = mockFetch;
+
+      const res = await apiService.resendVerificationPin('newuser@liveeuy.id');
+      expect(res.success).toBe(true);
+      expect(res.message).toContain('Kode PIN verifikasi baru');
+    });
+
+    it('verifies 6-digit numeric PIN in offline fallback mode', async () => {
+      global.fetch = vi.fn().mockRejectedValue(new Error('Backend offline'));
+
+      const res = await apiService.verifyEmailPin('offlineuser@liveeuy.id', '123456');
+      expect(res.success).toBe(true);
+      expect(res.message).toContain('Email berhasil diverifikasi');
+    });
+  });
 });
+
+

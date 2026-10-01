@@ -75,8 +75,8 @@ interface WatchContextType {
   login: (userData?: Partial<User>) => void;
   logout: () => void;
   isAuthModalOpen: boolean;
-  authModalMode: 'login' | 'register';
-  openAuthModal: (mode?: 'login' | 'register') => void;
+  authModalMode: 'login' | 'register' | 'forgot-password' | 'reset-password' | 'verify-email';
+  openAuthModal: (mode?: 'login' | 'register' | 'forgot-password' | 'reset-password' | 'verify-email') => void;
   closeAuthModal: () => void;
   // Mobile & Cross-Platform Sync
   isMobileSyncOpen: boolean;
@@ -877,9 +877,9 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
+  const [authModalMode, setAuthModalMode] = useState<'login' | 'register' | 'forgot-password' | 'reset-password' | 'verify-email'>('login');
 
-  const openAuthModal = (mode: 'login' | 'register' = 'login') => {
+  const openAuthModal = (mode: 'login' | 'register' | 'forgot-password' | 'reset-password' | 'verify-email' = 'login') => {
     setAuthModalMode(mode);
     setIsAuthModalOpen(true);
   };
