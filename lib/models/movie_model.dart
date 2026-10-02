@@ -1,5 +1,29 @@
 import 'season_model.dart';
 
+enum ProcessingStatus {
+  pending,
+  processing,
+  ready,
+  failed;
+
+  static ProcessingStatus fromString(String? value) {
+    switch (value?.toLowerCase()) {
+      case 'pending':
+        return ProcessingStatus.pending;
+      case 'processing':
+        return ProcessingStatus.processing;
+      case 'ready':
+        return ProcessingStatus.ready;
+      case 'failed':
+        return ProcessingStatus.failed;
+      default:
+        return ProcessingStatus.ready;
+    }
+  }
+
+  String get value => name;
+}
+
 class Movie {
   final String id;
   final String title;
@@ -21,6 +45,8 @@ class Movie {
   final double userRating;
   final double continueWatchingProgress; // 0.0 to 1.0
   final List<Season> seasons;
+  final ProcessingStatus processingStatus;
+  final String? transcodeJobId;
 
   const Movie({
     required this.id,
@@ -43,6 +69,8 @@ class Movie {
     this.userRating = 4.8,
     this.continueWatchingProgress = 0.0,
     this.seasons = const [],
+    this.processingStatus = ProcessingStatus.ready,
+    this.transcodeJobId,
   });
 
   Movie copyWith({
@@ -66,6 +94,8 @@ class Movie {
     double? userRating,
     double? continueWatchingProgress,
     List<Season>? seasons,
+    ProcessingStatus? processingStatus,
+    String? transcodeJobId,
   }) {
     return Movie(
       id: id ?? this.id,
@@ -89,6 +119,8 @@ class Movie {
       continueWatchingProgress:
           continueWatchingProgress ?? this.continueWatchingProgress,
       seasons: seasons ?? this.seasons,
+      processingStatus: processingStatus ?? this.processingStatus,
+      transcodeJobId: transcodeJobId ?? this.transcodeJobId,
     );
   }
 
@@ -179,6 +211,9 @@ class Movie {
               ?.map((e) => Season.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
+      processingStatus: ProcessingStatus.fromString(
+          json['processingStatus'] as String? ?? json['status'] as String?),
+      transcodeJobId: json['transcodeJobId'] as String?,
     );
   }
 
@@ -204,6 +239,8 @@ class Movie {
       'userRating': userRating,
       'continueWatchingProgress': continueWatchingProgress,
       'seasons': seasons.map((s) => s.toJson()).toList(),
+      'processingStatus': processingStatus.name,
+      if (transcodeJobId != null) 'transcodeJobId': transcodeJobId,
     };
   }
 }

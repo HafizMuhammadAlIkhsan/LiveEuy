@@ -9,18 +9,26 @@ class ApiService {
   final ApiClient _client;
   final ApiClient _authClient;
   final ApiClient _catalogClient;
+  final ApiClient _trendingClient;
+  final ApiClient _transcoderClient;
 
   ApiService({
     ApiClient? client,
     ApiClient? authClient,
     ApiClient? catalogClient,
+    ApiClient? trendingClient,
+    ApiClient? transcoderClient,
   })  : _client = client ?? ApiClient(),
         _authClient = authClient ?? client ?? ApiClient(baseUrl: ApiConfig.authBaseUrl),
-        _catalogClient = catalogClient ?? client ?? ApiClient(baseUrl: ApiConfig.catalogBaseUrl);
+        _catalogClient = catalogClient ?? client ?? ApiClient(baseUrl: ApiConfig.catalogBaseUrl),
+        _trendingClient = trendingClient ?? client ?? ApiClient(baseUrl: ApiConfig.trendingBaseUrl),
+        _transcoderClient = transcoderClient ?? client ?? ApiClient(baseUrl: ApiConfig.transcoderBaseUrl);
 
   ApiClient get client => _client;
   ApiClient get authClient => _authClient;
   ApiClient get catalogClient => _catalogClient;
+  ApiClient get trendingClient => _trendingClient;
+  ApiClient get transcoderClient => _transcoderClient;
 
   // ==========================================
   // 1. Katalog Media & Konten
@@ -95,6 +103,74 @@ class ApiService {
           .toList(),
     );
     return response.data ?? [];
+  }
+
+  // ==========================================
+  // Trending & Recommendation (Go Fiber :3000)
+  // ==========================================
+
+  /// Mengambil daftar media trending secara real-time (`GET /api/v1/trending`)
+  Future<List<Movie>> getTrendingMedia({int limit = 10}) async {
+    try {
+      final response = await _trendingClient.get<List<Movie>>(
+        ApiConfig.trendingPath,
+        queryParams: {'limit': limit},
+        fromJson: (data) {
+          final list = data is List
+              ? data
+              : (data is Map && data['data'] is List ? data['data'] as List : []);
+          return list
+              .map((item) => Movie.fromJson(item as Map<String, dynamic>))
+              .toList();
+        },
+      );
+      return response.data ?? [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Mengirim interaksi media ke Redis ZSET trending (`POST /api/v1/trending/interact`)
+  /// [interactionType] dapat bernilai: 'view' | 'click' | 'play' | 'watchlist'
+  Future<bool> recordTrendingInteraction({
+    required String mediaId,
+    required String interactionType,
+    double? score,
+  }) async {
+    try {
+      final response = await _trendingClient.post<Map<String, dynamic>>(
+        ApiConfig.trendingInteractPath,
+        body: {
+          'mediaId': mediaId,
+          'interactionType': interactionType,
+          if (score != null) 'score': score,
+        },
+      );
+      return response.isSuccess;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // ==========================================
+  // Transcoder & Adaptive Streaming (Go Gin :8082)
+  // ==========================================
+
+  /// Mengambil URL HLS master playlist untuk streaming adaptif
+  String getHlsStreamUrl(String mediaId, {String playlist = 'master.m3u8'}) {
+    return '${ApiConfig.transcoderBaseUrl}${ApiConfig.transcoderStreamPath(mediaId, playlist: playlist)}';
+  }
+
+  /// Mengecek status transcode video (`GET /api/v1/transcoder/status/:jobId`)
+  Future<Map<String, dynamic>?> getTranscodeStatus(String jobId) async {
+    try {
+      final response = await _transcoderClient.get<Map<String, dynamic>>(
+        ApiConfig.transcoderStatusPath(jobId),
+      );
+      return response.data;
+    } catch (_) {
+      return null;
+    }
   }
 
   // ==========================================

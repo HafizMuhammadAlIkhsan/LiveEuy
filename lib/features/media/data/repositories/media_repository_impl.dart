@@ -123,4 +123,21 @@ class MediaRepositoryImpl implements MediaRepository {
     } catch (_) {}
     return const Right(null);
   }
+
+  @override
+  Future<Either<Failure, List<Movie>>> getTrendingMedia({int limit = 10}) async {
+    try {
+      final movies = await remoteDataSource.getTrendingMedia(limit: limit);
+      return Right(movies);
+    } catch (e) {
+      return const Right([]);
+    }
+  }
+
+  @override
+  Future<void> recordInteraction({required String mediaId, required String interactionType, double? score}) async {
+    try {
+      await remoteDataSource.recordInteraction(mediaId: mediaId, interactionType: interactionType, score: score);
+    } catch (_) {}
+  }
 }

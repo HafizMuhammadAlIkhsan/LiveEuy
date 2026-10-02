@@ -1,3 +1,5 @@
+import 'movie_model.dart';
+
 class Episode {
   final String id;
   final int episodeNumber;
@@ -8,6 +10,8 @@ class Episode {
   final String thumbnailUrl;
   final String videoUrl;
   final double progress; // 0.0 to 1.0
+  final ProcessingStatus processingStatus;
+  final String? transcodeJobId;
 
   const Episode({
     required this.id,
@@ -19,7 +23,37 @@ class Episode {
     required this.thumbnailUrl,
     required this.videoUrl,
     this.progress = 0.0,
+    this.processingStatus = ProcessingStatus.ready,
+    this.transcodeJobId,
   });
+
+  Episode copyWith({
+    String? id,
+    int? episodeNumber,
+    int? seasonNumber,
+    String? title,
+    String? duration,
+    String? synopsis,
+    String? thumbnailUrl,
+    String? videoUrl,
+    double? progress,
+    ProcessingStatus? processingStatus,
+    String? transcodeJobId,
+  }) {
+    return Episode(
+      id: id ?? this.id,
+      episodeNumber: episodeNumber ?? this.episodeNumber,
+      seasonNumber: seasonNumber ?? this.seasonNumber,
+      title: title ?? this.title,
+      duration: duration ?? this.duration,
+      synopsis: synopsis ?? this.synopsis,
+      thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
+      videoUrl: videoUrl ?? this.videoUrl,
+      progress: progress ?? this.progress,
+      processingStatus: processingStatus ?? this.processingStatus,
+      transcodeJobId: transcodeJobId ?? this.transcodeJobId,
+    );
+  }
 
   factory Episode.fromJson(Map<String, dynamic> json) {
     String formattedDuration = json['duration'] as String? ?? '';
@@ -47,6 +81,9 @@ class Episode {
           '',
       videoUrl: json['videoUrl'] as String? ?? '',
       progress: (json['progress'] as num?)?.toDouble() ?? 0.0,
+      processingStatus: ProcessingStatus.fromString(
+          json['processingStatus'] as String? ?? json['status'] as String?),
+      transcodeJobId: json['transcodeJobId'] as String?,
     );
   }
 
@@ -61,6 +98,8 @@ class Episode {
       'thumbnailUrl': thumbnailUrl,
       'videoUrl': videoUrl,
       'progress': progress,
+      'processingStatus': processingStatus.name,
+      if (transcodeJobId != null) 'transcodeJobId': transcodeJobId,
     };
   }
 }

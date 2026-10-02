@@ -13,6 +13,8 @@ abstract class MediaRemoteDataSource {
   Future<void> removeWatchlistBatch(List<String> movieIds);
   Future<Review?> addReview({required String mediaId, required double rating, required String comment, required String userName});
   Future<WatchProgress?> syncWatchProgress({required String mediaId, required double progress, String? lastEpisodeId});
+  Future<List<Movie>> getTrendingMedia({int limit = 10});
+  Future<void> recordInteraction({required String mediaId, required String interactionType, double? score});
 }
 
 class MediaRemoteDataSourceImpl implements MediaRemoteDataSource {
@@ -89,5 +91,21 @@ class MediaRemoteDataSourceImpl implements MediaRemoteDataSource {
     } catch (e) {
       throw app_exceptions.ServerException(message: e.toString());
     }
+  }
+
+  @override
+  Future<List<Movie>> getTrendingMedia({int limit = 10}) async {
+    try {
+      return await apiService.getTrendingMedia(limit: limit);
+    } catch (e) {
+      throw app_exceptions.ServerException(message: e.toString());
+    }
+  }
+
+  @override
+  Future<void> recordInteraction({required String mediaId, required String interactionType, double? score}) async {
+    try {
+      await apiService.recordTrendingInteraction(mediaId: mediaId, interactionType: interactionType, score: score);
+    } catch (_) {}
   }
 }

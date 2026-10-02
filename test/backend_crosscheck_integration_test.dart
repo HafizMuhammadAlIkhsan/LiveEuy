@@ -1,8 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:liveeuy_mob/core/network/api_config.dart';
 import 'package:liveeuy_mob/core/network/dio_exception.dart';
 import 'package:liveeuy_mob/core/network/dio_interceptor.dart';
 import 'package:liveeuy_mob/models/auth_response_model.dart';
 import 'package:liveeuy_mob/models/movie_model.dart';
+import 'package:liveeuy_mob/models/episode_model.dart';
 import 'package:liveeuy_mob/providers/search_provider.dart';
 
 void main() {
@@ -134,6 +136,63 @@ void main() {
       notifier.setCountryFilter('Semua');
       expect(notifier.state.countryFilter, 'Semua');
       expect(notifier.state.results, isNotEmpty);
+    });
+
+    test('ApiConfig supports Unified Gateway, Trending, and Transcoder endpoints', () {
+      expect(ApiConfig.gatewayPort, 80);
+      expect(ApiConfig.trendingPort, 3000);
+      expect(ApiConfig.transcoderPort, 8082);
+
+      expect(ApiConfig.trendingPath, '/trending');
+      expect(ApiConfig.trendingInteractPath, '/trending/interact');
+      expect(ApiConfig.transcoderStreamPath('m1'), '/transcoder/stream/m1/master.m3u8');
+      expect(ApiConfig.transcoderStreamPath('m1', playlist: '720p.m3u8'), '/transcoder/stream/m1/720p.m3u8');
+      expect(ApiConfig.transcoderStatusPath('job-123'), '/transcoder/status/job-123');
+
+      // Test runtime overrides
+      ApiConfig.setGatewayBaseUrl('http://gateway.liveeuy.id/api/v1');
+      expect(ApiConfig.gatewayBaseUrl, 'http://gateway.liveeuy.id/api/v1');
+      ApiConfig.setGatewayBaseUrl(null);
+
+      ApiConfig.setTrendingBaseUrl('http://trending.liveeuy.id/api/v1');
+      expect(ApiConfig.trendingBaseUrl, 'http://trending.liveeuy.id/api/v1');
+      ApiConfig.setTrendingBaseUrl(null);
+
+      ApiConfig.setTranscoderBaseUrl('http://transcoder.liveeuy.id/api/v1');
+      expect(ApiConfig.transcoderBaseUrl, 'http://transcoder.liveeuy.id/api/v1');
+      ApiConfig.setTranscoderBaseUrl(null);
+    });
+
+    test('Movie and Episode models handle processingStatus and transcodeJobId', () {
+      // Movie with transcoding info
+      final movie = Movie.fromJson({
+        'id': 'm-transcode-1',
+        'title': 'Gundala Transcoded',
+        'processingStatus': 'processing',
+        'transcodeJobId': 'job-456-uuid',
+      });
+      expect(movie.processingStatus, ProcessingStatus.processing);
+      expect(movie.transcodeJobId, 'job-456-uuid');
+      expect(movie.toJson()['processingStatus'], 'processing');
+      expect(movie.toJson()['transcodeJobId'], 'job-456-uuid');
+
+      // Episode with transcoding info
+      final episode = Episode.fromJson({
+        'id': 'ep-1',
+        'episodeNumber': 1,
+        'title': 'Pilot',
+        'processingStatus': 'ready',
+        'transcodeJobId': 'job-789-uuid',
+      });
+      expect(episode.processingStatus, ProcessingStatus.ready);
+      expect(episode.transcodeJobId, 'job-789-uuid');
+      expect(episode.toJson()['processingStatus'], 'ready');
+      expect(episode.toJson()['transcodeJobId'], 'job-789-uuid');
+
+      // Episode copyWith
+      final updatedEp = episode.copyWith(processingStatus: ProcessingStatus.failed);
+      expect(updatedEp.processingStatus, ProcessingStatus.failed);
+      expect(updatedEp.transcodeJobId, 'job-789-uuid');
     });
   });
 }

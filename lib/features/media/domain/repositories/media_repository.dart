@@ -12,4 +12,6 @@ abstract class MediaRepository {
   Future<Either<Failure, void>> removeWatchlistBatch(List<String> movieIds);
   Future<Either<Failure, Review?>> addReview({required String mediaId, required double rating, required String comment, String userName});
   Future<Either<Failure, void>> syncWatchProgress({required String mediaId, required double progress, String? lastEpisodeId});
+  Future<Either<Failure, List<Movie>>> getTrendingMedia({int limit = 10});
+  Future<void> recordInteraction({required String mediaId, required String interactionType, double? score});
 }

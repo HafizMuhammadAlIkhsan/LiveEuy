@@ -13,6 +13,7 @@ import '../../models/ad_model.dart';
 import '../../models/download_item.dart';
 import '../../models/episode_model.dart';
 import '../../models/movie_model.dart';
+import '../media/domain/repositories/media_repository.dart';
 import '../../providers/ad_provider.dart';
 import '../../providers/player_provider.dart';
 
@@ -191,8 +192,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       final filePath = widget.localFilePath ?? _resolvedOfflineItem!.localFilePath;
       _controller = VideoPlayerController.file(File(filePath));
     } else {
+      final videoUri = Uri.parse(widget.movie.videoUrl);
+      final isHls = widget.movie.videoUrl.contains('.m3u8') || widget.movie.videoUrl.contains('/transcoder/');
       _controller = VideoPlayerController.networkUrl(
-        Uri.parse(widget.movie.videoUrl),
+        videoUri,
+        formatHint: isHls ? VideoFormat.hls : null,
       );
     }
 
@@ -233,6 +237,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       if (!_prerollActive) {
         _controller.play();
         _startHideTimer();
+        _recordPlayInteraction();
       }
     } catch (e) {
       debugPrint('Video init error: $e');
@@ -289,6 +294,13 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     if (_isInitialized) {
       _controller.play();
       _startHideTimer();
+      _recordPlayInteraction();
+    }
+  }
+
+  void _recordPlayInteraction() {
+    if (Get.isRegistered<MediaRepository>()) {
+      Get.find<MediaRepository>().recordInteraction(mediaId: widget.movie.id, interactionType: 'play');
     }
   }
 

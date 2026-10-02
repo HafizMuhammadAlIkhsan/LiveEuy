@@ -109,12 +109,26 @@ class HomeController extends GetxController {
       }
     });
 
+    // Fetch real-time trending media from Go Fiber trending-service (:3000)
+    final trendingResult = await _repository.getTrendingMedia(limit: 10);
+    trendingResult.fold((_) {}, (trendingMedia) {
+      if (trendingMedia.isNotEmpty) {
+        top10List.value = trendingMedia;
+      }
+    });
+
     isLoading.value = false;
   }
 
   Future<void> toggleWatchlist(String movieId) async {
+    final willAdd = !watchlistIds.contains(movieId);
     final updated = Set<String>.from(watchlistIds);
-    if (updated.contains(movieId)) { updated.remove(movieId); } else { updated.add(movieId); }
+    if (willAdd) {
+      updated.add(movieId);
+      _repository.recordInteraction(mediaId: movieId, interactionType: 'watchlist');
+    } else {
+      updated.remove(movieId);
+    }
     watchlistIds.assignAll(updated);
 
     final result = await _toggleWatchlistUseCase(movieId);
@@ -126,6 +140,10 @@ class HomeController extends GetxController {
         watchlistIds.assignAll(synced);
       },
     );
+  }
+
+  void recordMediaClick(String mediaId) {
+    _repository.recordInteraction(mediaId: mediaId, interactionType: 'click');
   }
 
   Future<void> removeMultipleFromWatchlist(Iterable<String> movieIds) async {
