@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="id" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/icons/icon.svg" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#08090d" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="LiveEuy" />
+    <!-- Security & Headers -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' blob:; worker-src 'self' blob:; manifest-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://images.unsplash.com https://i.ytimg.com https://commondatastorage.googleapis.com https://via.placeholder.com; media-src 'self' blob: https://commondatastorage.googleapis.com https://test-streams.mux.dev https://bitdash-a.akamaihd.net https://multiplatform-f.akamaihd.net http://localhost:* https://*.cloudfront.net https://*.cloudflarestream.com; connect-src 'self' http://localhost:* ws://localhost:* https://*.googleapis.com https://test-streams.mux.dev https://commondatastorage.googleapis.com; object-src 'none'; base-uri 'self'; form-action 'self';" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+
+    <!-- Anti-Clickjacking Frame Buster Defense -->
+    <style id="antiClickjack">body{display:none !important;}</style>
+    <script type="text/javascript">
+      if (self === top) {
+        var antiClickjack = document.getElementById("antiClickjack");
+        if (antiClickjack && antiClickjack.parentNode) {
+          antiClickjack.parentNode.removeChild(antiClickjack);
+        }
+      } else {
+        top.location = self.location;
+      }
+    </script>
+
+    <!-- Primary Meta Tags -->
+    <title>LiveEuy - Sinema 4K & Serial Pilihan</title>
+    <meta name="title" content="LiveEuy - Sinema 4K & Serial Pilihan" />
+    <meta name="description" content="Platform streaming film bioskop 4K UHD, serial TV orisinal, dan kurasi sinema berkualitas tinggi di laptop dan smartphone tanpa jeda iklan." />
+    <meta name="keywords" content="streaming film, nonton film bioskop, 4k uhd, serial tv, drama indonesia, liveeuy sinema" />
+    <meta name="robots" content="index, follow" />
+
+    <!-- Open Graph / Facebook / WhatsApp -->
+    <meta property="og:type" content="video.movie" />
+    <meta property="og:site_name" content="LiveEuy Sinema" />
+    <meta property="og:locale" content="id_ID" />
+    <meta property="og:title" content="LiveEuy - Sinema 4K & Serial Pilihan" />
+    <meta property="og:description" content="Tonton ribuan mahakarya sinema, serial orisinal eksklusif, dan film festival dalam fidelitas 4K UHD & Dolby Atmos." />
+    <meta property="og:image" content="https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=1200&auto=format&fit=crop&q=80" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="LiveEuy - Sinema 4K & Serial Pilihan" />
+    <meta name="twitter:description" content="Tonton ribuan mahakarya sinema, serial orisinal eksklusif, dan film festival dalam fidelitas 4K UHD & Dolby Atmos." />
+    <meta name="twitter:image" content="https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=1200&auto=format&fit=crop&q=80" />
+
+    <!-- Google Web Fonts Preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  </head>
+  <body class="bg-[#08090d] text-gray-100 antialiased selection:bg-brand-500 selection:text-white min-h-screen">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

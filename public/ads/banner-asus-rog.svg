@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 866 78" width="100%" height="100%">
+  <defs>
+    <!-- ROG Cyberpunk Dark Purple Gradient -->
+    <linearGradient id="bgRog" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a051b"/>
+      <stop offset="35%" stop-color="#1e1035"/>
+      <stop offset="70%" stop-color="#2d124d"/>
+      <stop offset="100%" stop-color="#05020d"/>
+    </linearGradient>
+
+    <!-- Neon Magenta/Purple Gradient -->
+    <linearGradient id="neonMagenta" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f43f5e"/>
+      <stop offset="50%" stop-color="#ec4899"/>
+      <stop offset="100%" stop-color="#d946ef"/>
+    </linearGradient>
+
+    <!-- Cyber Cyan Gradient -->
+    <linearGradient id="cyberCyan" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#818cf8"/>
+    </linearGradient>
+
+    <filter id="dropShadowRog" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="2" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.9"/>
+    </filter>
+
+    <filter id="glowRog" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Banner Rounded Background -->
+  <rect x="1" y="1" width="864" height="76" rx="10" fill="url(#bgRog)" stroke="#c084fc" stroke-opacity="0.4" stroke-width="1.5"/>
+
+  <!-- Background Lighting Accents -->
+  <circle cx="120" cy="39" r="60" fill="#a855f7" opacity="0.25"/>
+  <ellipse cx="650" cy="39" rx="110" ry="35" fill="#f43f5e" opacity="0.2"/>
+
+  <!-- Left: ROG Eye Logo & Badge -->
+  <g transform="translate(24, 13)" filter="url(#dropShadowRog)">
+    <rect x="0" y="0" width="52" height="52" rx="10" fill="#130826" stroke="#c084fc" stroke-width="1.5"/>
+    <!-- Stylized ROG Eye Motif -->
+    <path d="M12 28 Q26 14 40 24 Q30 38 12 28 Z" fill="url(#neonMagenta)" filter="url(#glowRog)"/>
+    <path d="M22 26 Q28 20 34 25 Q28 32 22 26 Z" fill="#ffffff"/>
+  </g>
+
+  <!-- Brand Title & Tagline -->
+  <g transform="translate(90, 0)" filter="url(#dropShadowRog)">
+    <text x="0" y="46" font-family="'Arial Black', 'Impact', sans-serif" font-weight="900" font-size="30" fill="#ffffff" stroke="#130826" stroke-width="1.5" letter-spacing="0.5">
+      ASUS ROG
+    </text>
+    <rect x="180" y="24" width="105" height="18" rx="5" fill="#701a75" stroke="#f472b6" stroke-width="0.8"/>
+    <text x="232.5" y="36.5" font-family="'Segoe UI', sans-serif" font-weight="900" font-size="9" fill="#fbcfe8" text-anchor="middle" letter-spacing="1">
+      OLED CINEMA
+    </text>
+    <text x="0" y="65" font-family="'Segoe UI', sans-serif" font-weight="700" font-size="11" fill="#e9d5ff" letter-spacing="0.5">
+      Layar 240Hz Dolby Vision — Sensasi Bioskop Pribadi di Rumah
+    </text>
+  </g>
+
+  <!-- Right: Promo CTA Pill Button -->
+  <g transform="translate(680, 19)" filter="url(#dropShadowRog)">
+    <rect x="0" y="0" width="162" height="40" rx="20" fill="url(#neonMagenta)" stroke="#fdf4ff" stroke-width="1.2"/>
+    <text x="70" y="25" font-family="'Arial Black', sans-serif" font-weight="900" font-size="12" fill="#ffffff" text-anchor="middle" letter-spacing="0.5">
+      LIHAT PROMO ROG
+    </text>
+    <circle cx="142" cy="20" r="12" fill="#4a044e"/>
+    <path d="M139 15 L145 20 L139 25" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </g>
+</svg>
