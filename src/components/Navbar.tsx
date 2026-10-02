@@ -25,11 +25,6 @@ import {
   Laptop,
   ShieldAlert,
   Loader2,
-  Users,
-  Baby,
-  Lock,
-  Smile,
-  Plus,
   Download
 } from 'lucide-react';
 import { useWatch } from '../context/WatchContext';
@@ -54,12 +49,7 @@ export const Navbar: React.FC = () => {
     openDeviceSecurityModal,
     visitorSessions,
     login,
-    broadcastAnnouncement,
-    profiles,
-    activeProfile,
-    isKidsMode,
-    openFamilyModal,
-    switchProfile
+    broadcastAnnouncement
   } = useWatch();
 
   const navigate = useNavigate();
@@ -249,12 +239,6 @@ export const Navbar: React.FC = () => {
                 {isInAdminPage && (
                   <span className="px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 uppercase">
                     CMS
-                  </span>
-                )}
-                {isKidsMode && !isInAdminPage && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black tracking-wider bg-gradient-to-r from-amber-400 to-emerald-400 text-black shadow-sm flex items-center gap-1 uppercase select-none animate-pulse">
-                    <Smile className="w-3 h-3" />
-                    <span>KIDS</span>
                   </span>
                 )}
               </Link>
@@ -486,30 +470,6 @@ export const Navbar: React.FC = () => {
                 )}
               </div>
 
-              {/* FAMILY & KIDS MODE BUTTON */}
-              {isKidsMode ? (
-                <button
-                  type="button"
-                  onClick={() => openFamilyModal()}
-                  className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 transition-all min-h-[36px] shadow-sm cursor-pointer"
-                  title="Mode Anak Aktif. Klik untuk beralih profil atau keluar."
-                >
-                  <Smile className="w-3.5 h-3.5 text-amber-400" />
-                  <span className="hidden xs:inline">Mode Anak</span>
-                  <Lock className="w-3 h-3 text-amber-400/80" />
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => openFamilyModal()}
-                  className="hidden sm:flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 hover:border-brand-500/40 transition-all min-h-[36px] shadow-sm cursor-pointer group"
-                  title="Buka Profil Akun Keluarga & Mode Anak"
-                >
-                  <Users className="w-3.5 h-3.5 text-brand-400 group-hover:scale-110 transition-transform" />
-                  <span className="hidden md:inline font-medium">Keluarga</span>
-                </button>
-              )}
-
 
               {/* Notification Popover */}
               <div className="relative" ref={notifRef}>
@@ -584,21 +544,12 @@ export const Navbar: React.FC = () => {
                       aria-label="Profil Pengguna"
                     >
                       {/* Netflix-style clean square avatar */}
-                      <div className={`relative w-7 h-7 sm:w-8 sm:h-8 rounded-md overflow-hidden bg-surface-800 border transition-all ${
-                        isKidsMode 
-                          ? 'border-amber-400 ring-2 ring-amber-400/30' 
-                          : 'border-white/20 hover:border-white/40'
-                      }`}>
+                      <div className="relative w-7 h-7 sm:w-8 sm:h-8 rounded-md overflow-hidden bg-surface-800 border border-white/20 hover:border-white/40 transition-all">
                         <img
-                          src={activeProfile?.avatar || user.avatar}
-                          alt={activeProfile?.name || user.name}
+                          src={user.avatar}
+                          alt={user.name}
                           className="w-full h-full object-cover"
                         />
-                        {isKidsMode && (
-                          <div className="absolute bottom-0 inset-x-0 bg-amber-500 text-black text-[7px] font-black text-center leading-none py-0.5">
-                            KIDS
-                          </div>
-                        )}
                       </div>
                       <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden sm:block" />
                     </button>
@@ -624,15 +575,10 @@ export const Navbar: React.FC = () => {
                               <div className="flex items-center gap-2.5 min-w-0">
                                 <div className="relative w-8 h-8 rounded-lg overflow-hidden bg-surface-800 border border-white/20 flex-shrink-0 shadow-sm">
                                   <img
-                                    src={activeProfile?.avatar || user.avatar}
-                                    alt={activeProfile?.name || user.name}
+                                    src={user.avatar}
+                                    alt={user.name}
                                     className="w-full h-full object-cover"
                                   />
-                                  {isKidsMode && (
-                                    <div className="absolute bottom-0 inset-x-0 bg-amber-500 text-black text-[7px] font-black text-center leading-none py-0.5">
-                                      KIDS
-                                    </div>
-                                  )}
                                 </div>
                                 <div className="min-w-0">
                                   <div className="flex items-center gap-1.5">
@@ -671,92 +617,8 @@ export const Navbar: React.FC = () => {
 
                           {/* 2. Scrollable Body with Brand Harmonized Scrollbar */}
                           <div className="flex-1 overflow-y-auto overscroll-contain p-2 sm:p-2.5 pr-1.5 sm:pr-2 space-y-1.5 divide-y divide-white/5 custom-scrollbar profile-scrollbar">
-                            {/* Quick Family Profiles Switcher */}
-                            <div className="px-1.5 py-1 pb-2">
-                              <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-                                <span>Profil Aktif:</span>
-                                <span className={activeProfile.isKids ? 'text-amber-400 font-extrabold' : 'text-brand-400 font-extrabold'}>
-                                  {activeProfile.name}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-                                {profiles.map(p => (
-                                  <button
-                                    key={p.id}
-                                    type="button"
-                                    onClick={() => {
-                                      if (activeProfile.isKids && !p.isKids) {
-                                        openFamilyModal();
-                                        setShowProfileMenu(false);
-                                      } else {
-                                        switchProfile(p.id);
-                                        setShowProfileMenu(false);
-                                      }
-                                    }}
-                                    className="relative flex flex-col items-center flex-shrink-0 group cursor-pointer"
-                                    title={`${p.name}${p.isKids ? ' (Mode Anak)' : ''}`}
-                                  >
-                                    <div className={`w-8 h-8 rounded-lg overflow-hidden border-2 transition-all ${
-                                      p.id === activeProfile.id
-                                        ? 'border-brand-400 scale-105 shadow-md shadow-brand-500/40 ring-2 ring-brand-500/30'
-                                        : 'border-white/20 opacity-70 group-hover:opacity-100 group-hover:border-white/40'
-                                    }`}>
-                                      <img src={p.avatar} alt={p.name} className="w-full h-full object-cover" />
-                                    </div>
-                                    <span className="text-[9px] text-slate-300 truncate max-w-[48px] mt-1 font-medium">
-                                      {p.name.split(' ')[0]}
-                                    </span>
-                                  </button>
-                                ))}
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    openFamilyModal();
-                                    setShowProfileMenu(false);
-                                  }}
-                                  className="w-8 h-8 rounded-lg border border-dashed border-white/30 hover:border-brand-400 hover:bg-brand-500/10 flex items-center justify-center text-slate-400 hover:text-brand-300 transition-colors flex-shrink-0 mb-3 cursor-pointer"
-                                  title="Kelola Profil & Akun Keluarga"
-                                >
-                                  <Plus className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            </div>
-
                             {/* Menu Options */}
-                            <div className="pt-1.5 space-y-0.5">
-                              {/* Kelola Profil & Family Sharing Button */}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  openFamilyModal();
-                                  setShowProfileMenu(false);
-                                }}
-                                className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-200 hover:text-white hover:bg-white/5 active:bg-white/10 transition-colors font-medium min-h-[38px] cursor-pointer"
-                              >
-                                <span className="flex items-center gap-2.5">
-                                  <Users className="w-4 h-4 text-brand-400" />
-                                  <span>Profil & Family Sharing</span>
-                                </span>
-                                <span className="text-[10px] text-slate-400 font-mono bg-white/5 px-1.5 py-0.5 rounded">
-                                  {profiles.length}/5
-                                </span>
-                              </button>
-
-                              {/* Quick Toggle Kids Mode */}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  openFamilyModal();
-                                  setShowProfileMenu(false);
-                                }}
-                                className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 active:bg-amber-500/20 transition-colors font-medium min-h-[38px] cursor-pointer"
-                              >
-                                <span className="flex items-center gap-2.5">
-                                  <Smile className="w-4 h-4 text-amber-400" />
-                                  <span>{isKidsMode ? 'Keluar Mode Anak' : 'Beralih ke Mode Anak'}</span>
-                                </span>
-                                {isKidsMode && <Lock className="w-3.5 h-3.5 text-amber-400" />}
-                              </button>
+                            <div className="pt-1 space-y-0.5">
 
                               {/* Admin CMS Button */}
                               {isAdminUser && (
@@ -1087,7 +949,7 @@ export const Navbar: React.FC = () => {
                 showProfileMenu ? 'border-brand-400 ring-2 ring-brand-500/40' : 'border-white/30'
               }`}>
                 <img
-                  src={activeProfile?.avatar || user?.avatar}
+                  src={user?.avatar}
                   alt={user?.name || 'Profil'}
                   className="w-full h-full object-cover"
                 />

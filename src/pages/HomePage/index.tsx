@@ -40,10 +40,7 @@ export const HomePage: React.FC = () => {
     user, 
     isLoggedIn, 
     openAuthModal,
-    featuredOrder,
-    isKidsMode,
-    activeProfile,
-    openFamilyModal
+    featuredOrder
   } = useWatch();
 
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -288,7 +285,7 @@ export const HomePage: React.FC = () => {
               </div>
             </section>
           )
-        ) : !isKidsMode ? (
+        ) : (
           /* GUEST USER: CLOUD SYNC PROMPT TEASER */
           <section className="cinema-layout-container">
             <div className="rounded-2xl bg-[#0c0e14]/90 border border-white/[0.08] p-5 sm:p-7 flex flex-col md:flex-row items-center justify-between gap-5 shadow-lg">
@@ -310,40 +307,6 @@ export const HomePage: React.FC = () => {
               >
                 <LogIn className="w-4 h-4 text-brand-400" />
                 <span>Masuk & Sinkronkan</span>
-              </button>
-            </div>
-          </section>
-        ) : null}
-
-        {/* KIDS MODE SPECIAL CELEBRATION HEADER */}
-        {isKidsMode && (
-          <section className="cinema-layout-container pt-2">
-            <div className="p-4 sm:p-6 rounded-3xl bg-gradient-to-r from-amber-500/20 via-emerald-500/15 to-brand-500/20 border border-amber-500/30 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl animate-fade-in">
-              <div className="flex items-center gap-3 sm:gap-4 text-center sm:text-left">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-amber-400 text-black flex items-center justify-center font-black shadow-lg text-2xl flex-shrink-0">
-                  🎈
-                </div>
-                <div>
-                  <div className="flex items-center justify-center sm:justify-start gap-2">
-                    <h2 className="text-base sm:text-xl font-black text-white">
-                      Halo {activeProfile.name}! Selamat Datang di Dunia Anak
-                    </h2>
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-amber-400 text-black uppercase">
-                      KIDS ZONE
-                    </span>
-                  </div>
-                  <p className="text-xs sm:text-sm text-slate-300 mt-1">
-                    Semua film & kartun di sini aman berkategori Semua Umur (SU), ramah keluarga, dan bebas konten dewasa.
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => openFamilyModal()}
-                className="px-4 py-2 rounded-xl glass-panel hover:bg-white/20 text-white text-xs font-bold transition-all flex items-center gap-1.5 flex-shrink-0 cursor-pointer"
-              >
-                <span>Kelola Profil</span>
               </button>
             </div>
           </section>
@@ -442,7 +405,7 @@ export const HomePage: React.FC = () => {
         {/* ========================================================
             GUEST ONLY SECTION: SUBSCRIPTION PLANS & FAQ
             ======================================================== */}
-        {!isLoggedIn && !isKidsMode && (
+        {!isLoggedIn && (
           <section className="cinema-layout-container space-y-10 pt-6">
             
             {/* Subscription Tier Cards - Architectural Cinema Passes */}

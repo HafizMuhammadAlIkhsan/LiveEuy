@@ -9,7 +9,6 @@ import { DetailModal } from './components/DetailModal';
 import { AuthModal } from './components/AuthModal';
 import { MobileSyncModal } from './components/MobileSyncModal';
 import { PartnershipModal } from './components/PartnershipModal';
-import { FamilyProfilesModal } from './components/FamilyProfilesModal';
 import { Footer } from './components/Footer';
 import { HomePage } from './pages/HomePage';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -133,7 +132,6 @@ const MainContent: React.FC = () => {
       <AuthModal />
       <MobileSyncModal />
       <PartnershipModal />
-      <FamilyProfilesModal />
 
       {/* Heavy Modals (Isolated in their own Error Boundary) */}
       <ErrorBoundary fallbackTitle="Pemutar Video Mengalami Kendala">

@@ -3,7 +3,6 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { Navbar } from '../components/Navbar';
-import { FamilyProfilesModal } from '../components/FamilyProfilesModal';
 import { WatchProvider, useWatch } from '../context/WatchContext';
 
 describe('Profile Menu & Logout Responsiveness Suite', () => {
@@ -71,40 +70,25 @@ describe('Profile Menu & Logout Responsiveness Suite', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('provides logout buttons inside FamilyProfilesModal', () => {
-    // Helper component to open family modal
-    const TriggerWrapper = () => {
-      const { openFamilyModal } = useWatch();
-      return (
-        <div>
-          <button onClick={openFamilyModal}>Buka Family Modal</button>
-          <FamilyProfilesModal />
-        </div>
-      );
-    };
-
+  it('does not render Family button in navbar and keeps profile menu clean of family sharing', () => {
     render(
       <MemoryRouter initialEntries={['/']}>
         <WatchProvider>
-          <TriggerWrapper />
+          <Navbar />
         </WatchProvider>
       </MemoryRouter>
     );
 
-    // Open the family profiles modal
-    fireEvent.click(screen.getByText('Buka Family Modal'));
+    // Family button should not exist in the navbar
+    const familyBtn = screen.queryByRole('button', { name: /Keluarga|Profil Akun Keluarga/i });
+    expect(familyBtn).not.toBeInTheDocument();
 
-    // Verify modal is open and has logout buttons and harmonized scrollbar
-    const modalDialog = screen.getByRole('dialog');
-    const modalScrollContainer = modalDialog.querySelector('.profile-scrollbar');
-    expect(modalScrollContainer).toBeInTheDocument();
-    expect(modalScrollContainer).toHaveClass('custom-scrollbar');
+    // Open profile menu
+    const profileTrigger = screen.getAllByRole('button', { name: /Profil Pengguna|Profil Akun/i })[0];
+    fireEvent.click(profileTrigger);
 
-    const logoutButtons = screen.getAllByRole('button', { name: /Keluar Akun \(Logout\)|Keluar/i });
-    expect(logoutButtons.length).toBeGreaterThan(0);
-
-    // Click logout inside FamilyProfilesModal
-    fireEvent.click(logoutButtons[0]);
+    // Family Sharing should not exist in profile menu
+    expect(screen.queryByText(/Family Sharing/i)).not.toBeInTheDocument();
   });
 
   it('does not render CMS Admin button in the navbar for a clean aesthetic', () => {
