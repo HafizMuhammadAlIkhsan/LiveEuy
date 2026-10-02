@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:liveeuy_mob/main.dart';
+import 'test_helper.dart';
 
 void main() {
   testWidgets('Test clicking profile tab and profile avatar', (tester) async {
@@ -10,11 +10,9 @@ void main() {
     tester.view.devicePixelRatio = 2.0;
     addTearDown(() => tester.view.resetPhysicalSize());
 
-    await tester.pumpWidget(
-      const ProviderScope(
-        child: LiveEuyApp(),
-      ),
-    );
+    await initTestDependencies();
+
+    await tester.pumpWidget(const LiveEuyApp());
     await tester.pump(const Duration(milliseconds: 200));
 
     // 1. Tap on AKUN tab in bottom nav

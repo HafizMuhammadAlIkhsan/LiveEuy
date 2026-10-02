@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:liveeuy_mob/main.dart';
 import 'package:liveeuy_mob/features/detail/content_detail_screen.dart';
+import 'test_helper.dart';
 
 class _MockHttpClient extends Fake implements HttpClient {
   @override
@@ -81,11 +81,9 @@ void main() {
     tester.view.devicePixelRatio = 2.0;
     addTearDown(() => tester.view.resetPhysicalSize());
 
-    await tester.pumpWidget(
-      const ProviderScope(
-        child: LiveEuyApp(),
-      ),
-    );
+    await initTestDependencies();
+
+    await tester.pumpWidget(const LiveEuyApp());
     await tester.pump(const Duration(milliseconds: 200));
 
     // Verify "Lanjutkan Menonton" section title exists

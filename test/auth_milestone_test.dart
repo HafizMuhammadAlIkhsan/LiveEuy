@@ -1,21 +1,21 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:liveeuy_mob/core/deeplink/deep_link_service.dart';
 import 'package:liveeuy_mob/core/network/api_client.dart';
 import 'package:liveeuy_mob/core/network/api_service.dart';
 import 'package:liveeuy_mob/features/auth/login_screen.dart';
+import 'package:liveeuy_mob/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:liveeuy_mob/main.dart';
 import 'package:liveeuy_mob/providers/auth_provider.dart';
+import 'test_helper.dart';
 
 void main() {
   setUpAll(() {
     TestWidgetsFlutterBinding.ensureInitialized();
-    GoogleFonts.config.allowRuntimeFetching = false;
   });
 
   group('Milestone 1: Endpoint Paths & Quota Tests (Ref: dev-backend-auth)', () {
@@ -124,8 +124,7 @@ void main() {
     });
 
     test('AuthNotifier executes forgotPassword, resetPassword, and changePassword methods', () async {
-      final container = ProviderContainer();
-      final notifier = container.read(authProvider.notifier);
+      final notifier = AuthNotifier();
 
       final forgotSuccess = await notifier.forgotPassword('user@liveeuy.id');
       expect(forgotSuccess, isTrue);
@@ -150,11 +149,11 @@ void main() {
       tester.view.devicePixelRatio = 2.0;
       addTearDown(() => tester.view.resetPhysicalSize());
 
+      await initTestDependencies(isLoggedIn: false);
+
       await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
-            home: LoginScreen(),
-          ),
+        const GetMaterialApp(
+          home: LoginScreen(),
         ),
       );
       await tester.pumpAndSettle();
@@ -210,16 +209,13 @@ void main() {
       tester.view.devicePixelRatio = 2.0;
       addTearDown(() => tester.view.resetPhysicalSize());
 
-      final container = ProviderContainer();
-      // Set user as logged in
-      container.read(authProvider.notifier).demoLogin('hafiz');
-
-      await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: container,
-          child: const LiveEuyApp(),
-        ),
+      await initTestDependencies(
+        isLoggedIn: true,
+        name: 'Hafiz Muhammad',
+        email: 'hafiz@streamflix.id',
       );
+
+      await tester.pumpWidget(const LiveEuyApp());
       await tester.pump(const Duration(milliseconds: 200));
 
       // 1. Navigate to AKUN tab
@@ -264,8 +260,7 @@ void main() {
 
   group('Milestone 1: Registration Flow & PIN Verification Tests (Ref: dev-frontend)', () {
     test('AuthNotifier verifyRegistrationPin and register with securityPin stores PIN', () async {
-      final container = ProviderContainer();
-      final notifier = container.read(authProvider.notifier);
+      final notifier = AuthNotifier();
 
       // Invalid PINs
       expect(await notifier.verifyRegistrationPin('user@test.id', '12'), isFalse);
@@ -285,7 +280,7 @@ void main() {
       );
       expect(registered, isTrue);
 
-      final user = container.read(authProvider);
+      final user = notifier.state;
       expect(user.isLoggedIn, isTrue);
       expect(user.name, equals('Budi Pratama'));
       expect(user.email, equals('budi@streamflix.id'));
@@ -293,7 +288,7 @@ void main() {
 
       // setSecurityPin updates PIN
       notifier.setSecurityPin('5678');
-      expect(container.read(authProvider).securityPin, equals('5678'));
+      expect(notifier.state.securityPin, equals('5678'));
     });
 
     testWidgets('Registration triggers PIN verification sheet, validates PIN, and completes registration', (tester) async {
@@ -301,14 +296,11 @@ void main() {
       tester.view.devicePixelRatio = 2.0;
       addTearDown(() => tester.view.resetPhysicalSize());
 
-      final container = ProviderContainer();
+      await initTestDependencies(isLoggedIn: false);
 
       await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: container,
-          child: const MaterialApp(
-            home: LoginScreen(initialTabIndex: 1),
-          ),
+        const GetMaterialApp(
+          home: LoginScreen(initialTabIndex: 1),
         ),
       );
       await tester.pumpAndSettle();
@@ -351,10 +343,10 @@ void main() {
       expect(find.text('Verifikasi PIN Akun'), findsNothing);
 
       // Verify user state
-      final user = container.read(authProvider);
-      expect(user.isLoggedIn, isTrue);
-      expect(user.securityPin, equals('1234'));
-      expect(user.name, equals('Ahmad Faisal'));
+      final user = Get.find<AuthController>().currentUser;
+      expect(user?.isLoggedIn, isTrue);
+      expect(user?.securityPin, equals('1234'));
+      expect(user?.name, equals('Ahmad Faisal'));
     });
 
     testWidgets('Forgot password sheet Step 2 quick demo token fills and resets password', (tester) async {
@@ -362,11 +354,11 @@ void main() {
       tester.view.devicePixelRatio = 2.0;
       addTearDown(() => tester.view.resetPhysicalSize());
 
+      await initTestDependencies(isLoggedIn: false);
+
       await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
-            home: LoginScreen(),
-          ),
+        const GetMaterialApp(
+          home: LoginScreen(),
         ),
       );
       await tester.pumpAndSettle();
@@ -442,8 +434,7 @@ void main() {
     });
 
     test('AuthNotifier executes verifyEmailPin and resendVerificationPin with 4-6 digits', () async {
-      final container = ProviderContainer();
-      final notifier = container.read(authProvider.notifier);
+      final notifier = AuthNotifier();
 
       expect(await notifier.verifyEmailPin('user@liveeuy.id', '1234'), isTrue);
       expect(await notifier.verifyEmailPin('user@liveeuy.id', '123456'), isTrue);

@@ -2,10 +2,11 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get/get.dart';
 import 'package:liveeuy_mob/features/collection/collection_screen.dart';
+import 'package:liveeuy_mob/features/media/presentation/controllers/home_controller.dart';
 import 'package:liveeuy_mob/main.dart';
-import 'package:liveeuy_mob/providers/media_provider.dart';
+import 'test_helper.dart';
 
 class _MockHttpClient extends Fake implements HttpClient {
   @override
@@ -83,11 +84,11 @@ void main() {
       tester.view.devicePixelRatio = 2.0;
       addTearDown(() => tester.view.resetPhysicalSize());
 
+      await initTestDependencies();
+
       await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
-            home: CollectionScreen(),
-          ),
+        const GetMaterialApp(
+          home: CollectionScreen(),
         ),
       );
       await tester.pump(const Duration(milliseconds: 200));
@@ -135,26 +136,17 @@ void main() {
 
       bool navigatedHome = false;
 
-      // Provide custom empty media state
-      const emptyState = MediaState(
-        heroList: [],
-        continueWatching: [],
-        top10List: [],
-        popularList: [],
-        actionSciFiList: [],
-        watchlistIds: {},
-        movieReviews: {},
-      );
+      await initTestDependencies();
+      final homeCtrl = Get.find<HomeController>();
+      homeCtrl.watchlistIds.clear();
+      homeCtrl.continueWatching.clear();
 
       await tester.pumpWidget(
-        ProviderScope(
-          child: MaterialApp(
-            home: CollectionScreen(
-              mediaState: emptyState,
-              onNavigateHome: () {
-                navigatedHome = true;
-              },
-            ),
+        GetMaterialApp(
+          home: CollectionScreen(
+            onNavigateHome: () {
+              navigatedHome = true;
+            },
           ),
         ),
       );
@@ -181,10 +173,10 @@ void main() {
       tester.view.devicePixelRatio = 2.0;
       addTearDown(() => tester.view.resetPhysicalSize());
 
+      await initTestDependencies();
+
       await tester.pumpWidget(
-        const ProviderScope(
-          child: LiveEuyApp(),
-        ),
+        const LiveEuyApp(),
       );
       await tester.pump(const Duration(milliseconds: 200));
 
@@ -203,11 +195,11 @@ void main() {
       tester.view.devicePixelRatio = 2.0;
       addTearDown(() => tester.view.resetPhysicalSize());
 
+      await initTestDependencies();
+
       await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
-            home: CollectionScreen(),
-          ),
+        const GetMaterialApp(
+          home: CollectionScreen(),
         ),
       );
       await tester.pump(const Duration(milliseconds: 200));
@@ -261,11 +253,11 @@ void main() {
       tester.view.devicePixelRatio = 2.0;
       addTearDown(() => tester.view.resetPhysicalSize());
 
+      await initTestDependencies();
+
       await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
-            home: CollectionScreen(),
-          ),
+        const GetMaterialApp(
+          home: CollectionScreen(),
         ),
       );
       await tester.pump(const Duration(milliseconds: 200));

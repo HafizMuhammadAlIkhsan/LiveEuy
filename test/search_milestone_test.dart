@@ -1,20 +1,19 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:liveeuy_mob/core/network/api_client.dart';
 import 'package:liveeuy_mob/core/network/api_service.dart';
 import 'package:liveeuy_mob/features/search/search_screen.dart';
 import 'package:liveeuy_mob/providers/search_provider.dart';
+import 'test_helper.dart';
 
 void main() {
   setUpAll(() {
     TestWidgetsFlutterBinding.ensureInitialized();
-    GoogleFonts.config.allowRuntimeFetching = false;
   });
 
   group('Milestone 2 - CancelToken Specification Tests', () {
@@ -111,10 +110,9 @@ void main() {
 
   group('Milestone 2 - SearchNotifier Pagination & Cancellation Tests', () {
     test('Initial search initializes with page 0, pageSize 10, and hasMore true', () {
-      final container = ProviderContainer();
-      final notifier = container.read(searchProvider.notifier);
+      final notifier = SearchNotifier();
+      final state = notifier.state;
 
-      final state = container.read(searchProvider);
       expect(state.currentPage, equals(0));
       expect(state.pageSize, equals(10));
       expect(state.results.length, lessThanOrEqualTo(10));
@@ -124,8 +122,7 @@ void main() {
     });
 
     test('Calling setQuery cancels prior token and triggers new search', () {
-      final container = ProviderContainer();
-      final notifier = container.read(searchProvider.notifier);
+      final notifier = SearchNotifier();
 
       final firstToken = notifier.currentCancelToken;
       expect(firstToken?.isCancelled, isFalse);
@@ -134,23 +131,22 @@ void main() {
       expect(firstToken?.isCancelled, isTrue);
       expect(notifier.currentCancelToken, isNot(equals(firstToken)));
 
-      final results = container.read(searchProvider).results;
+      final results = notifier.state.results;
       expect(results.any((m) => m.title == 'Gadis Kretek'), isTrue);
     });
 
     test('loadMore appends unique next slice and updates page counter', () async {
-      final container = ProviderContainer();
-      final notifier = container.read(searchProvider.notifier);
+      final notifier = SearchNotifier();
 
       // Reset to empty query to access entire mock catalog
       notifier.reset();
-      final initialCount = container.read(searchProvider).results.length;
+      final initialCount = notifier.state.results.length;
       expect(initialCount, equals(10));
-      expect(container.read(searchProvider).currentPage, equals(0));
+      expect(notifier.state.currentPage, equals(0));
 
       await notifier.loadMore();
 
-      final secondState = container.read(searchProvider);
+      final secondState = notifier.state;
       expect(secondState.currentPage, equals(1));
       expect(secondState.results.length, greaterThan(initialCount));
 
@@ -160,17 +156,16 @@ void main() {
     });
 
     test('loadMore stops loading when hasMore is false', () async {
-      final container = ProviderContainer();
-      final notifier = container.read(searchProvider.notifier);
+      final notifier = SearchNotifier();
 
       // Filter down to a single unique item
       notifier.setQuery('Gadis Kretek');
-      final state = container.read(searchProvider);
+      final state = notifier.state;
       expect(state.hasMore, isFalse);
 
       final countBefore = state.results.length;
       await notifier.loadMore();
-      final countAfter = container.read(searchProvider).results.length;
+      final countAfter = notifier.state.results.length;
 
       expect(countAfter, equals(countBefore));
     });
@@ -236,21 +231,17 @@ void main() {
       tester.view.devicePixelRatio = 2.0;
       addTearDown(() => tester.view.resetPhysicalSize());
 
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
+      await initTestDependencies();
 
       await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: container,
-          child: const MaterialApp(
-            home: SearchScreen(),
-          ),
+        const GetMaterialApp(
+          home: SearchScreen(),
         ),
       );
       await tester.pump(const Duration(milliseconds: 100));
 
       // Enter query that does not exist in mock catalog
-      container.read(searchProvider.notifier).setQuery('ZzzNonExistentTitleX99');
+      Get.find<AppSearchController>().setQuery('ZzzNonExistentTitleX99');
       await tester.pump(const Duration(milliseconds: 100));
 
       // Verify empty state is displayed
@@ -264,21 +255,17 @@ void main() {
       tester.view.devicePixelRatio = 2.0;
       addTearDown(() => tester.view.resetPhysicalSize());
 
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
+      await initTestDependencies();
 
       await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: container,
-          child: const MaterialApp(
-            home: SearchScreen(),
-          ),
+        const GetMaterialApp(
+          home: SearchScreen(),
         ),
       );
       await tester.pump(const Duration(milliseconds: 100));
 
       // Filter by a specific single-match title
-      container.read(searchProvider.notifier).setQuery('Gadis Kretek');
+      Get.find<AppSearchController>().setQuery('Gadis Kretek');
       await tester.pump(const Duration(milliseconds: 100));
 
       // Verify end-of-results indicator appears

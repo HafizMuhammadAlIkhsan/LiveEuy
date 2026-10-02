@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get/get.dart';
 import 'package:liveeuy_mob/providers/notification_provider.dart';
 import 'package:liveeuy_mob/shared/widgets/notification_modal.dart';
+import 'test_helper.dart';
 
 void main() {
   group('Notification Feature Tests', () {
     test('NotificationNotifier initializes with default unread notifications', () {
-      final container = ProviderContainer();
-      final state = container.read(notificationProvider);
+      final controller = NotificationController();
+      final state = controller.state;
 
       expect(state.items.length, 2);
       expect(state.hasUnread, true);
@@ -17,40 +18,36 @@ void main() {
     });
 
     test('markAllAsRead clears unread flags across all notifications', () {
-      final container = ProviderContainer();
-      final notifier = container.read(notificationProvider.notifier);
+      final controller = NotificationController();
+      controller.markAllAsRead();
 
-      notifier.markAllAsRead();
-
-      final state = container.read(notificationProvider);
+      final state = controller.state;
       expect(state.hasUnread, false);
       expect(state.items.every((item) => item.isRead), true);
     });
 
     test('markAsRead marks specific notification as read', () {
-      final container = ProviderContainer();
-      final notifier = container.read(notificationProvider.notifier);
+      final controller = NotificationController();
+      controller.markAsRead('notif_1');
 
-      notifier.markAsRead('notif_1');
-
-      final state = container.read(notificationProvider);
+      final state = controller.state;
       expect(state.items.firstWhere((i) => i.id == 'notif_1').isRead, true);
       // notif_2 is still unread, so hasUnread remains true
       expect(state.hasUnread, true);
 
-      notifier.markAsRead('notif_2');
-      final updatedState = container.read(notificationProvider);
+      controller.markAsRead('notif_2');
+      final updatedState = controller.state;
       expect(updatedState.hasUnread, false);
     });
 
     testWidgets('NotificationIconButton opens bottom sheet and marks all as read', (tester) async {
+      await initTestDependencies();
+
       await tester.pumpWidget(
-        const ProviderScope(
-          child: MaterialApp(
-            home: Scaffold(
-              body: Center(
-                child: NotificationIconButton(),
-              ),
+        const GetMaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: NotificationIconButton(),
             ),
           ),
         ),
@@ -85,43 +82,37 @@ void main() {
     });
 
     test('removeNotification removes specific item and updates unread flag', () {
-      final container = ProviderContainer();
-      final notifier = container.read(notificationProvider.notifier);
-
-      notifier.removeNotification('notif_1');
-      var state = container.read(notificationProvider);
+      final controller = NotificationController();
+      controller.removeNotification('notif_1');
+      var state = controller.state;
       expect(state.items.length, 1);
       expect(state.items.first.id, 'notif_2');
       expect(state.hasUnread, true);
 
-      notifier.removeNotification('notif_2');
-      state = container.read(notificationProvider);
+      controller.removeNotification('notif_2');
+      state = controller.state;
       expect(state.items.isEmpty, true);
       expect(state.hasUnread, false);
     });
 
     test('clearAll empties all notifications immediately', () {
-      final container = ProviderContainer();
-      final notifier = container.read(notificationProvider.notifier);
-
-      expect(container.read(notificationProvider).items.isNotEmpty, true);
-      notifier.clearAll();
-      final state = container.read(notificationProvider);
+      final controller = NotificationController();
+      expect(controller.state.items.isNotEmpty, true);
+      controller.clearAll();
+      final state = controller.state;
       expect(state.items.isEmpty, true);
       expect(state.hasUnread, false);
     });
 
     test('triggerContinueWatchingReminder adds reminder item without duplication', () {
-      final container = ProviderContainer();
-      final notifier = container.read(notificationProvider.notifier);
-
-      notifier.triggerContinueWatchingReminder(
+      final controller = NotificationController();
+      controller.triggerContinueWatchingReminder(
         mediaId: 'm_test_99',
         title: 'Film Aksi Keren',
         progressPercent: 0.45,
       );
 
-      var state = container.read(notificationProvider);
+      var state = controller.state;
       final addedItem = state.items.firstWhere((i) => i.targetMediaId == 'm_test_99');
       expect(addedItem.title, 'Lanjutkan: Film Aksi Keren');
       expect(addedItem.message.contains('55%'), true);
@@ -129,12 +120,12 @@ void main() {
 
       // Duplicate trigger while unread should not add another
       final countBefore = state.items.length;
-      notifier.triggerContinueWatchingReminder(
+      controller.triggerContinueWatchingReminder(
         mediaId: 'm_test_99',
         title: 'Film Aksi Keren',
         progressPercent: 0.50,
       );
-      state = container.read(notificationProvider);
+      state = controller.state;
       expect(state.items.length, countBefore);
     });
   });

@@ -69,12 +69,16 @@ class AppSearchController extends GetxController {
   SearchState get state => _state.value;
   set state(SearchState val) => _state.value = val;
 
-  AppSearchController({this.apiService});
+  AppSearchController({this.apiService}) {
+    performSearch('');
+  }
 
   @override
   void onInit() {
     super.onInit();
-    performSearch('');
+    if (state.results.isEmpty) {
+      performSearch('');
+    }
   }
 
   CancelToken? get currentCancelToken => _cancelToken;

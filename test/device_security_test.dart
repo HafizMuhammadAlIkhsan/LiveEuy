@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:liveeuy_mob/core/network/api_config.dart';
 import 'package:liveeuy_mob/models/device_session_model.dart';
 import 'package:liveeuy_mob/providers/auth_provider.dart';
 import 'package:liveeuy_mob/shared/widgets/device_conflict_dialog.dart';
 import 'package:liveeuy_mob/shared/widgets/device_security_sheet.dart';
+import 'test_helper.dart';
 
 void main() {
   setUpAll(() {
     TestWidgetsFlutterBinding.ensureInitialized();
-    GoogleFonts.config.allowRuntimeFetching = false;
   });
 
   group('ApiConfig Device Identification & Headers Tests', () {
@@ -152,25 +150,16 @@ void main() {
       tester.view.devicePixelRatio = 2.0;
       addTearDown(() => tester.view.resetPhysicalSize());
 
-      final notifier = AuthNotifier();
-      notifier.state = notifier.state.copyWith(
+      await initTestDependencies(
         name: 'HAFIZ',
         email: 'hafiz@streamflix.id',
         isLoggedIn: true,
-        activeSessions: AuthNotifier.generateDefaultSessions(
-          currentDeviceName: 'Smartphone (Android)',
-        ),
       );
 
       await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            authProvider.overrideWith((ref) => notifier),
-          ],
-          child: const MaterialApp(
-            home: Scaffold(
-              body: DeviceSecuritySheet(),
-            ),
+        const MaterialApp(
+          home: Scaffold(
+            body: DeviceSecuritySheet(),
           ),
         ),
       );
@@ -349,4 +338,3 @@ void main() {
     });
   });
 }
-

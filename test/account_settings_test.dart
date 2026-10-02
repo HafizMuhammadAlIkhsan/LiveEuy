@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:liveeuy_mob/main.dart';
 import 'package:liveeuy_mob/models/user_settings_model.dart';
+import 'test_helper.dart';
 
 void main() {
   group('UserSettings Model & Enum Tests', () {
@@ -48,11 +48,9 @@ void main() {
       tester.view.devicePixelRatio = 2.0;
       addTearDown(() => tester.view.resetPhysicalSize());
 
-      await tester.pumpWidget(
-        const ProviderScope(
-          child: LiveEuyApp(),
-        ),
-      );
+      await initTestDependencies(isLoggedIn: false);
+
+      await tester.pumpWidget(const LiveEuyApp());
       await tester.pump(const Duration(milliseconds: 200));
 
       // 1. Navigate to AKUN tab
@@ -89,11 +87,9 @@ void main() {
       tester.view.devicePixelRatio = 2.0;
       addTearDown(() => tester.view.resetPhysicalSize());
 
-      await tester.pumpWidget(
-        const ProviderScope(
-          child: LiveEuyApp(),
-        ),
-      );
+      await initTestDependencies(isLoggedIn: false);
+
+      await tester.pumpWidget(const LiveEuyApp());
       await tester.pump(const Duration(milliseconds: 200));
 
       // Navigate to AKUN tab
@@ -126,11 +122,9 @@ void main() {
       tester.view.devicePixelRatio = 2.0;
       addTearDown(() => tester.view.resetPhysicalSize());
 
-      await tester.pumpWidget(
-        const ProviderScope(
-          child: LiveEuyApp(),
-        ),
-      );
+      await initTestDependencies(isLoggedIn: false);
+
+      await tester.pumpWidget(const LiveEuyApp());
       await tester.pump(const Duration(milliseconds: 200));
 
       // Navigate to AKUN tab
@@ -158,11 +152,9 @@ void main() {
       tester.view.devicePixelRatio = 2.0;
       addTearDown(() => tester.view.resetPhysicalSize());
 
-      await tester.pumpWidget(
-        const ProviderScope(
-          child: LiveEuyApp(),
-        ),
-      );
+      await initTestDependencies(isLoggedIn: false);
+
+      await tester.pumpWidget(const LiveEuyApp());
       await tester.pump(const Duration(milliseconds: 200));
 
       // Navigate to AKUN tab

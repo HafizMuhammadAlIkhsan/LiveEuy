@@ -1,10 +1,11 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get/get.dart';
 import 'package:liveeuy_mob/core/data/mock_data.dart';
 import 'package:liveeuy_mob/features/detail/content_detail_screen.dart';
+import 'test_helper.dart';
 
 const List<int> _kTransparentImage = <int>[
   0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49,
@@ -79,11 +80,11 @@ void main() {
       tester.view.devicePixelRatio = 2.0;
       addTearDown(() => tester.view.resetPhysicalSize());
 
+      await initTestDependencies();
+
       await tester.pumpWidget(
-        MaterialApp(
-          home: ProviderScope(
-            child: ContentDetailScreen(movie: MockData.heroMovies.first),
-          ),
+        GetMaterialApp(
+          home: ContentDetailScreen(movie: MockData.heroMovies.first),
         ),
       );
       await tester.pump();
@@ -133,11 +134,11 @@ void main() {
       tester.view.devicePixelRatio = 2.0;
       addTearDown(() => tester.view.resetPhysicalSize());
 
+      await initTestDependencies();
+
       await tester.pumpWidget(
-        MaterialApp(
-          home: ProviderScope(
-            child: ContentDetailScreen(movie: MockData.heroMovies.first),
-          ),
+        GetMaterialApp(
+          home: ContentDetailScreen(movie: MockData.heroMovies.first),
         ),
       );
       await tester.pump();
