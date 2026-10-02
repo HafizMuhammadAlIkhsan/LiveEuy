@@ -1,5 +1,6 @@
 package com.liveeuy.catalog_service.service.impl;
 
+import com.liveeuy.catalog_service.client.TranscoderClient;
 import com.liveeuy.catalog_service.dto.request.MediaRequestDTO;
 import com.liveeuy.catalog_service.dto.request.MovieRequestDTO;
 import com.liveeuy.catalog_service.dto.request.TvSeriesRequestDTO;
@@ -37,6 +38,7 @@ public class MediaServiceImpl implements MediaService {
     private final MediaRepository mediaRepository;
     private final PersonRepository personRepository;
     private final MediaMapper mediaMapper;
+    private final TranscoderClient transcoderClient;
 
     private static final String SORT_BY_RATING = "rating";
     private static final String SORT_BY_NEWEST = "newest";
@@ -86,7 +88,7 @@ public class MediaServiceImpl implements MediaService {
                 .collect(Collectors.toList());
     }
 
-@Override
+    @Override
     @Transactional
     public MediaResponseDTO createMedia(MediaRequestDTO requestDTO) {
         Media media = mediaMapper.toEntity(requestDTO);
@@ -164,5 +166,52 @@ public class MediaServiceImpl implements MediaService {
             throw new ResourceNotFoundException("Media dengan ID '" + id + "' tidak ditemukan.");
         }
         mediaRepository.deleteById(id);
+    }
+
+    @Override
+    @Transactional
+    public MediaResponseDTO linkTranscodeJob(String mediaId, String jobId, String bearerToken) {
+        Media media = mediaRepository.findById(mediaId)
+                .orElseThrow(() -> new ResourceNotFoundException("Media dengan ID '" + mediaId + "' tidak ditemukan."));
+
+        transcoderClient.updateActiveToken(bearerToken);
+        media.markAsProcessing(jobId);
+        Media saved = mediaRepository.save(media);
+        return mediaMapper.toDTO(saved);
+    }
+
+    @Override
+    @Transactional
+    public MediaResponseDTO syncTranscodeStatus(String mediaId, String bearerToken) {
+        Media media = mediaRepository.findById(mediaId)
+                .orElseThrow(() -> new ResourceNotFoundException("Media dengan ID '" + mediaId + "' tidak ditemukan."));
+
+        if (media.getTranscodedJobId() == null || media.getTranscodedJobId().isBlank()) {
+            return mediaMapper.toDTO(media);
+        }
+
+        transcoderClient.updateActiveToken(bearerToken);
+        applyTranscoderUpdate(media, bearerToken);
+        Media saved = mediaRepository.save(media);
+        return mediaMapper.toDTO(saved);
+    }
+    
+    public void applyTranscoderUpdate(Media media, String token) {
+        transcoderClient.getJobStatus(media.getTranscodedJobId(), token).ifPresent(job -> {
+            if ("COMPLETED".equalsIgnoreCase(job.status())) {
+                if (media instanceof Movie movie) {
+                    Integer duration = (job.metadata() != null && job.metadata().durationSeconds() != null)
+                            ? job.metadata().durationSeconds().intValue() : null;
+                    movie.completeTranscode(job.masterPlaylistUrl(), duration);
+                    if (job.posterUrl() != null && (movie.getPosterUrl() == null || movie.getPosterUrl().isBlank())) {
+                        movie.setPosterUrl(job.posterUrl());
+                    }
+                } else {
+                    media.markAsReady();
+                }
+            } else if ("FAILED".equalsIgnoreCase(job.status())) {
+                media.markAsFailed();
+            }
+        });
     }
 }

@@ -1,5 +1,6 @@
 package com.liveeuy.catalog_service.entity;
 
+import com.liveeuy.catalog_service.entity.enums.ProcessingStatus;
 import com.liveeuy.catalog_service.entity.enums.VideoQuality;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -31,4 +32,24 @@ public class Episode {
 
     @Enumerated(EnumType.STRING)
     private VideoQuality quality;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "processing_status")
+    private ProcessingStatus processingStatus = ProcessingStatus.READY;
+
+    @Column(name = "transcoded_job_id")
+    private String transcodeJobId;
+
+    public void markAsProcessing(String jobId) {
+        this.transcodeJobId = jobId;
+        this.processingStatus = ProcessingStatus.PROCESSING;
+    }
+
+    public void completeTranscode(String masterPlaylistUrl, Integer durationSeconds) {
+        this.videoUrl = masterPlaylistUrl;
+        if (durationSeconds != null && durationSeconds > 0) {
+            this.durationSeconds = durationSeconds;
+        }
+        this.processingStatus = ProcessingStatus.READY;
+    }
 }

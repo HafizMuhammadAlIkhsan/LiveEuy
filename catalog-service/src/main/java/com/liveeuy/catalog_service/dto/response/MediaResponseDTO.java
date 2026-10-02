@@ -1,5 +1,6 @@
 package com.liveeuy.catalog_service.dto.response;
 
+import com.liveeuy.catalog_service.entity.enums.ProcessingStatus;
 import com.liveeuy.catalog_service.entity.enums.MediaType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -27,4 +28,10 @@ public abstract class MediaResponseDTO {
     private String ageRating;
     private List<String> genres;
     private List<PersonResponseDTO> castAndCrew;
+    private ProcessingStatus processingStatus;
+    private String transcodedJobId;
+
+    public String getTranscodeJobId() {
+        return transcodedJobId;
+    }
 }

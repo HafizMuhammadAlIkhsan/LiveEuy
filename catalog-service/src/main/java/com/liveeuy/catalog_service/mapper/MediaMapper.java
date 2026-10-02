@@ -7,6 +7,7 @@ import com.liveeuy.catalog_service.dto.request.SeasonRequestDTO;
 import com.liveeuy.catalog_service.dto.request.TvSeriesRequestDTO;
 import com.liveeuy.catalog_service.dto.response.*;
 import com.liveeuy.catalog_service.entity.*;
+import com.liveeuy.catalog_service.entity.enums.ProcessingStatus;
 import com.liveeuy.catalog_service.entity.enums.VideoQuality;
 import org.springframework.stereotype.Component;
 
@@ -23,6 +24,11 @@ public class MediaMapper {
             mapBaseMediaFields(dto, movie);
             movie.setDurationSeconds(movieDto.getDurationSeconds());
             movie.setVideoUrl(movieDto.getVideoUrl());
+
+            if (movieDto.getVideoUrl() == null || movieDto.getVideoUrl().isBlank()) {
+                movie.setProcessingStatus(ProcessingStatus.PENDING_UPLOAD);
+            }
+
             if (movieDto.getQuality() != null) {
                 movie.setQuality(VideoQuality.valueOf(movieDto.getQuality().toUpperCase()));
             }
@@ -81,6 +87,8 @@ public class MediaMapper {
         dto.setTrailerUrl(media.getTrailerUrl());
         dto.setReleaseYear(media.getReleaseYear());
         dto.setAgeRating(media.getAgeRating());
+        dto.setProcessingStatus(media.getProcessingStatus());
+        dto.setTranscodedJobId(media.getTranscodedJobId());
         
         if (media.getCastAndCrew() != null) {
             dto.setCastAndCrew(media.getCastAndCrew().stream()
@@ -120,6 +128,8 @@ public class MediaMapper {
                 .thumbnailUrl(episode.getThumbnailUrl())
                 .videoUrl(episode.getVideoUrl())
                 .quality(episode.getQuality())
+                .processingStatus(episode.getProcessingStatus())
+                .transcodeJobId(episode.getTranscodeJobId())
                 .build();
     }
 

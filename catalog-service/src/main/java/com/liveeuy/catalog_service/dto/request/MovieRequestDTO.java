@@ -1,6 +1,5 @@
 package com.liveeuy.catalog_service.dto.request;
 
-import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.hibernate.validator.constraints.URL;
@@ -9,7 +8,6 @@ import org.hibernate.validator.constraints.URL;
 @EqualsAndHashCode(callSuper = true)
 public class MovieRequestDTO extends MediaRequestDTO {
 
-    @NotNull(message = "Durasi film harus diisi")
     private Integer durationSeconds;
 
     @URL

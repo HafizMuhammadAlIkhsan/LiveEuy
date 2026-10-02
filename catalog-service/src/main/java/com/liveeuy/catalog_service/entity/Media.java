@@ -2,6 +2,7 @@ package com.liveeuy.catalog_service.entity;
 
 import com.liveeuy.catalog_service.entity.enums.MediaType;
 import com.liveeuy.catalog_service.domain.event.MediaCreatedEvent;
+import com.liveeuy.catalog_service.entity.enums.ProcessingStatus;
 import java.util.UUID;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -11,6 +12,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.springframework.data.domain.AbstractAggregateRoot;
+import org.springframework.data.domain.Persistable;
 
 @Entity
 @Table(name = "media")
@@ -18,11 +20,31 @@ import org.springframework.data.domain.AbstractAggregateRoot;
 @DiscriminatorColumn(name = "media_type", discriminatorType = DiscriminatorType.STRING)
 @Getter
 @Setter
-public abstract class Media extends AbstractAggregateRoot<Media> {
+public abstract class Media extends AbstractAggregateRoot<Media> implements Persistable<String> {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
+
+    @PrePersist
+    public void ensureId() {
+        if (this.id == null) {
+            this.id = UUID.randomUUID().toString();
+        }
+    }
+
+    @Transient
+    private boolean isNew = true;
+
+    @Override
+    public boolean isNew() {
+        return this.isNew || this.id == null;
+    }
+
+    @PostPersist
+    @PostLoad
+    void markNotNew() {
+        this.isNew = false;
+    }
 
     @Column(nullable = false)
     private String title;
@@ -39,6 +61,13 @@ public abstract class Media extends AbstractAggregateRoot<Media> {
 
     private Integer releaseYear;
     private String ageRating;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "processing_status", columnDefinition = "varchar(32) default 'READY'")
+    private ProcessingStatus processingStatus = ProcessingStatus.READY;
+
+    @Column(name = "transcoded_job_id")
+    private String transcodedJobId;
 
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "media_genres", joinColumns = @JoinColumn(name = "media_id"))
@@ -82,5 +111,21 @@ public abstract class Media extends AbstractAggregateRoot<Media> {
         }
 
         registerEvent(new MediaCreatedEvent(this.id, this.title, this.getType()));
+    }
+
+    public void markAsProcessing(String jobId) {
+        if (jobId == null || jobId.isBlank()) {
+            throw new IllegalArgumentException("Job ID cannot be null or blank");
+        }
+        this.transcodedJobId = jobId;
+        this.processingStatus = ProcessingStatus.PROCESSING;
+    }
+
+    public void markAsReady() {
+        this.processingStatus = ProcessingStatus.READY;
+    }
+
+    public void markAsFailed() {
+        this.processingStatus = ProcessingStatus.FAILED;
     }
 }

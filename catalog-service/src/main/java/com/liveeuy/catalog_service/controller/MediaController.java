@@ -2,6 +2,7 @@ package com.liveeuy.catalog_service.controller;
 
 import com.liveeuy.catalog_service.dto.ApiResponse;
 import com.liveeuy.catalog_service.dto.request.MediaRequestDTO;
+import com.liveeuy.catalog_service.dto.request.LinkTranscodeJobRequestDTO;
 import com.liveeuy.catalog_service.dto.response.MediaResponseDTO;
 import com.liveeuy.catalog_service.service.MediaService;
 import jakarta.validation.Valid;
@@ -32,10 +33,6 @@ public class MediaController {
         return ResponseEntity.ok(ApiResponse.success(featured, "Featured media berhasil diambil"));
     }
 
-    /**
-     * Endpoint feed kurasi berdasarkan identitas pengguna & tier langganan dari JWT token.
-     * Mengimplementasikan panduan integrasi JWT prompt.md (Section 1).
-     */
     @GetMapping("/feed")
     public ResponseEntity<ApiResponse<Page<MediaResponseDTO>>> getPersonalizedFeed(
             @AuthenticationPrincipal Jwt jwt,
@@ -95,5 +92,23 @@ public class MediaController {
     public ResponseEntity<ApiResponse<Void>> deleteMedia(@PathVariable String id) {
         mediaService.deleteMedia(id);
         return ResponseEntity.ok(ApiResponse.success(null, "Media berhasil dihapus"));
+    }
+
+    // 1. Tautkan Job Transcoder ke Media
+    @PatchMapping("/{id}/transcode-job")
+    public ResponseEntity<ApiResponse<MediaResponseDTO>> linkTranscodeJob(
+            @PathVariable String id,
+            @Valid @RequestBody LinkTranscodeJobRequestDTO requestDTO,
+            @RequestHeader(name = "Authorization", required = false) String bearerToken) {
+        MediaResponseDTO response = mediaService.linkTranscodeJob(id, requestDTO.getJobId(), bearerToken);
+        return ResponseEntity.ok(ApiResponse.success(response, "Job transkoding berhasil ditautkan"));
+    }
+    // 2. Sync Status Transkoding Secara Manual
+    @PostMapping("/{id}/sync-transcode")
+    public ResponseEntity<ApiResponse<MediaResponseDTO>> syncTranscodeStatus(
+            @PathVariable String id,
+            @RequestHeader(name = "Authorization", required = false) String bearerToken) {
+        MediaResponseDTO response = mediaService.syncTranscodeStatus(id, bearerToken);
+        return ResponseEntity.ok(ApiResponse.success(response, "Status transkoding berhasil disinkronkan"));
     }
 }

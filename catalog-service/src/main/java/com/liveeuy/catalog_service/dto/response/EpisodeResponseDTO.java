@@ -1,5 +1,6 @@
 package com.liveeuy.catalog_service.dto.response;
 
+import com.liveeuy.catalog_service.entity.enums.ProcessingStatus;
 import com.liveeuy.catalog_service.entity.enums.VideoQuality;
 import lombok.Builder;
 import lombok.Data;
@@ -15,4 +16,6 @@ public class EpisodeResponseDTO {
     private String thumbnailUrl;
     private String videoUrl;
     private VideoQuality quality;
+    private ProcessingStatus processingStatus;
+    private String transcodeJobId;
 }

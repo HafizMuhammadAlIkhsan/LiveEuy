@@ -1,5 +1,6 @@
 package com.liveeuy.catalog_service.repository;
 
+import com.liveeuy.catalog_service.entity.enums.ProcessingStatus;
 import com.liveeuy.catalog_service.entity.Media;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -12,4 +13,5 @@ public interface MediaRepository extends JpaRepository<Media, String>, JpaSpecif
 
     List<Media> findAllByIdIn(List<String> ids);
 
+    List<Media> findByProcessingStatus(ProcessingStatus status);
 }

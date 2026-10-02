@@ -34,4 +34,15 @@ public class Movie extends Media {
         this.quality = quality;
         this.audio = audio;
     }
+
+    public void completeTranscode(String masterPlaylistUrl, Integer durationSeconds) {
+        if (masterPlaylistUrl == null || masterPlaylistUrl.isBlank()) {
+            throw new IllegalArgumentException("Master playlist URL cannot be null or blank");
+        }
+        this.videoUrl = masterPlaylistUrl;
+        if (durationSeconds != null && durationSeconds > 0) {
+            this.durationSeconds = durationSeconds;
+        }
+        markAsReady();
+    }
 }

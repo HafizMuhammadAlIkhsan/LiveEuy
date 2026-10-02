@@ -20,5 +20,9 @@ public interface MediaService {
 
     MediaResponseDTO updateMedia(String id, MediaRequestDTO requestDTO);
 
+    MediaResponseDTO linkTranscodeJob(String mediaId, String jobId, String bearerToken);
+
+    MediaResponseDTO syncTranscodeStatus(String mediaId, String bearerToken);
+
     void deleteMedia(String id);
 }
