@@ -510,19 +510,6 @@ export const Navbar: React.FC = () => {
                 </button>
               )}
 
-              {/* CROSS-PLATFORM MOBILE & BACKEND SYNC BUTTON */}
-              <button
-                onClick={() => openMobileSync()}
-                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-200 hover:text-white bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 hover:border-brand-500/40 transition-all min-h-[36px] shadow-sm cursor-pointer group"
-                title="Buka Hub Koneksi Mobile (Flutter) & Backend (Spring Boot/Go)"
-                aria-label="Koneksi Mobile dan Backend"
-              >
-                <div className="relative">
-                  <Smartphone className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-brand-400 group-hover:scale-110 transition-transform" />
-                  <span className="absolute -top-1 -right-1 w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                </div>
-                <span className="hidden md:inline font-medium">Buka di HP</span>
-              </button>
 
               {/* Notification Popover */}
               <div className="relative" ref={notifRef}>
@@ -832,6 +819,25 @@ export const Navbar: React.FC = () => {
                                 </span>
                                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-mono font-bold">
                                   {user.devices || visitorSessions.length || 1} Device
+                                </span>
+                              </button>
+
+                              {/* Download & Hub Aplikasi Mobile */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  openMobileSync();
+                                  setShowProfileMenu(false);
+                                }}
+                                className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/5 active:bg-white/10 transition-colors min-h-[38px] cursor-pointer group"
+                              >
+                                <span className="flex items-center gap-2.5">
+                                  <Smartphone className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
+                                  <span>Download Aplikasi Mobile</span>
+                                </span>
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                  APK / HP
                                 </span>
                               </button>
 

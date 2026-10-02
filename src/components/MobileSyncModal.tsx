@@ -19,8 +19,12 @@ import {
   Send, 
   Layers, 
   QrCode,
-  Play,
-  Clock
+  Clock,
+  Download,
+  Apple,
+  ArrowDownToLine,
+  HelpCircle,
+  FileCheck
 } from 'lucide-react';
 
 export const MobileSyncModal: React.FC = () => {
@@ -44,6 +48,9 @@ export const MobileSyncModal: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'mobile' | 'backend' | 'guide'>('mobile');
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
+  const [qrMode, setQrMode] = useState<'apk' | 'web'>('apk');
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadFinished, setDownloadFinished] = useState(false);
   
   // Backend ping state
   const [isCheckingBackend, setIsCheckingBackend] = useState(false);
@@ -76,9 +83,22 @@ export const MobileSyncModal: React.FC = () => {
     percentage: 45
   };
 
+  const apkDownloadPath = '/downloads/LiveEuy-v1.0.0-release.apk';
+  const apkDownloadUrl = `http://${localIp}:3000${apkDownloadPath}`;
   const mobileWebUrl = `http://${localIp}:3000/#detail-${currentMedia.id}`;
   const deepLink = `liveeuy://watch/${currentMedia.id}?t=${Math.floor(progress.currentTime)}`;
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(mobileWebUrl)}&margin=10`;
+  const qrWebUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(mobileWebUrl)}&margin=10`;
+  const qrApkUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(apkDownloadUrl)}&margin=10`;
+  const activeQrUrl = qrMode === 'apk' ? qrApkUrl : qrWebUrl;
+
+  const handleDownloadApk = () => {
+    setIsDownloading(true);
+    setTimeout(() => {
+      setIsDownloading(false);
+      setDownloadFinished(true);
+      setTimeout(() => setDownloadFinished(false), 4000);
+    }, 1000);
+  };
 
   // Handle escape key
   useEffect(() => {
@@ -209,15 +229,15 @@ export const MobileSyncModal: React.FC = () => {
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">
-                  Hub Ekosistem: Web, Backend & Mobile
+                  Download Aplikasi Mobile & Sinkronisasi
                 </h3>
                 <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] font-semibold flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Live Sync
+                  APK Ready
                 </span>
               </div>
               <p className="text-xs text-slate-400 mt-0.5">
-                Jembatan sinkronisasi data real-time antara Web React, Microservices, dan Aplikasi Mobile Flutter.
+                Unduh berkas APK Android atau hubungkan perangkat Anda untuk melanjutkan menonton di mana saja.
               </p>
             </div>
           </div>
@@ -296,7 +316,7 @@ export const MobileSyncModal: React.FC = () => {
             }`}
           >
             <Smartphone className="w-3.5 h-3.5" />
-            <span>Koneksi HP (Flutter Client)</span>
+            <span>Download APK & Akses HP</span>
           </button>
 
           <button
@@ -320,53 +340,183 @@ export const MobileSyncModal: React.FC = () => {
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
-            <span>Panduan Tim Pengembang</span>
+            <span>Panduan Pemasangan</span>
           </button>
         </div>
 
         {/* Modal Scrollable Body */}
         <div className="p-4 sm:p-6 overflow-y-auto space-y-4 text-xs">
 
-          {/* ================= TAB 1: MOBILE CLIENT ================= */}
+          {/* ================= TAB 1: MOBILE CLIENT & DOWNLOAD ================= */}
           {activeTab === 'mobile' && (
             <div className="space-y-4 animate-fade-in">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
-                {/* QR Code Container */}
+              {/* Primary APK Download Card */}
+              <div className="relative overflow-hidden p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-emerald-950/40 via-surface-900 to-black border border-emerald-500/30 shadow-xl">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+                
+                <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-start gap-3.5 min-w-0">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 p-0.5 flex-shrink-0 shadow-lg shadow-emerald-950/50">
+                      <div className="w-full h-full bg-[#0c0e14] rounded-[10px] flex items-center justify-center text-emerald-400">
+                        <Smartphone className="w-6 h-6" />
+                      </div>
+                    </div>
+
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h4 className="text-sm sm:text-base font-bold text-white tracking-tight">
+                          LiveEuy Mobile untuk Android
+                        </h4>
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/30">
+                          v1.0.0 Resmi
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                        Nikmati streaming sinema 4K UHD, kualitas audio jernih, dan sinkronisasi tontonan cloud otomatis langsung dari ponsel atau tablet Android.
+                      </p>
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[11px] text-slate-400 mt-2 font-mono">
+                        <span className="flex items-center gap-1 text-slate-300">
+                          <ArrowDownToLine className="w-3 h-3 text-emerald-400" />
+                          Ukuran: 18.4 MB
+                        </span>
+                        <span>•</span>
+                        <span>Min. Android 8.0+</span>
+                        <span>•</span>
+                        <span className="text-emerald-400 font-sans font-semibold">Bebas Iklan VIP</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Download Action Button */}
+                  <div className="flex flex-col gap-1.5 sm:flex-shrink-0">
+                    <a
+                      href={apkDownloadPath}
+                      download="LiveEuy-v1.0.0-release.apk"
+                      onClick={handleDownloadApk}
+                      className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-lg cursor-pointer ${
+                        downloadFinished
+                          ? 'bg-emerald-600 text-white shadow-emerald-900/50'
+                          : 'bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-950/60 hover:scale-[1.02] active:scale-[0.98]'
+                      }`}
+                    >
+                      {downloadFinished ? (
+                        <>
+                          <CheckCircle2 className="w-4 h-4 text-white" />
+                          <span>APK Berhasil Diunduh!</span>
+                        </>
+                      ) : isDownloading ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                          <span>Menyiapkan Berkas...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-4 h-4 text-white" />
+                          <span>Download APK Android</span>
+                        </>
+                      )}
+                    </a>
+
+                    <span className="text-[10px] text-center text-slate-400 font-medium">
+                      Paket instalasi resmi langsung (Direct APK)
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* QR Code and Quick Access Hub */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-stretch">
+                {/* QR Code Container with Toggle */}
                 <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-white/[0.03] border border-white/10 text-center">
+                  {/* QR Toggle Switch */}
+                  <div className="flex items-center p-1 rounded-lg bg-black/40 border border-white/10 mb-3 w-full max-w-[260px]">
+                    <button
+                      type="button"
+                      onClick={() => setQrMode('apk')}
+                      className={`flex-1 py-1 px-2 rounded-md text-[10px] font-semibold transition-all cursor-pointer ${
+                        qrMode === 'apk'
+                          ? 'bg-emerald-600 text-white shadow'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Unduh APK
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setQrMode('web')}
+                      className={`flex-1 py-1 px-2 rounded-md text-[10px] font-semibold transition-all cursor-pointer ${
+                        qrMode === 'web'
+                          ? 'bg-brand-600 text-white shadow'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Streaming Web HP
+                    </button>
+                  </div>
+
                   <div className="p-2 rounded-xl bg-white shadow-xl">
                     <img 
-                      src={qrUrl} 
+                      src={activeQrUrl} 
                       alt="Scan QR untuk membuka di HP"
-                      className="w-40 h-40 object-contain rounded-lg"
+                      className="w-36 h-36 object-contain rounded-lg"
                       loading="lazy"
                     />
                   </div>
-                  <div className="mt-3 flex items-center gap-1 text-[11px] text-emerald-400 font-semibold">
+
+                  <div className="mt-3 flex items-center gap-1.5 text-[11px] text-emerald-400 font-semibold">
                     <QrCode className="w-3.5 h-3.5" />
-                    <span>Scan dari Kamera Smartphone</span>
+                    <span>
+                      {qrMode === 'apk' ? 'Scan untuk Unduh APK di HP' : 'Scan untuk Nonton di Web HP'}
+                    </span>
                   </div>
-                  <p className="text-[10px] text-slate-400 mt-1 max-w-[200px]">
-                    Pastikan smartphone terhubung pada Wi-Fi yang sama (<strong>Cileunca</strong>).
+                  <p className="text-[10px] text-slate-400 mt-1 max-w-[220px]">
+                    {qrMode === 'apk' 
+                      ? 'Pindai kode QR dari kamera smartphone untuk langsung mengunduh paket APK.' 
+                      : 'Buka tayangan film langsung di browser smartphone pada jaringan Wi-Fi yang sama.'}
                   </p>
                 </div>
 
-                {/* Direct URLs & Deep Links */}
-                <div className="space-y-2.5">
-                  <h5 className="font-semibold text-white text-xs flex items-center gap-1.5">
-                    <Wifi className="w-3.5 h-3.5 text-brand-400" />
-                    Tautan Akses Cepat Perangkat:
-                  </h5>
+                {/* Direct URLs & Platform Guides */}
+                <div className="space-y-2.5 flex flex-col justify-between">
+                  {/* Apple / iOS Card */}
+                  <div className="p-3 rounded-xl bg-white/[0.04] border border-white/[0.08] space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Apple className="w-4 h-4 text-slate-300" />
+                      <span className="font-semibold text-white text-xs">Pengguna iPhone / iOS</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-bold">PWA Native</span>
+                    </div>
+                    <p className="text-[11px] text-slate-300 leading-relaxed">
+                      Buka di Safari, ketuk tombol <strong>Bagikan (Share)</strong> lalu pilih <strong>"Tambah ke Layar Utama"</strong> untuk pengalaman aplikasi layar penuh.
+                    </p>
+                  </div>
 
                   {/* Physical Device LAN URL */}
                   <div className="p-2.5 rounded-lg bg-white/[0.04] border border-white/[0.08] space-y-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-slate-400 font-medium">HP Fisik (Wi-Fi LAN)</span>
+                      <span className="text-[10px] text-slate-400 font-medium">Tautan Unduh APK (LAN)</span>
+                      <button 
+                        onClick={() => handleCopy(apkDownloadUrl, 'apkUrl')}
+                        className="text-[10px] text-brand-400 hover:text-brand-300 flex items-center gap-1 cursor-pointer"
+                      >
+                        {copiedLink === 'apkUrl' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                        <span>{copiedLink === 'apkUrl' ? 'Tersalin' : 'Salin URL APK'}</span>
+                      </button>
+                    </div>
+                    <code className="text-[11px] text-slate-200 font-mono block truncate bg-black/40 px-2 py-1 rounded">
+                      {apkDownloadUrl}
+                    </code>
+                  </div>
+
+                  {/* Physical Device LAN Streaming URL */}
+                  <div className="p-2.5 rounded-lg bg-white/[0.04] border border-white/[0.08] space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-slate-400 font-medium">Streaming HP Fisik (Wi-Fi LAN)</span>
                       <button 
                         onClick={() => handleCopy(mobileWebUrl, 'lan')}
                         className="text-[10px] text-brand-400 hover:text-brand-300 flex items-center gap-1 cursor-pointer"
                       >
                         {copiedLink === 'lan' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                        <span>{copiedLink === 'lan' ? 'Tersalin' : 'Salin URL'}</span>
+                        <span>{copiedLink === 'lan' ? 'Tersalin' : 'Salin'}</span>
                       </button>
                     </div>
                     <code className="text-[11px] text-slate-200 font-mono block truncate bg-black/40 px-2 py-1 rounded">
@@ -374,27 +524,10 @@ export const MobileSyncModal: React.FC = () => {
                     </code>
                   </div>
 
-                  {/* Android Emulator URL */}
-                  <div className="p-2.5 rounded-lg bg-white/[0.04] border border-white/[0.08] space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-slate-400 font-medium">Android Emulator (Flutter)</span>
-                      <button 
-                        onClick={() => handleCopy('http://10.0.2.2:3000', 'android')}
-                        className="text-[10px] text-brand-400 hover:text-brand-300 flex items-center gap-1 cursor-pointer"
-                      >
-                        {copiedLink === 'android' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                        <span>{copiedLink === 'android' ? 'Tersalin' : 'Salin'}</span>
-                      </button>
-                    </div>
-                    <code className="text-[11px] text-slate-200 font-mono block truncate bg-black/40 px-2 py-1 rounded">
-                      http://10.0.2.2:3000
-                    </code>
-                  </div>
-
                   {/* App Deep Link Scheme */}
                   <div className="p-2.5 rounded-lg bg-white/[0.04] border border-white/[0.08] space-y-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] text-slate-400 font-medium">Deep Link Schema Aplikasi Flutter</span>
+                      <span className="text-[10px] text-slate-400 font-medium">Deep Link Schema Aplikasi</span>
                       <button 
                         onClick={() => handleCopy(deepLink, 'deeplink')}
                         className="text-[10px] text-brand-400 hover:text-brand-300 flex items-center gap-1 cursor-pointer"
@@ -417,7 +550,7 @@ export const MobileSyncModal: React.FC = () => {
                   Bagaimana Sinkronisasi Bekerja?
                 </span>
                 <p className="text-[11px] leading-relaxed text-slate-300">
-                  Saat Anda menekan tombol <strong>"Kirim Progres ke Cloud"</strong>, detik pemutaran tontonan terakhir dikirimkan ke backend PostgreSQL melalui endpoint <code>PUT /api/v1/user/progress</code>. Ketika aplikasi mobile Flutter dibuka, Riverpod provider memanggil <code>GET /api/v1/user/progress</code> untuk langsung menampilkan baris <em>"Lanjutkan Menonton"</em> dari detik yang sama persis.
+                  Saat Anda menekan tombol <strong>"Kirim Progres ke Cloud"</strong>, detik pemutaran tontonan terakhir dikirimkan ke cloud backend melalui endpoint <code>PUT /api/v1/user/progress</code>. Ketika aplikasi mobile dibuka, aplikasi memanggil <code>GET /api/v1/user/progress</code> untuk langsung menampilkan baris <em>"Lanjutkan Menonton"</em> dari detik yang sama persis.
                 </p>
               </div>
             </div>
@@ -517,44 +650,72 @@ export const MobileSyncModal: React.FC = () => {
             </div>
           )}
 
-          {/* ================= TAB 3: DEV GUIDE ================= */}
+          {/* ================= TAB 3: INSTALLATION GUIDE ================= */}
           {activeTab === 'guide' && (
-            <div className="space-y-3 animate-fade-in text-[11px]">
-              <p className="text-slate-300">
-                Cara menjalankan ketiga komponen ekosistem secara bersamaan di terminal Anda:
-              </p>
-
-              {/* Step 1: Catalog Service */}
-              <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.08] space-y-1.5">
+            <div className="space-y-3.5 animate-fade-in text-[11px]">
+              {/* Step 1: Android APK Installation */}
+              <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.08] space-y-2">
                 <div className="font-bold text-white flex items-center justify-between">
-                  <span>1. Menjalankan Catalog Service (Spring Boot)</span>
-                  <span className="text-[10px] font-mono text-emerald-400">Port 8081</span>
+                  <span className="flex items-center gap-2">
+                    <Smartphone className="w-4 h-4 text-emerald-400" />
+                    <span>1. Cara Pasang APK di Smartphone Android</span>
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">
+                    Android 8.0+
+                  </span>
                 </div>
-                <pre className="p-2 rounded bg-black/60 font-mono text-slate-200 overflow-x-auto text-[10px]">
-cd catalog-service{'\n'}./mvnw spring-boot:run
-                </pre>
+                <div className="space-y-1.5 text-slate-300">
+                  <div className="flex items-start gap-2">
+                    <span className="w-4 h-4 rounded-full bg-white/10 text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
+                    <p>Unduh berkas <code>LiveEuy-v1.0.0-release.apk</code> dengan menekan tombol <strong>Download APK Android</strong> di tab pertama atau scan QR Code.</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="w-4 h-4 rounded-full bg-white/10 text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
+                    <p>Buka berkas di bilah notifikasi atau melalui aplikasi <em>File Manager / Pengelola File</em>.</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="w-4 h-4 rounded-full bg-white/10 text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
+                    <p>Bila muncul pesan keamanan, pilih <strong>Setelan</strong> lalu aktifkan <strong>"Izinkan dari sumber ini"</strong>, kemudian ketuk <strong>Instal</strong>.</p>
+                  </div>
+                </div>
               </div>
 
-              {/* Step 2: Auth Service */}
-              <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.08] space-y-1.5">
+              {/* Step 2: iOS Guide */}
+              <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/[0.08] space-y-2">
                 <div className="font-bold text-white flex items-center justify-between">
-                  <span>2. Menjalankan Auth Service (Golang)</span>
-                  <span className="text-[10px] font-mono text-brand-400">Port 8080</span>
+                  <span className="flex items-center gap-2">
+                    <Apple className="w-4 h-4 text-slate-300" />
+                    <span>2. Cara Pasang di iPhone / iPad (iOS)</span>
+                  </span>
+                  <span className="text-[10px] font-mono text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded">
+                    iOS / iPadOS
+                  </span>
                 </div>
-                <pre className="p-2 rounded bg-black/60 font-mono text-slate-200 overflow-x-auto text-[10px]">
-cd auth-service{'\n'}go run cmd/server/main.go
-                </pre>
+                <div className="space-y-1.5 text-slate-300">
+                  <div className="flex items-start gap-2">
+                    <span className="w-4 h-4 rounded-full bg-white/10 text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
+                    <p>Buka peramban <strong>Safari</strong> di perangkat iOS Anda, lalu akses URL lokal atau scan QR Web.</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="w-4 h-4 rounded-full bg-white/10 text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
+                    <p>Ketuk ikon <strong>Bagikan (Share / kotak bertanda panah ke atas)</strong> di bagian bawah layar.</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="w-4 h-4 rounded-full bg-white/10 text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
+                    <p>Gulir ke bawah dan pilih <strong>"Tambah ke Layar Utama (Add to Home Screen)"</strong>. Ikon LiveEuy akan muncul di beranda ponsel Anda layaknya aplikasi native.</p>
+                  </div>
+                </div>
               </div>
 
-              {/* Step 3: Flutter Mobile */}
-              <div className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.08] space-y-1.5">
-                <div className="font-bold text-white flex items-center justify-between">
-                  <span>3. Menjalankan Klien Mobile (Flutter)</span>
-                  <span className="text-[10px] font-mono text-sky-400">Android / iOS</span>
+              {/* Step 3: Multi-device sync */}
+              <div className="p-3.5 rounded-xl bg-brand-500/10 border border-brand-500/20 text-slate-300 space-y-1.5">
+                <div className="font-bold text-brand-300 flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-brand-400" />
+                  <span>3. Sinkronisasi Tontonan Cloud Otomatis</span>
                 </div>
-                <pre className="p-2 rounded bg-black/60 font-mono text-slate-200 overflow-x-auto text-[10px]">
-flutter pub get{'\n'}flutter run
-                </pre>
+                <p className="text-[11px] leading-relaxed text-slate-300">
+                  Setelah terpasang di HP, masuk dengan akun yang sama (misal <strong>hafiz@liveeuy.id</strong>). Seluruh daftar putar (Watchlist), riwayat tontonan, serta detik terakhir pemutaran video akan otomatis tersinkronisasi tanpa jeda.
+                </p>
               </div>
             </div>
           )}
