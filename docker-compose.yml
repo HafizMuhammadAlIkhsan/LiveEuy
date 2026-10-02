@@ -73,6 +73,7 @@ services:
       - SERVER_PORT=8081
       - JWK_SET_URI=http://auth-service:8080/.well-known/jwks.json
       - JWT_ISSUER=liveeuy-auth-service
+      - APP_TRANSCODER_BASE_URL=http://transcoder-service:8082
     networks:
       - liveeuy-network
 
