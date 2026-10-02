@@ -778,8 +778,8 @@ class LiveEuyApiService {
           sourceItems = sanitized.map(item => {
             const mockMatch = mockMap.get(item.id);
             if (mockMatch) {
-              const isLegacyPoster = !item.posterUrl;
-              const isLegacyBackdrop = !item.backdropUrl;
+              const isLegacyPoster = !item.posterUrl || item.posterUrl.includes('lh3.googleusercontent.com') || item.posterUrl.startsWith('/posters/');
+              const isLegacyBackdrop = !item.backdropUrl || item.backdropUrl.includes('lh3.googleusercontent.com');
               return {
                 ...mockMatch,
                 ...item,
