@@ -225,7 +225,7 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  const CATALOG_REVISION = '2026.10.01.v5_synced_posters';
+  const CATALOG_REVISION = '2026.10.02.v6_synced_posters_and_thumbnails';
 
   const [mediaList, setMediaList] = useState<MediaItem[]>(() => {
     try {
@@ -239,8 +239,8 @@ export const WatchProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const merged = sanitized.map(item => {
           const mockMatch = mockMap.get(item.id);
           if (mockMatch) {
-            const hasLegacyPoster = !item.posterUrl || item.posterUrl.includes('images.unsplash.com') || isRevisionOutdated;
-            const hasLegacyBackdrop = !item.backdropUrl || item.backdropUrl.includes('images.unsplash.com') || isRevisionOutdated;
+            const hasLegacyPoster = !item.posterUrl || isRevisionOutdated;
+            const hasLegacyBackdrop = !item.backdropUrl || isRevisionOutdated;
             return {
               ...mockMatch,
               ...item,

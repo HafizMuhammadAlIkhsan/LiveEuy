@@ -7,6 +7,7 @@ import { BillboardAd } from '../../components/BillboardAd';
 import { StreamingHubs, StreamingPlatformBanner } from '../../components/StreamingHubs';
 import { GENRES, STREAMING_PLATFORMS, StreamingPlatformFilter } from '../../data/mockData';
 import { MediaItem, Season, Episode } from '../../types';
+import { handleBackdropError } from '../../utils/imageFallback';
 import { 
   Tv, 
   Play, 
@@ -415,6 +416,7 @@ export const SeriesPage: React.FC = () => {
                     <img
                       src={ep.thumbnail}
                       alt={ep.title}
+                      onError={handleBackdropError}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">

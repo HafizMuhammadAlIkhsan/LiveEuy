@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { useWatch } from '../context/WatchContext';
 import { sanitizeUrl } from '../utils/security';
+import { handleBackdropError } from '../utils/imageFallback';
 
 export interface HlsQualityLevel {
   index: number;
@@ -1077,6 +1078,7 @@ export const VideoPlayerModal: React.FC = () => {
                   <img
                     src={nextEpisodeInfo.episode.thumbnail || item.backdropUrl}
                     alt={nextEpisodeInfo.episode.title}
+                    onError={handleBackdropError}
                     className="w-full h-full object-cover"
                   />
                   <div className="absolute inset-0 bg-black/30 flex items-center justify-center">

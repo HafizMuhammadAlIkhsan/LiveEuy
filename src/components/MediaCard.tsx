@@ -52,8 +52,12 @@ export const MediaCard: React.FC<MediaCardProps> = ({ item, layout = 'carousel' 
           
           {/* Top badges */}
           <div className="absolute top-2 left-2 flex items-center gap-1.5">
-            <span className="px-1.5 py-0.5 rounded-md bg-black/70 backdrop-blur-md text-[9px] font-bold text-white uppercase border border-white/10">
-              {item.quality}
+            <span className={`px-1.5 py-0.5 rounded-md backdrop-blur-md text-[9px] font-bold uppercase border ${
+              item.type === 'tv'
+                ? 'bg-brand-950/80 text-brand-300 border-brand-500/30'
+                : 'bg-black/70 text-white border-white/10'
+            }`}>
+              {item.type === 'movie' ? 'movie' : 'tv'}
             </span>
             <span className="px-1.5 py-0.5 rounded-md bg-black/70 backdrop-blur-md text-[9px] font-bold text-amber-400 border border-white/10 flex items-center gap-0.5">
               <Star className="w-2.5 h-2.5 fill-amber-400" />
@@ -187,8 +191,12 @@ export const MediaCard: React.FC<MediaCardProps> = ({ item, layout = 'carousel' 
         {/* Top Badges */}
         <div className="absolute top-2 left-2 right-2 flex items-center justify-between pointer-events-none">
           <div className="flex items-center gap-1">
-            <span className="px-1.5 sm:px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-md text-[9px] sm:text-[10px] font-bold tracking-wider text-white border border-white/10 uppercase">
-              {item.quality}
+            <span className={`px-1.5 sm:px-2 py-0.5 rounded-md backdrop-blur-md text-[9px] sm:text-[10px] font-bold tracking-wider uppercase border ${
+              item.type === 'tv'
+                ? 'bg-brand-950/80 text-brand-300 border-brand-500/30'
+                : 'bg-black/60 text-white border-white/10'
+            }`}>
+              {item.type === 'movie' ? 'movie' : 'tv'}
             </span>
           </div>
           <span className="flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-md text-[10px] sm:text-[11px] font-bold text-amber-400 border border-white/10">
