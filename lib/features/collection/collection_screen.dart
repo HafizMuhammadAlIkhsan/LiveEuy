@@ -1,14 +1,14 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get/get.dart';
+import '../auth/presentation/controllers/auth_controller.dart';
+import '../media/presentation/controllers/home_controller.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/data/mock_data.dart';
 import '../../core/download/offline_download_manager.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/download_item.dart';
 import '../../models/movie_model.dart';
-import '../../providers/auth_provider.dart';
-import '../../providers/media_provider.dart';
 import '../../shared/widgets/notification_modal.dart';
 import '../../shared/widgets/streamflix_logo.dart';
 import '../detail/content_detail_screen.dart';
@@ -19,10 +19,10 @@ import '../player/video_player_screen.dart';
 /// - Palette: AppColors (surfaceContainerLowest, surfaceContainer, primaryContainer, onSurface, textSecondary)
 /// - Tipografi: GoogleFonts.outfit (Heading/Title) & GoogleFonts.inter (Body/Metadata)
 /// - Craftsmanship: card dengan radius 16px, border outlineVariant 0.2, tanpa AI-slop neon glows
-class CollectionScreen extends ConsumerStatefulWidget {
+class CollectionScreen extends StatefulWidget {
   final void Function(int tabIndex)? onNavigateTab;
   final VoidCallback? onNavigateHome;
-  final MediaState? mediaState;
+  final HomeController? mediaState;
 
   const CollectionScreen({
     super.key,
@@ -32,10 +32,10 @@ class CollectionScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<CollectionScreen> createState() => _CollectionScreenState();
+  State<CollectionScreen> createState() => _CollectionScreenState();
 }
 
-class _CollectionScreenState extends ConsumerState<CollectionScreen> {
+class _CollectionScreenState extends State<CollectionScreen> {
   String _selectedCategory = 'Semua';
   bool _isSelectionMode = false;
   final Set<String> _selectedMediaIds = {};
@@ -158,7 +158,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
 
   void _executeBatchDelete(List<String> idsToDelete) {
     final count = idsToDelete.length;
-    ref.read(mediaProvider.notifier).removeMultipleFromWatchlist(idsToDelete);
+    Get.find<HomeController>().removeMultipleFromWatchlist(idsToDelete);
     _exitSelectionMode();
 
     if (!mounted) return;
@@ -175,7 +175,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
           label: 'BATAL',
           textColor: AppColors.primary,
           onPressed: () {
-            ref.read(mediaProvider.notifier).addMultipleToWatchlist(idsToDelete);
+            Get.find<HomeController>().addMultipleToWatchlist(idsToDelete);
           },
         ),
       ),
@@ -481,7 +481,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
               ),
               onTap: () {
                 Navigator.pop(sheetContext);
-                final notifier = ref.read(mediaProvider.notifier);
+                final notifier = Get.find<HomeController>();
                 notifier.removeFromContinueWatching(movie.id);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -509,9 +509,18 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final MediaState mediaState = widget.mediaState ?? ref.watch(mediaProvider);
-    final user = ref.watch(authProvider);
-    final offlineDownloads = ref.watch(offlineDownloadsListProvider);
+    final homeCtrl = Get.find<HomeController>();
+    final authCtrl = Get.find<AuthController>();
+
+    return GetBuilder<OfflineDownloadManager>(
+      init: Get.isRegistered<OfflineDownloadManager>() ? null : OfflineDownloadManager(
+        storageService: Get.find(),
+        apiService: Get.find(),
+      ),
+      builder: (downloadManager) {
+        return Obx(() {
+          final mediaState = widget.mediaState ?? homeCtrl;
+          final offlineDownloads = downloadManager.state.downloads;
 
     // Ambil data watchlist lengkap dari MockData
     final allMovies = MockData.getAllMovies();
@@ -624,7 +633,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                                 ),
                                 child: ClipOval(
                                   child: CachedNetworkImage(
-                                    imageUrl: user.avatarUrl,
+                                    imageUrl: authCtrl.user.value?.avatarUrl ?? '',
                                     fit: BoxFit.cover,
                                     placeholder: (context, url) => Container(color: AppColors.surfaceContainerHigh),
                                     errorWidget: (context, url, err) => Container(
@@ -861,6 +870,9 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
               ],
             ),
       ),
+    );
+        });
+      },
     );
   }
 
@@ -1219,7 +1231,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                           right: 8,
                           child: GestureDetector(
                             onTap: () {
-                              ref.read(mediaProvider.notifier).toggleWatchlist(movie.id);
+                              Get.find<HomeController>().toggleWatchlist(movie.id);
                               ScaffoldMessenger.of(context).clearSnackBars();
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
@@ -1233,7 +1245,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                                     label: 'BATAL',
                                     textColor: AppColors.primary,
                                     onPressed: () {
-                                      ref.read(mediaProvider.notifier).toggleWatchlist(movie.id);
+                                      Get.find<HomeController>().toggleWatchlist(movie.id);
                                     },
                                   ),
                                 ),
@@ -1854,7 +1866,8 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
               subtitle: Text('Perpanjang masa aktif tonton offline tanpa mengunduh ulang', style: GoogleFonts.inter(fontSize: 11, color: AppColors.textSecondary)),
               onTap: () async {
                 Navigator.pop(sheetCtx);
-                final ok = await ref.read(offlineDownloadManagerProvider.notifier).renewLicense(item.id);
+                final downloadManager = Get.isRegistered<OfflineDownloadManager>() ? Get.find<OfflineDownloadManager>() : null;
+                final ok = await downloadManager?.renewLicense(item.id) ?? false;
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -1874,7 +1887,9 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
               subtitle: Text('Bebaskan ruang penyimpanan di perangkat', style: GoogleFonts.inter(fontSize: 11, color: AppColors.textSecondary)),
               onTap: () {
                 Navigator.pop(sheetCtx);
-                ref.read(offlineDownloadManagerProvider.notifier).deleteDownload(item.id);
+                if (Get.isRegistered<OfflineDownloadManager>()) {
+                  Get.find<OfflineDownloadManager>().deleteDownload(item.id);
+                }
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(

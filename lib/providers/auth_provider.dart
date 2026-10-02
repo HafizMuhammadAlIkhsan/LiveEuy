@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get/get.dart';
 import '../core/network/api_client.dart';
 import '../core/storage/local_storage_service.dart';
 import '../models/auth_response_model.dart';
@@ -120,24 +120,27 @@ class UserProfile {
   }
 }
 
-class AuthNotifier extends StateNotifier<UserProfile> {
+class AuthNotifier extends GetxController {
   final LocalStorageService? _storageService;
   final ApiClient _apiClient;
+  final _state = Rx<UserProfile>(const UserProfile(
+    name: 'Hafiz Muhammad',
+    email: 'hafiz@streamflix.id',
+    avatarUrl:
+        'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80',
+    isLoggedIn: false,
+    isVip: false,
+    membershipTier: 'REGULAR',
+    deviceType: 'Mobile',
+    currentDeviceName: 'Smartphone (Android)',
+    activeSessions: [],
+  ));
+
+  UserProfile get state => _state.value;
+  set state(UserProfile val) => _state.value = val;
 
   AuthNotifier([this._storageService, ApiClient? apiClient])
-      : _apiClient = apiClient ?? ApiClient(baseUrl: ApiConfig.authBaseUrl),
-        super(const UserProfile(
-          name: 'Hafiz Muhammad',
-          email: 'hafiz@streamflix.id',
-          avatarUrl:
-              'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=120&q=80',
-          isLoggedIn: false,
-          isVip: false,
-          membershipTier: 'REGULAR',
-          deviceType: 'Mobile',
-          currentDeviceName: 'Smartphone (Android)',
-          activeSessions: [],
-        )) {
+      : _apiClient = apiClient ?? ApiClient(baseUrl: ApiConfig.authBaseUrl) {
     _restoreSavedSession();
   }
 
@@ -823,11 +826,6 @@ class AuthNotifier extends StateNotifier<UserProfile> {
   }
 }
 
-final authProvider = StateNotifierProvider<AuthNotifier, UserProfile>((ref) {
-  LocalStorageService? storage;
-  try {
-    storage = ref.watch(localStorageServiceProvider);
-  } catch (_) {}
-  return AuthNotifier(storage);
-});
+// Legacy compatibility
+dynamic authProvider;
 

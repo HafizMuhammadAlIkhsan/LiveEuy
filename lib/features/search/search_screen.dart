@@ -1,28 +1,28 @@
 import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get/get.dart';
+import '../../providers/search_provider.dart';
+import '../auth/presentation/controllers/auth_controller.dart';
+import '../media/presentation/controllers/home_controller.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/data/mock_data.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/movie_model.dart';
-import '../../providers/auth_provider.dart';
-import '../../providers/media_provider.dart';
-import '../../providers/search_provider.dart';
 import '../../shared/widgets/notification_modal.dart';
 import '../../shared/widgets/streamflix_logo.dart';
 import '../detail/content_detail_screen.dart';
 import '../player/video_player_screen.dart';
 
-class SearchScreen extends ConsumerStatefulWidget {
+class SearchScreen extends StatefulWidget {
   final Function(int)? onNavigateTab;
   const SearchScreen({super.key, this.onNavigateTab});
 
   @override
-  ConsumerState<SearchScreen> createState() => _SearchScreenState();
+  State<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends ConsumerState<SearchScreen> {
+class _SearchScreenState extends State<SearchScreen> {
   late final ScrollController _scrollController;
   final _searchController = TextEditingController();
   Timer? _debounce;
@@ -56,7 +56,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final maxScroll = _scrollController.position.maxScrollExtent;
     final currentScroll = _scrollController.position.pixels;
     if (currentScroll >= maxScroll - 300) {
-      ref.read(searchProvider.notifier).loadMore();
+      Get.find<SearchScreenController>().loadMore();
     }
   }
 
@@ -73,13 +73,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
 
     _debounce = Timer(const Duration(milliseconds: 250), () {
-      ref.read(searchProvider.notifier).setQuery(query);
+      Get.find<SearchScreenController>().setQuery(query);
     });
   }
 
   void _selectSearchTerm(String term) {
     _searchController.text = term;
-    ref.read(searchProvider.notifier).setQuery(term);
+    Get.find<SearchScreenController>().setQuery(term);
   }
 
   void _openDetail(Movie movie) {
@@ -90,10 +90,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   void _openNotificationMedia(String mediaId) {
-    final mediaState = ref.read(mediaProvider);
+    final homeCtrl = Get.find<HomeController>();
     final allMedia = [
-      ...mediaState.heroList,
-      ...mediaState.top10List,
+      ...homeCtrl.heroList,
+      ...homeCtrl.top10List,
       ...MockData.heroMovies,
       ...MockData.top10Movies,
     ];
@@ -113,13 +113,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   void _resetFilters() {
     _searchController.clear();
-    ref.read(searchProvider.notifier).reset();
+    Get.find<SearchScreenController>().reset();
   }
 
-  Widget _buildFormatChip(
-    String formatValue,
-    SearchState searchState,
-    SearchNotifier notifier, {
+  Widget _buildFormatChip(String formatValue, SearchState searchState, {
     String? label,
   }) {
     final displayLabel = label ?? formatValue;
@@ -127,7 +124,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     return Expanded(
       child: GestureDetector(
         onTap: () {
-          notifier.setFormatFilter(formatValue);
+          Get.find<AppSearchController>().setFormatFilter(formatValue);
         },
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
@@ -162,7 +159,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       isScrollControlled: true,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) {
-          final currentSearch = ref.watch(searchProvider);
+          final currentSearch = notifier.state;
           return Container(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
             decoration: BoxDecoration(
@@ -230,11 +227,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    _buildFormatChip('Semua', currentSearch, notifier),
+                    _buildFormatChip('Semua', currentSearch),
                     const SizedBox(width: 8),
-                    _buildFormatChip('Film', currentSearch, notifier),
+                    _buildFormatChip('Film', currentSearch),
                     const SizedBox(width: 8),
-                    _buildFormatChip('Serial', currentSearch, notifier, label: 'Serial TV'),
+                    _buildFormatChip('Serial', currentSearch, label: 'Serial TV'),
                   ],
                 ),
                 const SizedBox(height: 20),
@@ -384,11 +381,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final searchState = ref.watch(searchProvider);
-    final searchNotifier = ref.read(searchProvider.notifier);
-    final user = ref.watch(authProvider);
+    final searchCtrl = Get.find<AppSearchController>();
+    final authCtrl = Get.find<AuthController>();
 
-    return Scaffold(
+    return Obx(() {
+      final searchState = searchCtrl.state;
+      final searchNotifier = searchCtrl;
+
+      return Scaffold(
       backgroundColor: AppColors.background,
       body: CustomScrollView(
         controller: _scrollController,
@@ -428,7 +428,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     ),
                     child: ClipOval(
                       child: CachedNetworkImage(
-                        imageUrl: user.avatarUrl,
+                        imageUrl: authCtrl.user.value?.avatarUrl ?? '',
                         fit: BoxFit.cover,
                         placeholder: (context, url) => Container(color: AppColors.surfaceContainerHigh),
                         errorWidget: (context, url, err) => Container(
@@ -1112,5 +1112,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         ],
       ),
     );
+    });
   }
 }

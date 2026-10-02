@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/notification_model.dart';
@@ -198,7 +197,4 @@ class LocalStorageService {
     await _prefs.remove(_keyNotifications);
   }
 }
-
-/// Global provider untuk LocalStorageService (nullable untuk mendukung unit/widget test)
-final localStorageServiceProvider = Provider<LocalStorageService?>((ref) => null);
 

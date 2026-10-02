@@ -1,13 +1,13 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../core/theme/app_theme.dart';
-import '../../../models/ad_model.dart';
-import '../../../providers/ad_provider.dart';
-import '../../../providers/auth_provider.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../../models/ad_model.dart';
+import '../../../../providers/ad_provider.dart';
+import '../../auth/presentation/controllers/auth_controller.dart';
 
-class InFeedSponsorBillboard extends ConsumerStatefulWidget {
+class InFeedSponsorBillboard extends StatefulWidget {
   final int placementIndex;
 
   const InFeedSponsorBillboard({
@@ -16,22 +16,26 @@ class InFeedSponsorBillboard extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<InFeedSponsorBillboard> createState() => _InFeedSponsorBillboardState();
+  State<InFeedSponsorBillboard> createState() => _InFeedSponsorBillboardState();
 }
 
-class _InFeedSponsorBillboardState extends ConsumerState<InFeedSponsorBillboard> {
+class _InFeedSponsorBillboardState extends State<InFeedSponsorBillboard> {
   bool _hasRecordedImpression = false;
 
   @override
   Widget build(BuildContext context) {
-    final user = ref.watch(authProvider);
+    final authController = Get.find<AuthController>();
+    final user = authController.currentUser;
 
     // VIP users are completely exempt from sponsor billboards
-    if (user.isVip) {
+    if (user != null && user.isVip) {
       return const SizedBox.shrink();
     }
 
-    final billboardAds = ref.watch(adProvider).where((a) => a.isActive && a.layer == AdPlacementLayer.billboardFeed).toList();
+    final adController = Get.find<AdController>();
+    final billboardAds = adController.ads
+        .where((a) => a.isActive && a.layer == AdPlacementLayer.billboardFeed)
+        .toList();
     if (billboardAds.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -41,7 +45,7 @@ class _InFeedSponsorBillboardState extends ConsumerState<InFeedSponsorBillboard>
     if (!_hasRecordedImpression) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          ref.read(adProvider.notifier).recordImpression(ad.id);
+          adController.recordImpression(ad.id);
           _hasRecordedImpression = true;
         }
       });
@@ -52,7 +56,7 @@ class _InFeedSponsorBillboardState extends ConsumerState<InFeedSponsorBillboard>
       child: GestureDetector(
         key: Key('in_feed_sponsor_card_${ad.id}'),
         onTap: () {
-          ref.read(adProvider.notifier).recordClick(ad.id);
+          adController.recordClick(ad.id);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(

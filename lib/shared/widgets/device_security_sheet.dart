@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/device_session_model.dart';
-import '../../providers/auth_provider.dart';
+import '../../features/auth/presentation/controllers/auth_controller.dart';
 
 /// Modal bottom sheet manajemen keamanan perangkat & sesi login.
 /// Membedakan sesi Mobile (perangkat ini) dengan sesi Web / Desktop.
 /// Mengikuti styling sistem penyimpanan & cache (AppColors, surfaceContainerLowest, Outfit & Inter).
-class DeviceSecuritySheet extends ConsumerStatefulWidget {
+class DeviceSecuritySheet extends StatefulWidget {
   const DeviceSecuritySheet({super.key});
 
   static Future<void> show(BuildContext context) {
@@ -21,10 +21,10 @@ class DeviceSecuritySheet extends ConsumerStatefulWidget {
   }
 
   @override
-  ConsumerState<DeviceSecuritySheet> createState() => _DeviceSecuritySheetState();
+  State<DeviceSecuritySheet> createState() => _DeviceSecuritySheetState();
 }
 
-class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
+class _DeviceSecuritySheetState extends State<DeviceSecuritySheet> {
   bool _isProcessing = false;
 
   void _showNotification(String message, {bool isError = false}) {
@@ -94,7 +94,7 @@ class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
 
     setState(() => _isProcessing = true);
     try {
-      await ref.read(authProvider.notifier).revokeDeviceSession(session.sessionId);
+      await Get.find<AuthController>().revokeDeviceSession(session.sessionId);
       _showNotification('Sesi ${session.deviceName} berhasil dikeluarkan.');
     } catch (_) {
       _showNotification('Gagal mengeluarkan perangkat.', isError: true);
@@ -154,7 +154,7 @@ class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
 
     setState(() => _isProcessing = true);
     try {
-      await ref.read(authProvider.notifier).logoutAllDevices(includeCurrent: false);
+      await Get.find<AuthController>().logoutAllDevices(includeCurrent: false);
       _showNotification('Seluruh sesi perangkat lain berhasil dikeluarkan.');
     } catch (_) {
       _showNotification('Gagal memproses logout massal.', isError: true);
@@ -165,13 +165,13 @@ class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
 
   @override
   Widget build(BuildContext context) {
-    final user = ref.watch(authProvider);
-    final sessions = user.activeSessions;
+    final user = Get.find<AuthController>().currentUser;
+    final sessions = user?.activeSessions ?? [];
     final currentDevice = sessions.firstWhere(
       (s) => s.isCurrentDevice,
       orElse: () => DeviceSession(
         sessionId: 'sess-mob-current',
-        deviceName: user.currentDeviceName,
+        deviceName: user?.currentDeviceName ?? 'LiveEuy Mobile',
         deviceType: DeviceType.mobile,
         os: 'Android 14',
         browserOrApp: 'LiveEuy Mobile App v2.4',
@@ -393,7 +393,7 @@ class _DeviceSecuritySheetState extends ConsumerState<DeviceSecuritySheet> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  '${sessions.length} / ${user.maxAllowedDevices} Perangkat (${user.membershipTier})',
+                  '${sessions.length} / ${user?.maxAllowedDevices ?? 3} Perangkat (${user?.membershipTier ?? "Free"})',
                   style: GoogleFonts.inter(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,

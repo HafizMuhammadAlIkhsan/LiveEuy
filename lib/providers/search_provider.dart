@@ -1,7 +1,6 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get/get.dart';
 import '../core/data/mock_data.dart';
 import '../core/network/api_client.dart';
-import '../core/network/api_provider.dart';
 import '../core/network/api_service.dart';
 import '../models/movie_model.dart';
 
@@ -61,12 +60,20 @@ class SearchState {
   }
 }
 
-class SearchNotifier extends StateNotifier<SearchState> {
+class AppSearchController extends GetxController {
   final ApiService? apiService;
   CancelToken? _cancelToken;
   List<Movie> _currentFilteredCache = [];
 
-  SearchNotifier({this.apiService}) : super(const SearchState()) {
+  final Rx<SearchState> _state = const SearchState().obs;
+  SearchState get state => _state.value;
+  set state(SearchState val) => _state.value = val;
+
+  AppSearchController({this.apiService});
+
+  @override
+  void onInit() {
+    super.onInit();
     performSearch('');
   }
 
@@ -127,12 +134,10 @@ class SearchNotifier extends StateNotifier<SearchState> {
   }
 
   void performSearch(String searchKey) {
-    // 1. Batalkan request sebelumnya yang masih in-flight untuk mencegah race conditions
     _cancelToken?.cancel('Permintaan pencarian baru dimulai.');
     _cancelToken = CancelToken();
     final token = _cancelToken;
 
-    // 2. Filter in-memory lokal seketika (optimistic / offline fallback)
     var filtered = _allContent.where((item) {
       final matchQuery = searchKey.isEmpty ||
           item.title.toLowerCase().contains(searchKey.toLowerCase()) ||
@@ -159,7 +164,6 @@ class SearchNotifier extends StateNotifier<SearchState> {
       return matchQuery && matchFormat && matchCountry && matchGenre;
     }).toList();
 
-    // Urutkan data lokal
     if (state.sortBy == 'Rating Tertinggi') {
       filtered.sort((a, b) => b.userRating.compareTo(a.userRating));
     } else if (state.sortBy == 'Rilis Terbaru') {
@@ -170,7 +174,6 @@ class SearchNotifier extends StateNotifier<SearchState> {
 
     _currentFilteredCache = filtered;
 
-    // Ambil halaman awal (page 0) berdasarkan pageSize
     final initialSlice = filtered.take(state.pageSize).toList();
     final hasMore = filtered.length > initialSlice.length;
 
@@ -182,13 +185,12 @@ class SearchNotifier extends StateNotifier<SearchState> {
       isLoadingMore: false,
     );
 
-    // 3. Jika apiService tersedia, lakukan fetch asinkron dari backend
-    if (apiService != null) {
-      _fetchFromBackend(searchKey, page: 0, token: token);
+    final api = apiService ?? (Get.isRegistered<ApiService>() ? Get.find<ApiService>() : null);
+    if (api != null) {
+      _fetchFromBackend(searchKey, page: 0, token: token, api: api);
     }
   }
 
-  /// Memuat halaman data berikutnya (Infinite Scroll Pagination)
   Future<void> loadMore() async {
     if (state.isLoadingMore || !state.hasMore || state.isLoading) {
       return;
@@ -198,7 +200,6 @@ class SearchNotifier extends StateNotifier<SearchState> {
     final nextPage = state.currentPage + 1;
     final token = _cancelToken;
 
-    // 1. Ambil potongan berikutnya dari cache in-memory lokal
     final startIndex = nextPage * state.pageSize;
     final nextSlice = _currentFilteredCache.skip(startIndex).take(state.pageSize).toList();
     final hasMoreLocal = _currentFilteredCache.length > (startIndex + nextSlice.length);
@@ -212,14 +213,11 @@ class SearchNotifier extends StateNotifier<SearchState> {
         hasMore: hasMoreLocal,
         isLoadingMore: false,
       );
-    } else if (apiService == null) {
-      state = state.copyWith(hasMore: false, isLoadingMore: false);
-      return;
     }
 
-    // 2. Fetch halaman berikutnya dari backend jika apiService terpasang
-    if (apiService != null) {
-      await _fetchFromBackend(state.query, page: nextPage, token: token);
+    final api = apiService ?? (Get.isRegistered<ApiService>() ? Get.find<ApiService>() : null);
+    if (api != null) {
+      await _fetchFromBackend(state.query, page: nextPage, token: token, api: api);
     }
   }
 
@@ -227,6 +225,7 @@ class SearchNotifier extends StateNotifier<SearchState> {
     String searchKey, {
     int page = 0,
     CancelToken? token,
+    required ApiService api,
   }) async {
     try {
       String? backendType;
@@ -239,7 +238,7 @@ class SearchNotifier extends StateNotifier<SearchState> {
 
       String? backendGenre = state.selectedGenres.isNotEmpty ? state.selectedGenres.first : null;
 
-      final results = await apiService!.getAllMedia(
+      final results = await api.getAllMedia(
         search: searchKey.isNotEmpty ? searchKey : null,
         type: backendType,
         genre: backendGenre,
@@ -249,7 +248,6 @@ class SearchNotifier extends StateNotifier<SearchState> {
         cancelToken: token,
       );
 
-      // Cek apakah token dibatalkan selama proses async berlangsung
       if (token != null && token.isCancelled) return;
 
       if (results.isNotEmpty) {
@@ -277,7 +275,7 @@ class SearchNotifier extends StateNotifier<SearchState> {
       }
     } on DioException catch (e) {
       if (e.type == DioExceptionType.cancel) {
-        return; // Request dibatalkan oleh user atau search baru, abaikan
+        return;
       }
       if (page > 0) {
         state = state.copyWith(isLoadingMore: false);
@@ -290,14 +288,11 @@ class SearchNotifier extends StateNotifier<SearchState> {
   }
 
   @override
-  void dispose() {
-    _cancelToken?.cancel('SearchNotifier disposed');
-    super.dispose();
+  void onClose() {
+    _cancelToken?.cancel('SearchController closed');
+    super.onClose();
   }
 }
 
-final searchProvider = StateNotifierProvider<SearchNotifier, SearchState>((ref) {
-  final apiService = ref.watch(apiServiceProvider);
-  return SearchNotifier(apiService: apiService);
-});
-
+typedef SearchNotifier = AppSearchController;
+typedef SearchScreenController = AppSearchController;

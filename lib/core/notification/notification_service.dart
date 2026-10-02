@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/notification_model.dart';
 import '../deeplink/deep_link_service.dart';
 import '../storage/local_storage_service.dart';
@@ -206,17 +205,3 @@ class NotificationService {
     );
   }
 }
-
-/// Provider singleton NotificationService
-final notificationServiceProvider = Provider<NotificationService>((ref) {
-  LocalStorageService? storage;
-  try {
-    storage = ref.watch(localStorageServiceProvider);
-  } catch (_) {}
-  final deepLinkService = ref.watch(deepLinkServiceProvider);
-
-  return NotificationService(
-    storageService: storage,
-    deepLinkService: deepLinkService,
-  );
-});

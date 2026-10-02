@@ -1,4 +1,4 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get/get.dart';
 import '../core/deeplink/deep_link_service.dart';
 import '../core/storage/local_storage_service.dart';
 import '../models/notification_model.dart';
@@ -23,7 +23,7 @@ class NotificationState {
   }
 }
 
-class NotificationNotifier extends StateNotifier<NotificationState> {
+class NotificationController extends GetxController {
   final LocalStorageService? _storageService;
   final DeepLinkService? _deepLinkService;
 
@@ -50,18 +50,31 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     ),
   ];
 
-  NotificationNotifier({
-    this._storageService,
-    this._deepLinkService,
-  })  : super(const NotificationState(
-          items: _defaultItems,
-          hasUnread: true,
-        )) {
+  NotificationState _state = const NotificationState(
+    items: _defaultItems,
+    hasUnread: true,
+  );
+
+  NotificationState get state => _state;
+  set state(NotificationState val) {
+    _state = val;
+    update();
+  }
+
+  NotificationController({
+    LocalStorageService? storageService,
+    DeepLinkService? deepLinkService,
+  })  : _storageService = storageService,
+        _deepLinkService = deepLinkService;
+
+  @override
+  void onInit() {
+    super.onInit();
     _loadFromStorage();
   }
 
   void _loadFromStorage() {
-    final storage = _storageService;
+    final storage = _storageService ?? (Get.isRegistered<LocalStorageService>() ? Get.find<LocalStorageService>() : null);
     if (storage == null) return;
     try {
       final saved = storage.getNotifications();
@@ -69,14 +82,14 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
         final anyUnread = saved.any((item) => !item.isRead);
         state = NotificationState(items: saved, hasUnread: anyUnread);
       } else {
-        // Save initial default items to storage
         storage.saveNotifications(_defaultItems);
       }
     } catch (_) {}
   }
 
   void _persist() {
-    _storageService?.saveNotifications(state.items);
+    final storage = _storageService ?? (Get.isRegistered<LocalStorageService>() ? Get.find<LocalStorageService>() : null);
+    storage?.saveNotifications(state.items);
   }
 
   void markAllAsRead() {
@@ -148,16 +161,4 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   }
 }
 
-final notificationProvider =
-    StateNotifierProvider<NotificationNotifier, NotificationState>((ref) {
-  LocalStorageService? storage;
-  try {
-    storage = ref.watch(localStorageServiceProvider);
-  } catch (_) {}
-  final deepLinkService = ref.watch(deepLinkServiceProvider);
-
-  return NotificationNotifier(
-    storageService: storage,
-    deepLinkService: deepLinkService,
-  );
-});
+typedef NotificationNotifier = NotificationController;

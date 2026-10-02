@@ -1,6 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get/get.dart';
+import '../auth/presentation/controllers/auth_controller.dart';
+import '../media/presentation/controllers/home_controller.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/data/mock_data.dart';
 import '../../core/download/offline_download_manager.dart';
@@ -8,12 +10,10 @@ import '../../core/theme/app_theme.dart';
 import '../../models/download_item.dart';
 import '../../models/movie_model.dart';
 import '../../models/episode_model.dart';
-import '../../providers/auth_provider.dart';
-import '../../providers/media_provider.dart';
 import '../auth/login_screen.dart';
 import '../player/video_player_screen.dart';
 
-class ContentDetailScreen extends ConsumerStatefulWidget {
+class ContentDetailScreen extends StatefulWidget {
   final Movie movie;
 
   const ContentDetailScreen({
@@ -22,10 +22,10 @@ class ContentDetailScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<ContentDetailScreen> createState() => _ContentDetailScreenState();
+  State<ContentDetailScreen> createState() => _ContentDetailScreenState();
 }
 
-class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
+class _ContentDetailScreenState extends State<ContentDetailScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final ScrollController _scrollController = ScrollController();
@@ -99,7 +99,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
   }
 
   void _handleMovieDownload(DownloadItem? currentDownload) {
-    final downloadMgr = ref.read(offlineDownloadManagerProvider.notifier);
+    final downloadMgr = Get.find<OfflineDownloadManager>();
     final movieId = widget.movie.id;
 
     if (currentDownload != null && currentDownload.status == DownloadStatus.completed) {
@@ -114,7 +114,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
   }
 
   void _handleEpisodeDownload(Episode ep, DownloadItem? currentEpDownload) {
-    final downloadMgr = ref.read(offlineDownloadManagerProvider.notifier);
+    final downloadMgr = Get.find<OfflineDownloadManager>();
     final downloadKey = '${widget.movie.id}_${ep.id}';
 
     if (currentEpDownload != null && currentEpDownload.status == DownloadStatus.completed) {
@@ -209,7 +209,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
               subtitle: Text('Perpanjang masa aktif tonton offline tanpa mengunduh ulang', style: GoogleFonts.inter(fontSize: 11, color: AppColors.textSecondary)),
               onTap: () async {
                 Navigator.pop(sheetCtx);
-                final ok = await ref.read(offlineDownloadManagerProvider.notifier).renewLicense(item.id);
+                final ok = await Get.find<OfflineDownloadManager>().renewLicense(item.id);
                 _showToast(
                   ok ? 'Lisensi offline berhasil diperpanjang 30 hari!' : 'Gagal memperbarui lisensi',
                   icon: ok ? Icons.check_circle_rounded : Icons.error_outline_rounded,
@@ -222,7 +222,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
               subtitle: Text('Bebaskan ruang penyimpanan di perangkat', style: GoogleFonts.inter(fontSize: 11, color: AppColors.textSecondary)),
               onTap: () {
                 Navigator.pop(sheetCtx);
-                ref.read(offlineDownloadManagerProvider.notifier).deleteDownload(item.id);
+                Get.find<OfflineDownloadManager>().deleteDownload(item.id);
                 _showToast('File unduhan offline berhasil dihapus', icon: Icons.delete_outline_rounded, color: AppColors.outline);
               },
             ),
@@ -233,9 +233,9 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
   }
 
   void _handleQuickRate() {
-    final user = ref.read(authProvider);
+    final authCtrl = Get.find<AuthController>();
     _tabController.animateTo(3);
-    if (!user.isLoggedIn) {
+    if (!authCtrl.isLoggedIn.value) {
       _showToast(
         'Silakan masuk terlebih dahulu untuk memberikan nilai & ulasan',
         icon: Icons.lock_outline_rounded,
@@ -274,10 +274,18 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
 
   @override
   Widget build(BuildContext context) {
-    final mediaState = ref.watch(mediaProvider);
-    final user = ref.watch(authProvider);
-    final isWatchlist = mediaState.watchlistIds.contains(widget.movie.id);
-    final downloads = ref.watch(offlineDownloadsListProvider);
+    final homeCtrl = Get.find<HomeController>();
+    final authCtrl = Get.find<AuthController>();
+
+    return GetBuilder<OfflineDownloadManager>(
+      init: Get.isRegistered<OfflineDownloadManager>() ? null : OfflineDownloadManager(
+        storageService: Get.find(),
+        apiService: Get.find(),
+      ),
+      builder: (downloadManager) {
+        return Obx(() {
+          final isWatchlist = homeCtrl.watchlistIds.contains(widget.movie.id);
+          final downloads = downloadManager.state.downloads;
     final movieDownload = downloads.where((d) => d.id == widget.movie.id).firstOrNull;
 
     return Scaffold(
@@ -321,7 +329,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
                     shape: BoxShape.circle,
                     border: Border.all(color: AppColors.primaryContainer, width: 1.5),
                     image: DecorationImage(
-                      image: NetworkImage(user.avatarUrl),
+                      image: NetworkImage(authCtrl.user.value?.avatarUrl ?? ''),
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -578,7 +586,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
                           label: isWatchlist ? 'Tersimpan' : 'Daftar',
                           iconColor: isWatchlist ? AppColors.primary : AppColors.onSurface,
                           onTap: () {
-                            ref.read(mediaProvider.notifier).toggleWatchlist(widget.movie.id);
+                            Get.find<HomeController>().toggleWatchlist(widget.movie.id);
                             _showToast(
                               isWatchlist
                                   ? 'Dihapus dari Daftar Tontonan'
@@ -787,6 +795,9 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
           ),
         ],
       ),
+    );
+        });
+      },
     );
   }
 
@@ -1000,7 +1011,9 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
 
   // 2. Tab: Episode & Musim (Default Active)
   Widget _buildEpisodesTab() {
-    final downloads = ref.watch(offlineDownloadsListProvider);
+    final downloads = Get.isRegistered<OfflineDownloadManager>()
+        ? Get.find<OfflineDownloadManager>().state.downloads
+        : <DownloadItem>[];
     final episodes = MockData.gadiskretekEpisodes;
     final sortedEpisodes = _isEpisodeAscending
         ? (List<Episode>.from(episodes)..sort((a, b) => a.episodeNumber.compareTo(b.episodeNumber)))
@@ -1367,9 +1380,10 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
 
   // 4. Tab: Ulasan Pengguna (Reviews & Ratings)
   Widget _buildReviewsTab() {
-    final user = ref.watch(authProvider);
-    final mediaState = ref.watch(mediaProvider);
-    final reviews = mediaState.movieReviews[widget.movie.id] ??
+    final authCtrl = Get.find<AuthController>();
+    final user = authCtrl.currentUser;
+    final homeCtrl = Get.find<HomeController>();
+    final reviews = homeCtrl.movieReviews[widget.movie.id] ??
         MockData.getInitialReviews(widget.movie.id);
 
     // Hitung rata-rata rating dinamis dari daftar ulasan
@@ -1519,12 +1533,12 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
               color: AppColors.surfaceContainerLow,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: user.isLoggedIn
+                color: (user?.isLoggedIn ?? false)
                     ? AppColors.secondary.withValues(alpha: 0.25)
                     : Colors.white.withValues(alpha: 0.08),
               ),
             ),
-            child: user.isLoggedIn
+            child: (user?.isLoggedIn ?? false)
                 ? Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1533,7 +1547,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
                         children: [
                           CircleAvatar(
                             radius: 16,
-                            backgroundImage: NetworkImage(user.avatarUrl),
+                            backgroundImage: NetworkImage(authCtrl.user.value?.avatarUrl ?? ''),
                           ),
                           const SizedBox(width: 10),
                           Expanded(
@@ -1544,7 +1558,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
                                   children: [
                                     Flexible(
                                       child: Text(
-                                        user.name,
+                                        authCtrl.user.value?.name ?? '',
                                         style: GoogleFonts.outfit(
                                           fontSize: 13,
                                           fontWeight: FontWeight.w700,
@@ -1553,7 +1567,7 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
-                                    if (user.isVip) ...[
+                                    if (user?.isVip ?? false) ...[
                                       const SizedBox(width: 6),
                                       Container(
                                         padding: const EdgeInsets.symmetric(
@@ -1727,11 +1741,11 @@ class _ContentDetailScreenState extends ConsumerState<ContentDetailScreen>
                               final commentText = _commentController.text.trim();
                               final score = _userSelectedRating.toDouble();
 
-                              ref.read(mediaProvider.notifier).addReview(
+                              Get.find<HomeController>().addReview(
                                     widget.movie.id,
                                     score,
                                     commentText,
-                                    userName: user.name,
+                                    userName: authCtrl.user.value?.name ?? '',
                                   );
 
                               setState(() {

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_theme.dart';
 import '../../providers/notification_provider.dart';
 
-class NotificationIconButton extends ConsumerWidget {
+class NotificationIconButton extends StatelessWidget {
   final void Function(String mediaId)? onOpenMediaId;
 
   const NotificationIconButton({
@@ -13,10 +13,12 @@ class NotificationIconButton extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final notifState = ref.watch(notificationProvider);
+  Widget build(BuildContext context) {
+    return GetBuilder<NotificationController>(
+      builder: (controller) {
+        final notifState = controller.state;
 
-    return Stack(
+        return Stack(
       clipBehavior: Clip.none,
       children: [
         IconButton(
@@ -27,7 +29,7 @@ class NotificationIconButton extends ConsumerWidget {
             color: AppColors.onSurface,
             size: 22,
           ),
-          onPressed: () => showNotificationSheet(context, ref, onOpenMediaId),
+          onPressed: () => showNotificationSheet(context, onOpenMediaId),
         ),
         if (notifState.hasUnread)
           Positioned(
@@ -48,12 +50,13 @@ class NotificationIconButton extends ConsumerWidget {
           ),
       ],
     );
+      },
+    );
   }
 }
 
 void showNotificationSheet(
   BuildContext context,
-  WidgetRef ref,
   void Function(String mediaId)? onOpenMediaId,
 ) {
   showModalBottomSheet(
@@ -61,9 +64,9 @@ void showNotificationSheet(
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
     builder: (ctx) {
-      return Consumer(
-        builder: (context, ref, child) {
-          final notifState = ref.watch(notificationProvider);
+      return GetBuilder<NotificationController>(
+        builder: (controller) {
+          final notifState = controller.state;
 
           return Container(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
@@ -174,7 +177,7 @@ void showNotificationSheet(
                           children: [
                             InkWell(
                               onTap: notifState.hasUnread
-                                  ? () => ref.read(notificationProvider.notifier).markAllAsRead()
+                                  ? () => controller.markAllAsRead()
                                   : null,
                               borderRadius: BorderRadius.circular(8),
                               child: Padding(
@@ -207,7 +210,7 @@ void showNotificationSheet(
                                 tooltip: 'Bersihkan semua',
                                 icon: const Icon(Icons.delete_sweep_outlined, color: AppColors.outline, size: 19),
                                 onPressed: () {
-                                  ref.read(notificationProvider.notifier).clearAll();
+                                  controller.clearAll();
                                 },
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
@@ -301,9 +304,7 @@ void showNotificationSheet(
                               ),
                             ),
                             onDismissed: (_) {
-                              ref
-                                  .read(notificationProvider.notifier)
-                                  .removeNotification(item.id);
+                              controller.removeNotification(item.id);
                               ScaffoldMessenger.of(context).hideCurrentSnackBar();
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
@@ -321,9 +322,7 @@ void showNotificationSheet(
                                     label: 'Urungkan',
                                     textColor: AppColors.primary,
                                     onPressed: () {
-                                      ref
-                                          .read(notificationProvider.notifier)
-                                          .addNotification(item);
+                                      controller.addNotification(item);
                                     },
                                   ),
                                 ),
@@ -332,16 +331,12 @@ void showNotificationSheet(
                             child: InkWell(
                             borderRadius: BorderRadius.circular(16),
                             onTap: () {
-                              ref
-                                  .read(notificationProvider.notifier)
-                                  .markAsRead(item.id);
+                              controller.markAsRead(item.id);
                               Navigator.pop(ctx);
                               if (onOpenMediaId != null && item.targetMediaId != null) {
                                 onOpenMediaId(item.targetMediaId!);
                               } else {
-                                ref
-                                    .read(notificationProvider.notifier)
-                                    .openNotification(item);
+                                controller.openNotification(item);
                               }
                             },
                             child: Container(

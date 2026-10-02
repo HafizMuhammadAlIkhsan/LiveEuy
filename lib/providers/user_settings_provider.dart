@@ -1,59 +1,66 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../core/network/api_provider.dart';
+import 'package:get/get.dart';
 import '../core/network/api_service.dart';
 import '../core/storage/local_storage_service.dart';
 import '../models/user_settings_model.dart';
 
-class UserSettingsNotifier extends StateNotifier<UserSettings> {
+class UserSettingsController extends GetxController {
   final ApiService? _apiService;
   final LocalStorageService? _storageService;
 
-  UserSettingsNotifier([this._apiService, this._storageService])
-      : super(const UserSettings()) {
+  final Rx<UserSettings> _settings = const UserSettings().obs;
+
+  UserSettings get state => _settings.value;
+  set state(UserSettings val) => _settings.value = val;
+
+  UserSettingsController([this._apiService, this._storageService]);
+
+  @override
+  void onInit() {
+    super.onInit();
     _loadSettings();
   }
 
   Future<void> _loadSettings() async {
-    // 1. Load dari Local Storage terlebih dahulu (Instant Offline-First)
-    if (_storageService != null) {
+    final storage = _storageService ?? (Get.isRegistered<LocalStorageService>() ? Get.find<LocalStorageService>() : null);
+    if (storage != null) {
       try {
-        final cached = _storageService.getUserSettings();
+        final cached = storage.getUserSettings();
         if (cached != null) {
-          state = cached;
+          _settings.value = cached;
         }
       } catch (e) {
         if (kDebugMode) {
-          debugPrint('[UserSettingsNotifier] Gagal membaca storage lokal: $e');
+          debugPrint('[UserSettingsController] Gagal membaca storage lokal: $e');
         }
       }
     }
 
-    // 2. Sinkronisasi dengan backend jika API tersedia
-    if (_apiService == null) return;
+    final api = _apiService ?? (Get.isRegistered<ApiService>() ? Get.find<ApiService>() : null);
+    if (api == null) return;
     try {
-      final remoteSettings = await _apiService.getUserSettings();
-      state = remoteSettings;
-      _storageService?.saveUserSettings(remoteSettings);
+      final remoteSettings = await api.getUserSettings();
+      _settings.value = remoteSettings;
+      storage?.saveUserSettings(remoteSettings);
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('[UserSettingsNotifier] Menggunakan pengaturan lokal default: $e');
+        debugPrint('[UserSettingsController] Menggunakan pengaturan lokal default: $e');
       }
     }
   }
 
   Future<void> _saveAndSync(UserSettings newSettings) async {
-    state = newSettings;
-    // Persist lokal langsung
-    await _storageService?.saveUserSettings(newSettings);
+    _settings.value = newSettings;
+    final storage = _storageService ?? (Get.isRegistered<LocalStorageService>() ? Get.find<LocalStorageService>() : null);
+    await storage?.saveUserSettings(newSettings);
 
-    // Sinkronisasi ke backend jika online
-    if (_apiService == null) return;
+    final api = _apiService ?? (Get.isRegistered<ApiService>() ? Get.find<ApiService>() : null);
+    if (api == null) return;
     try {
-      await _apiService.updateUserSettings(newSettings);
+      await api.updateUserSettings(newSettings);
     } catch (e) {
       if (kDebugMode) {
-        debugPrint('[UserSettingsNotifier] Gagal sinkronisasi pengaturan ke backend: $e');
+        debugPrint('[UserSettingsController] Gagal sinkronisasi pengaturan ke backend: $e');
       }
     }
   }
@@ -83,12 +90,4 @@ class UserSettingsNotifier extends StateNotifier<UserSettings> {
   }
 }
 
-final userSettingsProvider =
-    StateNotifierProvider<UserSettingsNotifier, UserSettings>((ref) {
-  final apiService = ref.watch(apiServiceProvider);
-  LocalStorageService? storage;
-  try {
-    storage = ref.watch(localStorageServiceProvider);
-  } catch (_) {}
-  return UserSettingsNotifier(apiService, storage);
-});
+typedef UserSettingsNotifier = UserSettingsController;

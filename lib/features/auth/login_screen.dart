@@ -1,16 +1,26 @@
 import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get/get.dart';
+import '../../features/auth/presentation/controllers/auth_controller.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../core/network/dio_exception.dart';
+import '../../core/config/app_route.dart';
+import '../../core/network/api_client.dart';
+import '../../core/storage/local_storage_service.dart';
+
 import '../../core/theme/app_theme.dart';
 import '../../models/device_session_model.dart';
-import '../../providers/auth_provider.dart';
+import 'data/datasources/auth_remote_datasource.dart';
+import 'data/datasources/auth_local_datasource.dart';
+import 'data/repositories/auth_repository_impl.dart';
+import 'domain/usecases/login_usecase.dart';
+import 'domain/usecases/register_usecase.dart';
+import 'domain/usecases/logout_usecase.dart';
+import 'domain/usecases/demo_login_usecase.dart';
 import '../../shared/widgets/device_conflict_dialog.dart';
 import '../../shared/widgets/streamflix_logo.dart';
 
-class LoginScreen extends ConsumerStatefulWidget {
+class LoginScreen extends StatefulWidget {
   final int initialTabIndex; // 0 for Masuk, 1 for Daftar
   final String? initialResetToken;
   final bool openForgotPasswordImmediately;
@@ -26,11 +36,39 @@ class LoginScreen extends ConsumerStatefulWidget {
     this.initialVerifyPin,
   });
 
+  static AuthController ensureAuthController() {
+    if (Get.isRegistered<AuthController>()) {
+      return Get.find<AuthController>();
+    }
+    final client = Get.isRegistered<ApiClient>()
+        ? Get.find<ApiClient>()
+        : ApiClient(baseUrl: ApiConfig.authBaseUrl);
+    final storage = Get.isRegistered<LocalStorageService>()
+        ? Get.find<LocalStorageService>()
+        : null;
+    final remoteDS = AuthRemoteDataSourceImpl(client: client);
+    final localDS = AuthLocalDataSourceImpl(
+      storageService: storage ?? LocalStorageService(prefs: null as dynamic),
+    );
+    final repo = AuthRepositoryImpl(remoteDataSource: remoteDS, localDataSource: localDS);
+    return Get.put(
+      AuthController(
+        loginUseCase: LoginUseCase(repo),
+        registerUseCase: RegisterUseCase(repo),
+        logoutUseCase: LogoutUseCase(repo),
+        demoLoginUseCase: DemoLoginUseCase(repo),
+        repository: repo,
+      ),
+      permanent: true,
+    );
+  }
+
   @override
-  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
+
+class _LoginScreenState extends State<LoginScreen> {
   late int _activeTabIndex;
 
   // Masuk Form controllers
@@ -239,7 +277,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() => _isLoading = true);
 
     // 1. Jalankan Device Conflict Checker (Web vs Mobile Single Session Rule)
-    final conflictCheck = await ref.read(authProvider.notifier).checkDeviceConflict(email);
+    final conflictCheck = await LoginScreen.ensureAuthController().checkDeviceConflict(email);
     if (!mounted) return;
 
     if (conflictCheck.hasWebConflict) {
@@ -249,14 +287,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
 
     try {
-      final success = await ref.read(authProvider.notifier).login(email, pass, _rememberMe);
+      final success = await LoginScreen.ensureAuthController().login(email, pass, _rememberMe);
       if (mounted) {
         setState(() => _isLoading = false);
         if (success) {
           _failedLoginAttempts = 0;
           _showToast('Verifikasi Berhasil', 'Selamat menonton film favoritmu!', icon: Icons.check_circle_rounded);
-          Navigator.pop(context);
+          _navigateHomeOrPop(context);
         } else {
+
           _failedLoginAttempts++;
           if (_failedLoginAttempts >= 5) {
             _startLockoutCountdown();
@@ -289,7 +328,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
+  void _navigateHomeOrPop(BuildContext context) {
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    } else {
+      Get.offAllNamed(AppRoute.main);
+    }
+  }
+
   void _showDeviceConflictDialog(DeviceCheckResult conflictResult, String email, String pass) {
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -310,7 +358,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             onConfirmTakeover: () async {
               setDialogState(() => isTakeoverProcessing = true);
               try {
-                final success = await ref.read(authProvider.notifier).login(
+                final success = await LoginScreen.ensureAuthController().login(
                       email,
                       pass,
                       _rememberMe,
@@ -326,7 +374,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     'Akun Anda kini aktif di perangkat Mobile ini.',
                     icon: Icons.phonelink_lock_rounded,
                   );
-                  Navigator.pop(context);
+                  _navigateHomeOrPop(context);
                 } else {
                   _showToast(
                     'Gagal Mengambil Alih Sesi',
@@ -334,6 +382,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     icon: Icons.error_outline_rounded,
                   );
                 }
+
               } on DioException catch (dioErr) {
                 if (dialogCtx.mounted) {
                   Navigator.of(dialogCtx).pop();
@@ -422,8 +471,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _showToast('Otorisasi $platform', 'Membuka gerbang aman akun...', icon: Icons.lock_open_rounded);
     Future.delayed(const Duration(milliseconds: 800), () {
       if (mounted) {
-        ref.read(authProvider.notifier).login('user.$platform@streamflix.id', 'SocialPass', true);
-        Navigator.pop(context);
+        LoginScreen.ensureAuthController().login('user.$platform@streamflix.id', 'SocialPass', true);
+        _navigateHomeOrPop(context);
       }
     });
   }
@@ -454,7 +503,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void _handleDemoPersona(String persona) async {
     setState(() => _isLoading = true);
     try {
-      final success = await ref.read(authProvider.notifier).demoLogin(persona, rememberMe: _rememberMe);
+      final success = await LoginScreen.ensureAuthController().demoLogin(persona, rememberMe: _rememberMe);
       if (mounted) {
         setState(() => _isLoading = false);
         if (success) {
@@ -463,10 +512,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             'Masuk sebagai akun $persona',
             icon: Icons.check_circle_rounded,
           );
-          Navigator.pop(context);
+          _navigateHomeOrPop(context);
         }
       }
     } catch (e) {
+
       if (mounted) {
         setState(() => _isLoading = false);
         _showToast('Demo Login Gagal', '$e', icon: Icons.error_outline_rounded);
@@ -1335,7 +1385,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 }
 
-class _ForgotPasswordSheet extends ConsumerStatefulWidget {
+class _ForgotPasswordSheet extends StatefulWidget {
   final String initialEmail;
   final String? initialToken;
   final ValueChanged<String> onResetSuccess;
@@ -1347,10 +1397,10 @@ class _ForgotPasswordSheet extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<_ForgotPasswordSheet> createState() => _ForgotPasswordSheetState();
+  State<_ForgotPasswordSheet> createState() => _ForgotPasswordSheetState();
 }
 
-class _ForgotPasswordSheetState extends ConsumerState<_ForgotPasswordSheet> {
+class _ForgotPasswordSheetState extends State<_ForgotPasswordSheet> {
   int _step = 1; // 1: Input email, 2: Input token & new password
   late final TextEditingController _emailController;
   final TextEditingController _tokenController = TextEditingController();
@@ -1395,7 +1445,7 @@ class _ForgotPasswordSheetState extends ConsumerState<_ForgotPasswordSheet> {
       _errorMessage = null;
     });
 
-    final success = await ref.read(authProvider.notifier).forgotPassword(email);
+    final success = await LoginScreen.ensureAuthController().forgotPassword(email);
 
     if (!mounted) return;
     setState(() {
@@ -1433,9 +1483,9 @@ class _ForgotPasswordSheetState extends ConsumerState<_ForgotPasswordSheet> {
       _errorMessage = null;
     });
 
-    final success = await ref
-        .read(authProvider.notifier)
+    final success = await LoginScreen.ensureAuthController()
         .resetPassword(token: token, newPassword: newPass);
+
 
     if (!mounted) return;
     setState(() => _isLoading = false);
@@ -1823,7 +1873,7 @@ class _ForgotPasswordSheetState extends ConsumerState<_ForgotPasswordSheet> {
   }
 }
 
-class _RegisterPinVerificationSheet extends ConsumerStatefulWidget {
+class _RegisterPinVerificationSheet extends StatefulWidget {
   final String name;
   final String email;
   final String password;
@@ -1839,10 +1889,10 @@ class _RegisterPinVerificationSheet extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<_RegisterPinVerificationSheet> createState() => _RegisterPinVerificationSheetState();
+  State<_RegisterPinVerificationSheet> createState() => _RegisterPinVerificationSheetState();
 }
 
-class _RegisterPinVerificationSheetState extends ConsumerState<_RegisterPinVerificationSheet> {
+class _RegisterPinVerificationSheetState extends State<_RegisterPinVerificationSheet> {
   final TextEditingController _pinController = TextEditingController();
   int _countdown = 30;
   Timer? _countdownTimer;
@@ -1889,7 +1939,7 @@ class _RegisterPinVerificationSheetState extends ConsumerState<_RegisterPinVerif
       _errorMessage = null;
     });
     _startTimer();
-    final res = await ref.read(authProvider.notifier).resendVerificationPin(widget.email);
+    final res = await LoginScreen.ensureAuthController().resendVerificationPin(widget.email);
     if (!mounted) return;
     setState(() {
       if (res) {
@@ -1913,7 +1963,7 @@ class _RegisterPinVerificationSheetState extends ConsumerState<_RegisterPinVerif
     });
 
     try {
-      final isValid = await ref.read(authProvider.notifier).verifyRegistrationPin(widget.email, pin);
+      final isValid = await LoginScreen.ensureAuthController().verifyRegistrationPin(widget.email, pin);
       if (!isValid) {
         if (mounted) {
           setState(() {
@@ -1924,13 +1974,14 @@ class _RegisterPinVerificationSheetState extends ConsumerState<_RegisterPinVerif
         return;
       }
 
-      final success = await ref.read(authProvider.notifier).register(
+      final success = await LoginScreen.ensureAuthController().register(
         widget.name,
         widget.email,
         widget.password,
         'VIP Standard',
         pin,
       );
+
 
       if (mounted) {
         setState(() => _isLoading = false);

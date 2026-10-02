@@ -1,10 +1,10 @@
 # LiveEuy: Dokumentasi Kontrak & Spesifikasi API Backend
 
-Direktori ini berisi dokumentasi spesifikasi teknis, kontrak API, panduan keamanan token, dan referensi skema database untuk integrasi klien mobile (**LiveEuy Mobile Flutter**).
+Direktori ini berisi dokumentasi spesifikasi teknis, kontrak API, panduan keamanan token, dan referensi skema database untuk integrasi klien mobile (**LiveEuy Mobile Flutter**) dan web (**LiveEuy Web React**).
 
 Layanan backend resmi dikembangkan dalam arsitektur **microservices**:
-1. **`auth-service` (Port 8080)**: Layanan autentikasi, registrasi, sesi perangkat, persona demo, profil, dan token JWT RSA-256 (Golang Gin & Redis & PostgreSQL).
-2. **`catalog-service` (Port 8081)**: Layanan katalog media, film, serial TV, seasons, episodes, pagination Spring Boot, dan batch fetch (Java 21 + Spring Boot 3.4.3).
+1. **`auth-service` (Port 8080)**: Layanan autentikasi, registrasi, sesi perangkat, persona demo, profil, verifikasi PIN, pemulihan sandi, dan token JWT RSA-256 (Golang Gin & Redis & PostgreSQL).
+2. **`catalog-service` (Port 8081)**: Layanan katalog media, film, serial TV, seasons, episodes, pagination Spring Boot, batch fetch, watchlist, dan riwayat tontonan (Java 21 + Spring Boot 3.4.3).
 
 ---
 
@@ -31,18 +31,23 @@ backend/
 
 | Method | Path Endpoint | Autentikasi | Deskripsi |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/api/v1/auth/register` | Publik | Registrasi akun baru dengan pilihan membership tier |
+| `POST` | `/api/v1/auth/register` | Publik | Registrasi akun baru dengan pilihan membership tier & PIN profil |
+| `POST` | `/api/v1/auth/verify-email` | Publik | Verifikasi kode PIN pendaftaran / aktivasi akun baru |
+| `POST` | `/api/v1/auth/resend-verification` | Publik | Mengirim ulang kode PIN / token verifikasi akun |
 | `POST` | `/api/v1/auth/login` | Publik | Login email & password, mengembalikan access token & refresh token |
 | `POST` | `/api/v1/auth/demo-login?persona={tamu\|vip\|ultra}` | Publik | Login instan menggunakan persona demo pengujian |
-| `POST` | `/api/v1/auth/refresh` | Cookie / Body | Rotasi token JWT sesi aktif |
+| `POST` | `/api/v1/auth/refresh` | Cookie / Body | Rotasi token JWT sesi aktif (RTR) |
 | `POST` | `/api/v1/auth/logout` | Publik | Logout sesi perangkat saat ini |
-| `POST` | `/api/v1/auth/logout-all` | Bearer Token | Logout seluruh sesi atau sesi lain |
-| `GET` | `/api/v1/auth/profile` | Bearer Token | Mengambil detail profil dan metrik akun |
-| `PUT` | `/api/v1/auth/change-password` | Bearer Token | Mengganti kata sandi akun |
-| `GET` | `/api/v1/auth/devices` | Bearer Token | Mengambil daftar sesi perangkat terdaftar |
-| `DELETE` | `/api/v1/auth/devices/{id}` | Bearer Token | Mencabut sesi perangkat tertentu |
+| `POST` | `/api/v1/auth/logout-all` | Bearer Token | Logout seluruh sesi atau sesi lain (`includeCurrent: false`) |
+| `GET` | `/api/v1/auth/profile` | Bearer Token | Mengambil detail profil, kuota perangkat, dan metrik akun |
+| `PUT` | `/api/v1/auth/change-password` | Bearer Token | Mengganti kata sandi akun dengan verifikasi sandi lama |
+| `POST` | `/api/v1/auth/forgot-password` | Publik | Permintaan pemulihan sandi via email |
+| `POST` | `/api/v1/auth/reset-password` | Publik | Setel ulang kata sandi menggunakan token atau PIN pemulihan |
+| `GET` | `/api/v1/auth/devices` | Bearer Token | Mengambil daftar sesi perangkat terhubung (Mobile & Web) |
+| `POST` | `/api/v1/auth/devices/check` | Bearer Token | Memeriksa konflik sesi bersamaan lintas perangkat |
+| `DELETE` | `/api/v1/auth/devices/{id}` | Bearer Token | Mencabut sesi perangkat tertentu dari jarak jauh |
 
-### 2. Catalog Service (`http://localhost:8081/api/v1/media`)
+### 2. Catalog & User Service (`http://localhost:8081/api/v1`)
 
 | Method | Path Endpoint | Query Params | Deskripsi |
 | :--- | :--- | :--- | :--- |
@@ -53,6 +58,13 @@ backend/
 | `GET` | `/api/v1/series` | `page`, `size` | Daftar serial TV |
 | `GET` | `/api/v1/series/{id}/seasons` | - | Daftar musim dari serial tertentu |
 | `GET` | `/api/v1/seasons/{id}/episodes` | - | Daftar episode dari musim tertentu |
+| `GET` | `/api/v1/user/settings` | `userId` | Pengaturan streaming & download pengguna |
+| `PUT` | `/api/v1/user/settings` | - | Memperbarui pengaturan streaming & preferensi |
+| `GET` | `/api/v1/user/watchlist/ids` | `userId` | Daftar ID tayangan dalam koleksi watchlist pengguna |
+| `POST` | `/api/v1/user/watchlist/{mediaId}` | - | Menambahkan tayangan ke dalam daftar watchlist |
+| `DELETE` | `/api/v1/user/watchlist/{mediaId}` | - | Menghapus tayangan dari daftar watchlist |
+| `GET` | `/api/v1/user/progress` | `userId` | Riwayat dan posisi tontonan (Continue Watching) |
+| `POST` | `/api/v1/user/progress` | - | Menyimpan progres posisi pemutaran video |
 
 ---
 

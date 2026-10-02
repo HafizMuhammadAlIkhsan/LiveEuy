@@ -3,7 +3,8 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get/get.dart';
+import '../auth/presentation/controllers/auth_controller.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:video_player/video_player.dart';
 import '../../core/download/offline_download_manager.dart';
@@ -13,10 +14,9 @@ import '../../models/download_item.dart';
 import '../../models/episode_model.dart';
 import '../../models/movie_model.dart';
 import '../../providers/ad_provider.dart';
-import '../../providers/auth_provider.dart';
 import '../../providers/player_provider.dart';
 
-class VideoPlayerScreen extends ConsumerStatefulWidget {
+class VideoPlayerScreen extends StatefulWidget {
   final Movie movie;
   final double? startProgress;
   final Duration? startPosition;
@@ -33,10 +33,10 @@ class VideoPlayerScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<VideoPlayerScreen> createState() => _VideoPlayerScreenState();
+  State<VideoPlayerScreen> createState() => _VideoPlayerScreenState();
 }
 
-class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
+class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   late VideoPlayerController _controller;
   bool _isInitialized = false;
   bool _showControls = true;
@@ -75,7 +75,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
   }
 
   void _checkOfflineAndInit() {
-    final downloadMgr = ref.read(offlineDownloadManagerProvider.notifier);
+    final downloadMgr = Get.find<OfflineDownloadManager>();
     final item = widget.offlineItem ?? downloadMgr.getDownload(widget.movie.id);
 
     if (item != null && (widget.localFilePath != null || File(item.localFilePath).existsSync())) {
@@ -140,9 +140,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
                   backgroundColor: AppColors.surfaceContainerHighest,
                 ),
               );
-              final success = await ref
-                  .read(offlineDownloadManagerProvider.notifier)
-                  .renewLicense(item.id);
+              final success = await Get.find<OfflineDownloadManager>().renewLicense(item.id);
               if (success && mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -198,9 +196,11 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
       );
     }
 
-    final user = ref.read(authProvider);
+    final authCtrl = Get.find<AuthController>();
+    final isVip = authCtrl.currentUser?.isVip ?? false;
+    final adCtrl = Get.isRegistered<AdController>() ? Get.find<AdController>() : Get.put(AdController());
     // Unduhan offline bebas iklan (ad-free) seperti YouTube Premium
-    final prerollAd = _isOfflinePlayback ? null : ref.read(adProvider.notifier).getPrerollAd(user.isVip);
+    final prerollAd = _isOfflinePlayback ? null : adCtrl.getPrerollAd(isVip);
 
     if (prerollAd != null) {
       _activePrerollAd = prerollAd;
@@ -257,7 +257,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
     if (!_hasRecordedAdImpression && _activePrerollAd != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && !_hasRecordedAdImpression && _activePrerollAd != null) {
-          ref.read(adProvider.notifier).recordImpression(_activePrerollAd!.id);
+          Get.put(AdController()).recordImpression(_activePrerollAd!.id);
           _hasRecordedAdImpression = true;
         }
       });
@@ -293,7 +293,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
   }
 
   void _onPrerollCtaClicked(AdCampaign ad) {
-    ref.read(adProvider.notifier).recordClick(ad.id);
+    Get.put(AdController()).recordClick(ad.id);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -433,7 +433,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
     }
   }
 
-  void _showAudioSubtitlesSheet(BuildContext context, PlayerSettings settings, PlayerNotifier notifier) {
+  void _showAudioSubtitlesSheet(BuildContext context, PlayerSettingsController player) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -542,27 +542,27 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
                       const SizedBox(height: 10),
                       _buildAudioSubOption(
                         title: 'Bahasa Indonesia (CC)',
-                        isSelected: settings.subtitle == 'Bahasa Indonesia',
+                        isSelected: player.subtitle.value == 'Bahasa Indonesia',
                         onTap: () {
-                          notifier.setSubtitle('Bahasa Indonesia');
+                          player.setSubtitle('Bahasa Indonesia');
                           Navigator.pop(context);
                         },
                       ),
                       const SizedBox(height: 6),
                       _buildAudioSubOption(
                         title: 'English (CC)',
-                        isSelected: settings.subtitle == 'English',
+                        isSelected: player.subtitle.value == 'English',
                         onTap: () {
-                          notifier.setSubtitle('English');
+                          player.setSubtitle('English');
                           Navigator.pop(context);
                         },
                       ),
                       const SizedBox(height: 6),
                       _buildAudioSubOption(
                         title: 'Mati',
-                        isSelected: settings.subtitle == 'Nonaktif',
+                        isSelected: player.subtitle.value == 'Nonaktif',
                         onTap: () {
-                          notifier.setSubtitle('Nonaktif');
+                          player.setSubtitle('Nonaktif');
                           Navigator.pop(context);
                         },
                       ),
@@ -617,14 +617,14 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final playerSettings = ref.watch(playerProvider);
-    final playerNotifier = ref.read(playerProvider.notifier);
+    final player = Get.put(PlayerSettingsController());
 
     final position = _controller.value.position;
     final duration = _controller.value.duration;
     final isPlaying = _controller.value.isPlaying;
 
-    return Scaffold(
+    return Obx(() {
+      return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         fit: StackFit.expand,
@@ -750,7 +750,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
                       onPressed: () {},
                     ),
                     GestureDetector(
-                      onTap: () => _showAudioSubtitlesSheet(context, playerSettings, playerNotifier),
+                      onTap: () => _showAudioSubtitlesSheet(context, player),
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
@@ -776,12 +776,12 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
                     IconButton(
                       icon: Icon(
                         Icons.troubleshoot_rounded,
-                        color: playerSettings.isStatsForNerdsVisible
+                        color: player.isStatsForNerdsVisible.value
                             ? AppColors.tertiary
                             : Colors.white70,
                         size: 20,
                       ),
-                      onPressed: playerNotifier.toggleStatsForNerds,
+                      onPressed: player.toggleStatsForNerds,
                     ),
                   ],
                 ),
@@ -989,9 +989,9 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
                           children: [
                             // Playback speed menu
                             PopupMenuButton<double>(
-                              initialValue: playerSettings.playbackSpeed,
+                              initialValue: player.playbackSpeed.value,
                               onSelected: (speed) {
-                                playerNotifier.setPlaybackSpeed(speed);
+                                player.setPlaybackSpeed(speed);
                                 _controller.setPlaybackSpeed(speed);
                               },
                               color: AppColors.surfaceContainerHighest,
@@ -1015,7 +1015,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
                                 child: Row(
                                   children: [
                                     Text(
-                                      '${playerSettings.playbackSpeed}x',
+                                      '${player.playbackSpeed.value}x',
                                       style: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white),
                                     ),
                                     const SizedBox(width: 2),
@@ -1028,8 +1028,8 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
 
                             // Resolution selector menu
                             PopupMenuButton<String>(
-                              initialValue: playerSettings.resolution,
-                              onSelected: playerNotifier.setResolution,
+                              initialValue: player.resolution.value,
+                              onSelected: player.setResolution,
                               color: AppColors.surfaceContainerHighest,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               itemBuilder: (context) => availableResolutions
@@ -1047,7 +1047,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
                                 child: Row(
                                   children: [
                                     Text(
-                                      playerSettings.resolution,
+                                      player.resolution.value,
                                       style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.tertiaryFixed),
                                     ),
                                     const SizedBox(width: 4),
@@ -1096,7 +1096,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
           ],
 
           // 7. Toggleable 'Stats for Nerds' Glassmorphism Overlay Panel
-          if (playerSettings.isStatsForNerdsVisible)
+          if (player.isStatsForNerdsVisible.value)
             Positioned(
               top: 70,
               left: 16,
@@ -1135,7 +1135,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
                           ],
                         ),
                         GestureDetector(
-                          onTap: playerNotifier.toggleStatsForNerds,
+                          onTap: player.toggleStatsForNerds,
                           child: Container(
                             padding: const EdgeInsets.all(4),
                             decoration: const BoxDecoration(
@@ -1271,6 +1271,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
         ],
       ),
     );
+    });
   }
 
   Widget _buildStatCard(String label, String value) {

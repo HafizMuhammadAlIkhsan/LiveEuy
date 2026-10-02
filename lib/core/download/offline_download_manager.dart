@@ -1,13 +1,12 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import '../../models/download_item.dart';
 import '../../models/episode_model.dart';
 import '../../models/movie_model.dart';
-import '../network/api_provider.dart';
 import '../network/api_service.dart';
 import '../storage/offline_storage_service.dart';
 
@@ -40,7 +39,8 @@ class OfflineDownloadState {
 /// - Menyimpan file di folder dokumen aplikasi yang terlindungi (app-private sandbox).
 /// - Menggunakan Hive untuk persistensi status & metadata.
 /// - Memvalidasi dan memperbarui lisensi offline (default 30 hari).
-class OfflineDownloadManager extends StateNotifier<OfflineDownloadState> {
+class OfflineDownloadManager extends GetxController {
+  OfflineDownloadState state = const OfflineDownloadState(isLoading: true);
   final OfflineStorageService _storageService;
   final ApiService _apiService;
   final http.Client _httpClient;
@@ -55,8 +55,7 @@ class OfflineDownloadManager extends StateNotifier<OfflineDownloadState> {
     http.Client? httpClient,
   })  : _storageService = storageService,
         _apiService = apiService,
-        _httpClient = httpClient ?? http.Client(),
-        super(const OfflineDownloadState(isLoading: true)) {
+        _httpClient = httpClient ?? http.Client() {
     _init();
   }
 
@@ -68,6 +67,7 @@ class OfflineDownloadManager extends StateNotifier<OfflineDownloadState> {
   void _refreshDownloads() {
     final list = _storageService.getAllDownloads();
     state = state.copyWith(downloads: list, isLoading: false);
+    update();
   }
 
   /// Cek apakah suatu media/episode sudah terunduh
@@ -364,19 +364,3 @@ class OfflineDownloadManager extends StateNotifier<OfflineDownloadState> {
     super.dispose();
   }
 }
-
-/// Provider utama pengelola unduhan offline
-final offlineDownloadManagerProvider =
-    StateNotifierProvider<OfflineDownloadManager, OfflineDownloadState>((ref) {
-  final storageService = ref.watch(offlineStorageServiceProvider);
-  final apiService = ref.watch(apiServiceProvider);
-  return OfflineDownloadManager(
-    storageService: storageService,
-    apiService: apiService,
-  );
-});
-
-/// Provider daftar unduhan reaktif
-final offlineDownloadsListProvider = Provider<List<DownloadItem>>((ref) {
-  return ref.watch(offlineDownloadManagerProvider).downloads;
-});

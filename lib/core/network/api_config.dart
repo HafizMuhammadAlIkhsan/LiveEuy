@@ -150,7 +150,9 @@ class ApiConfig {
   static const String logoutPath = '/auth/logout';
   static const String logoutAllPath = '/auth/logout-all';
   static String revokeDevicePath(String deviceId) => '/auth/devices/$deviceId';
+  static String deviceRevokePath(String deviceId) => revokeDevicePath(deviceId);
   static String deviceCheckPath(String email) => '/auth/device-check?email=${Uri.encodeComponent(email)}';
+
 
   // Offline Downloads & Cloudflare R2 paths
   static const String downloadRequestPath = '/downloads/request';

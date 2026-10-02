@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../models/download_item.dart';
 
@@ -152,7 +151,3 @@ class OfflineStorageService {
   }
 }
 
-/// Riverpod provider untuk OfflineStorageService
-final offlineStorageServiceProvider = Provider<OfflineStorageService>((ref) {
-  return OfflineStorageService();
-});

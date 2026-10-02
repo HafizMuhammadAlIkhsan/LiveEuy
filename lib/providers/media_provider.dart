@@ -1,8 +1,7 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get/get.dart';
 import '../core/data/mock_data.dart';
 import '../core/network/api_config.dart';
-import '../core/network/api_provider.dart';
 import '../core/network/api_service.dart';
 import '../core/storage/local_storage_service.dart';
 import '../models/movie_model.dart';
@@ -53,25 +52,29 @@ class MediaState {
   }
 }
 
-class MediaNotifier extends StateNotifier<MediaState> {
+class MediaNotifier extends GetxController {
   final ApiService? apiService;
   final LocalStorageService? storageService;
 
-  MediaNotifier({this.apiService, this.storageService})
-      : super(MediaState(
-          heroList: MockData.heroMovies,
-          continueWatching: MockData.continueWatchingList,
-          top10List: MockData.top10Movies,
-          popularList: MockData.popularMovies,
-          actionSciFiList: MockData.actionSciFiMovies,
-          watchlistIds: {'m1', 'm3'},
-          movieReviews: {
-            'cyberpunk-neo-nusantara': MockData.cyberpunkReviews,
-            'chronicles-of-elysium': MockData.chroniclesReviews,
-            'm1': MockData.gadiskretekReviews,
-            'm_hero': MockData.gundalaReviews,
-          },
-        )) {
+  final _state = Rx<MediaState>(MediaState(
+    heroList: MockData.heroMovies,
+    continueWatching: MockData.continueWatchingList,
+    top10List: MockData.top10Movies,
+    popularList: MockData.popularMovies,
+    actionSciFiList: MockData.actionSciFiMovies,
+    watchlistIds: {'m1', 'm3'},
+    movieReviews: {
+      'cyberpunk-neo-nusantara': MockData.cyberpunkReviews,
+      'chronicles-of-elysium': MockData.chroniclesReviews,
+      'm1': MockData.gadiskretekReviews,
+      'm_hero': MockData.gundalaReviews,
+    },
+  ));
+
+  MediaState get state => _state.value;
+  set state(MediaState val) => _state.value = val;
+
+  MediaNotifier({this.apiService, this.storageService}) {
     _loadFromLocalStorage();
     if (apiService != null) {
       fetchMedia();
@@ -353,11 +356,5 @@ class MediaNotifier extends StateNotifier<MediaState> {
   }
 }
 
-final mediaProvider = StateNotifierProvider<MediaNotifier, MediaState>((ref) {
-  final apiService = ref.watch(apiServiceProvider);
-  LocalStorageService? storage;
-  try {
-    storage = ref.watch(localStorageServiceProvider);
-  } catch (_) {}
-  return MediaNotifier(apiService: apiService, storageService: storage);
-});
+// Legacy compatibility
+dynamic mediaProvider;

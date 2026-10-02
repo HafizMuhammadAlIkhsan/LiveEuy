@@ -1,41 +1,37 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get/get.dart';
 import '../models/ad_model.dart';
 
-class AdNotifier extends StateNotifier<List<AdCampaign>> {
-  AdNotifier() : super(kMockAdCampaigns);
+class AdController extends GetxController {
+  final ads = <AdCampaign>[...kMockAdCampaigns].obs;
+
+  List<AdCampaign> get state => ads;
 
   void recordImpression(String adId) {
-    state = [
-      for (final ad in state)
-        if (ad.id == adId)
-          ad.copyWith(impressions: ad.impressions + 1)
-        else
-          ad,
-    ];
+    final index = ads.indexWhere((a) => a.id == adId);
+    if (index >= 0) {
+      final ad = ads[index];
+      ads[index] = ad.copyWith(impressions: ad.impressions + 1);
+    }
   }
 
   void recordClick(String adId) {
-    state = [
-      for (final ad in state)
-        if (ad.id == adId)
-          ad.copyWith(clicks: ad.clicks + 1)
-        else
-          ad,
-    ];
+    final index = ads.indexWhere((a) => a.id == adId);
+    if (index >= 0) {
+      final ad = ads[index];
+      ads[index] = ad.copyWith(clicks: ad.clicks + 1);
+    }
   }
 
   AdCampaign? getPrerollAd(bool isVip) {
     if (isVip) return null;
-    final active = state.where((a) => a.isActive && a.layer == AdPlacementLayer.videoPreroll).toList();
+    final active = ads.where((a) => a.isActive && a.layer == AdPlacementLayer.videoPreroll).toList();
     return active.isNotEmpty ? active.first : null;
   }
 
   List<AdCampaign> getBillboardAds(bool isVip) {
     if (isVip) return const [];
-    return state.where((a) => a.isActive && a.layer == AdPlacementLayer.billboardFeed).toList();
+    return ads.where((a) => a.isActive && a.layer == AdPlacementLayer.billboardFeed).toList();
   }
 }
 
-final adProvider = StateNotifierProvider<AdNotifier, List<AdCampaign>>((ref) {
-  return AdNotifier();
-});
+typedef AdNotifier = AdController;

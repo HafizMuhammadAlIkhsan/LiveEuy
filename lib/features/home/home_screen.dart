@@ -1,13 +1,13 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:get/get.dart';
+import '../auth/presentation/controllers/auth_controller.dart';
+import '../media/presentation/controllers/home_controller.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/data/mock_data.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/movie_model.dart';
-import '../../providers/auth_provider.dart';
-import '../../providers/media_provider.dart';
 import '../../shared/widgets/notification_modal.dart';
 import '../../shared/widgets/streamflix_logo.dart';
 import '../detail/content_detail_screen.dart';
@@ -15,7 +15,7 @@ import '../player/video_player_screen.dart';
 import 'widgets/hero_showcase_banner.dart';
 import 'widgets/in_feed_sponsor_billboard.dart';
 
-class HomeScreen extends ConsumerStatefulWidget {
+class HomeScreen extends StatefulWidget {
   final Function(int) onNavigateTab;
   final bool isActive;
 
@@ -26,7 +26,7 @@ class HomeScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _GenreItem {
@@ -43,7 +43,7 @@ class _GenreItem {
   });
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> {
   late final ScrollController _scrollController;
   String _selectedCategory = 'Semua';
   String? _selectedGenre;
@@ -294,10 +294,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _openNotificationMedia(String mediaId) {
-    final mediaState = ref.read(mediaProvider);
+    final homeCtrl = Get.find<HomeController>();
     final allMedia = [
-      ...mediaState.heroList,
-      ...mediaState.top10List,
+      ...homeCtrl.heroList,
+      ...homeCtrl.top10List,
       ..._allCatalog,
     ];
     final found = allMedia.where((m) => m.id == mediaId).firstOrNull ??
@@ -593,13 +593,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final media = ref.watch(mediaProvider);
-    final user = ref.watch(authProvider);
+    final homeCtrl = Get.find<HomeController>();
+    final authCtrl = Get.find<AuthController>();
 
-    final filteredHeroMovies = _getFilteredHeroMovies(media.heroList);
-    final filteredCW = _getFilteredContinueWatching(media.continueWatching);
-    final filteredTop10 = _getFilteredTop10(media.top10List);
-    final filteredPopular = _getFilteredPopular(media.popularList);
+    return Obx(() {
+      final filteredHeroMovies = _getFilteredHeroMovies(homeCtrl.heroList.toList());
+      final filteredCW = _getFilteredContinueWatching(homeCtrl.continueWatching.toList());
+      final filteredTop10 = _getFilteredTop10(homeCtrl.top10List.toList());
+      final filteredPopular = _getFilteredPopular(homeCtrl.popularList.toList());
     final actionMovies = _allCatalog
         .where((m) => _matchesFilter(m) && _matchesGenre(m, 'Aksi & Pahlawan Super'))
         .toList();
@@ -660,7 +661,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                     child: ClipOval(
                       child: CachedNetworkImage(
-                        imageUrl: user.avatarUrl,
+                        imageUrl: authCtrl.user.value?.avatarUrl ?? '',
                         fit: BoxFit.cover,
                         placeholder: (context, url) => Container(color: AppColors.surfaceContainerHigh),
                         errorWidget: (context, url, err) => Container(
@@ -801,6 +802,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ],
       ),
     );
+    });
   }
 
   Widget _buildActiveFilterIndicator() {
@@ -1066,9 +1068,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       onPlay: (movie) => _playVideo(movie),
       onDetail: (movie) => _openDetail(movie),
       onToggleWatchlist: (movie) {
-        final isBookmarked =
-            ref.read(mediaProvider).watchlistIds.contains(movie.id);
-        ref.read(mediaProvider.notifier).toggleWatchlist(movie.id);
+        final homeCtrl = Get.find<HomeController>();
+        final isBookmarked = homeCtrl.watchlistIds.contains(movie.id);
+        homeCtrl.toggleWatchlist(movie.id);
         final willBeBookmarked = !isBookmarked;
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1082,7 +1084,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         );
       },
       isBookmarked: (movie) =>
-          ref.read(mediaProvider).watchlistIds.contains(movie.id),
+          Get.find<HomeController>().watchlistIds.contains(movie.id),
     );
   }
 
@@ -1468,7 +1470,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   Navigator.pop(bottomSheetContext);
                   final removedItem = item;
                   final removedIndex = itemIndex;
-                  ref.read(mediaProvider.notifier).removeFromContinueWatching(item.id);
+                  Get.find<HomeController>().removeFromContinueWatching(item.id);
 
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -1480,7 +1482,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         label: 'Batalkan',
                         textColor: AppColors.primaryContainer,
                         onPressed: () {
-                          ref.read(mediaProvider.notifier).insertContinueWatching(
+                          Get.find<HomeController>().insertContinueWatching(
                                 removedItem,
                                 index: removedIndex,
                               );

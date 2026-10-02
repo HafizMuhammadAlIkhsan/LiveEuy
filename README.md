@@ -86,13 +86,17 @@ Klien mobile streaming film dan serial televisi berbasis Flutter (Android dan iO
 ## Arsitektur Teknologi
 
 ### Klien Mobile (Flutter)
-- Framework: Flutter 3.x
-- Bahasa: Dart 3 (Sound Null Safety)
-- State Management: Flutter Riverpod 2.5 (`StateNotifierProvider` dan `ProviderScope`)
-- Pemutar Video: pustaka `video_player` dengan custom ambient shader
+- Framework: Flutter 3.x (Dart SDK `^3.10.4` dengan Sound Null Safety)
+- Pola Arsitektur: **Clean Architecture (Uncle Bob / Reso Coder)** dengan pendekatan struktur folder **Feature-First (Package-by-Feature)**
+- State Management, Dependency Injection & Routing: **GetX** (`GetxController`, `Bindings`, `GetPage`, `Obx`)
+- Functional Error Handling: **Dartz** (`Either<Failure, Success>`, `fold()`)
+- Pemutar Video: Pustaka `video_player` dengan custom gestur, kontrol speed, pemilih resolusi adaptif, dan panel diagnostik Stats for Nerds
 - Manajemen Cache Gambar: `cached_network_image` dengan cache multi-tier (RAM dan disk)
 - Tipografi dan Ikon: Google Fonts (Outfit untuk judul, Inter untuk teks konten), Material Icons, dan Cupertino Icons
-- Penyimpanan Kredensial dan Data: `flutter_secure_storage` (Android Keystore / iOS Keychain) dan `shared_preferences`
+- Penyimpanan Kredensial dan Data:
+  - Token Sesi & Autentikasi: `flutter_secure_storage` (Android Keystore / iOS Keychain)
+  - Penyimpanan Lokal NoSQL: `hive_flutter` (Offline Download Encrypted Box)
+  - Pengaturan & Preferensi: `shared_preferences`
 - Tema Tampilan: Dark mode (`#0F0E17`) dengan aksen glassmorphic
 
 ### Layanan Backend (Microservices)
@@ -123,6 +127,60 @@ Arsitektur backend LiveEuy (`dev-backend`) mengadopsi pola microservices terpisa
   - `LoggingInterceptor`: mencatat siklus HTTP request, response status, dan error.
   - `AuthInterceptor`: menyematkan header `Authorization: Bearer <token>` pada request terproteksi.
   - `ErrorInterceptor`: menangkap exception untuk standarisasi format error pada layer presentasi.
+
+---
+
+## Pola Arsitektur Bersih (Clean Architecture: Feature-First)
+
+Aplikasi menerapkan pemisahan 4 lapisan utama (*Domain, Data, Presentation, Core*) secara terstruktur per fitur (*Feature-First / Package-by-Feature*):
+
+```mermaid
+flowchart TD
+    subgraph Presentation_Layer["Presentation Layer (GetX & UI)"]
+        UI["Pages / Views (Widget / Obx)"] --> Controller["GetxController (e.g. AuthController, HomeController)"]
+        Binding["Bindings (Get.lazyPut / Get.put)"] -. Menginjeksi .-> Controller
+    end
+
+    subgraph Domain_Layer["Domain Layer (Pure Business Rules)"]
+        Controller --> UseCase["UseCases (e.g. LoginUseCase, GetAllMediaUseCase)"]
+        UseCase --> RepoInterface["Repository Interface (Contract)"]
+        RepoInterface -. Returns ResultFuture .-> Entity["Entities (e.g. UserEntity, MovieEntity)"]
+    end
+
+    subgraph Data_Layer["Data Layer (Data Source & DTO)"]
+        RepoImpl["Repository Impl (AuthRepositoryImpl, MediaRepositoryImpl)"] -- implements --> RepoInterface
+        RepoImpl --> RemoteDS["Remote DataSource (ApiClient / HTTP REST)"]
+        RepoImpl --> LocalDS["Local DataSource (LocalStorageService / Hive)"]
+        RepoImpl --> NetworkInfo["NetworkInfo (Koneksi Internet)"]
+        RemoteDS --> Model["Models (UserModel extends UserEntity)"]
+    end
+
+    subgraph Core_Layer["Core Layer (Shared Infrastructure)"]
+        Config["AppRoute, AppConfig, AppStyle"]
+        Errors["Exceptions & Failures"]
+        UseCasesBase["UseCase<T, Params> base class"]
+        Utils["SnackbarHelper, Formatters"]
+    end
+
+    Data_Layer -. Catch Exceptions -> Map to Failures .-> Errors
+    UseCase -. Future<Either<Failure, T>> .-> Controller
+```
+
+### Bedah Lapisan Arsitektur
+1. **Domain Layer (`features/<feature>/domain/`)**:
+   - `entities/`: Objek bisnis murni dan immutable (misal: `UserEntity`, `MovieEntity`, `ReviewEntity`). Bebas dari dependensi parsing JSON.
+   - `repositories/`: Kontrak antarmuka abstrak (`AuthRepository`, `MediaRepository`) yang mendefinisikan apa saja yang harus tersedia tanpa tahu implementasi teknologinya.
+   - `usecases/`: Logika bisnis spesifik (Single Responsibility Principle) yang mengembalikan `ResultFuture<T>` (`Future<Either<Failure, T>>`).
+2. **Data Layer (`features/<feature>/data/`)**:
+   - `models/`: Data Transfer Objects (DTO) yang meng-extend Domain Entity (misal: `UserModel extends UserEntity`) dengan parser `fromJson`, `toJson`, dan `toEntity()`.
+   - `datasources/`: Remote DataSource (HTTP REST via `ApiClient`) dan Local DataSource (Hive box & `LocalStorageService`).
+   - `repositories/`: Implementasi interface dari domain layer (`AuthRepositoryImpl`, `MediaRepositoryImpl`), bertugas menangkap exception dan mengonversinya menjadi objek `Failure` via tipe `Either`.
+3. **Presentation Layer (`features/<feature>/presentation/`)**:
+   - `controllers/`: Menyimpan state reaktif GetX (`.obs`, `Rxn<T>`), memvalidasi form, memanggil UseCase, dan menangani hasil via `.fold()`.
+   - `bindings/`: Menangani Dependency Injection (DI) dengan `Get.lazyPut()` atau `Get.put()` untuk memisahkan inisialisasi controller dari tampilan widget.
+   - `pages/`: Widget Flutter reaktif berbasis `Obx(() => ...)` atau `GetView<T>`.
+4. **Core Layer (`lib/core/`)**:
+   - Fondasi bersama lintas fitur: `error/` (`exceptions.dart`, `failures.dart`), base `usecases/usecase.dart`, routing deklaratif `config/app_route.dart`, style token, network info, dan utility helper.
 
 ---
 
@@ -330,69 +388,51 @@ liveeuy_mob/
 ├── android/                           # Proyek native Android
 ├── ios/                               # Proyek native iOS
 ├── lib/
-│   ├── main.dart                      # Titik masuk aplikasi, inisialisasi tema dan routing
-│   ├── core/                          # Modul inti global
-│   │   ├── data/
-│   │   │   └── mock_data.dart         # Data seed katalog dan fallback offline
+│   ├── main.dart                      # Titik masuk aplikasi, inisialisasi tema, binding & GetX routing
+│   ├── core/                          # Lapisan Core (fondasi bersama lintas fitur)
+│   │   ├── config/                    # Definisi rute deklaratif GetPage (AppRoute)
+│   │   ├── data/                      # Mock data katalog dan offline fallback
 │   │   ├── deeplink/                  # Layanan deep link parser dan dispatcher rute
-│   │   │   └── deep_link_service.dart
-│   │   ├── network/                   # Klien Dio, interceptor, dan klasifikasi DioException
-│   │   │   ├── api_client.dart
-│   │   │   ├── api_config.dart
-│   │   │   ├── api_exception.dart
-│   │   │   ├── api_response.dart
-│   │   │   ├── api_service.dart
-│   │   │   ├── dio_exception.dart
-│   │   │   └── dio_interceptor.dart
+│   │   ├── download/                  # Layanan unduhan offline terenkripsi (OfflineDownloadManager)
+│   │   ├── error/                     # Definisi error & failure (exceptions.dart, failures.dart)
+│   │   ├── network/                   # Klien Dio, interceptor, NetworkInfo, ApiConfig, & ApiService
 │   │   ├── notification/              # Layanan dispatch notifikasi dan in-app banner
-│   │   │   └── notification_service.dart
-│   │   ├── storage/                   # Layanan penyimpanan lokal (SecureStorage dan SharedPreferences)
-│   │   │   └── local_storage_service.dart
-│   │   └── theme/                     # Definisi tema, palet warna, dan tipografi
-│   │       └── app_theme.dart
-│   ├── features/                      # Modul layar dan fungsionalitas fitur
-│   │   ├── auth/                      # Layar login dan pendaftaran akun
-│   │   │   ├── login_screen.dart
-│   │   │   └── register_screen.dart
+│   │   ├── storage/                   # LocalStorageService (SecureStorage, SharedPreferences, Hive)
+│   │   ├── theme/                     # Definisi tema, palet warna sinematik, dan tipografi
+│   │   ├── usecases/                  # Base class UseCase<Type, Params>
+│   │   └── utils/                     # Utility helpers (SnackbarHelper, formatters)
+│   ├── features/                      # Modul fitur berbasis Clean Architecture (Feature-First)
+│   │   ├── account/                   # Fitur profil, preferensi, dan keamanan akun
+│   │   │   └── presentation/          # AccountController & AccountPage (reaktif Obx)
+│   │   ├── auth/                      # Fitur autentikasi dan manajemen sesi
+│   │   │   ├── data/                  # Remote DataSource, UserModel, & AuthRepositoryImpl
+│   │   │   ├── domain/                # UserEntity, AuthRepository, LoginUseCase, RegisterUseCase
+│   │   │   ├── presentation/          # AuthController & AuthBinding
+│   │   │   ├── login_screen.dart      # Layar login persona & form autentikasi
+│   │   │   └── register_screen.dart   # Layar pendaftaran & verifikasi PIN akun
+│   │   ├── collection/                # Layar koleksi film dan serial TV tersimpan
+│   │   ├── detail/                    # Halaman detail tayangan dan tab episode
 │   │   ├── home/                      # Beranda, hero billboard, dan baris kategori
 │   │   │   ├── home_screen.dart
-│   │   │   └── widgets/
-│   │   │       ├── hero_showcase_banner.dart
-│   │   │       └── in_feed_sponsor_billboard.dart # Kartu sponsor billboard feed
-│   │   ├── detail/                    # Halaman detail tayangan dan tab episode
-│   │   │   └── content_detail_screen.dart
-│   │   ├── player/                    # Layar pemutar video, pre-roll ad overlay, dan HUD kontrol
-│   │   │   └── video_player_screen.dart
-│   │   └── search/                    # Pencarian katalog dan filter genre
-│   │       └── search_screen.dart
-│   ├── models/                        # Model data DTO (Movie, Episode, Ad, Review, Settings)
-│   │   ├── ad_model.dart              # Model kampanye iklan dan layer placement
-│   │   ├── episode_model.dart
-│   │   ├── movie_model.dart
-│   │   ├── notification_model.dart
-│   │   ├── review_model.dart
-│   │   ├── user_settings_model.dart
-│   │   └── watch_progress_model.dart
-│   ├── providers/                     # State management Riverpod
-│   │   ├── ad_provider.dart           # Provider kampanye iklan, impresi, dan VIP gating
-│   │   ├── auth_provider.dart
-│   │   ├── media_provider.dart
-│   │   ├── notification_provider.dart
-│   │   ├── player_provider.dart
-│   │   ├── search_provider.dart
-│   │   └── user_settings_provider.dart
-│   └── shared/                        # Komponen widget yang dipakai bersama
-│       └── widgets/
-│           ├── ambient_glow.dart
-│           ├── glass_container.dart
-│           ├── liveeuy_logo.dart
-│           ├── notification_modal.dart
-│           ├── resolution_badge.dart
-│           └── streamflix_logo.dart
+│   │   │   └── widgets/               # Hero banner & in-feed sponsor billboard
+│   │   ├── main_navigation/           # Shell navigasi utama aplikasi
+│   │   │   ├── bindings/              # MainBinding (injeksi global controller & data layer)
+│   │   │   └── presentation/pages/    # MainPage dengan floating bottom navigation bar
+│   │   ├── media/                     # Domain & Data layer katalog media
+│   │   │   ├── data/                  # MediaRemoteDataSource, MovieModel, MediaRepositoryImpl
+│   │   │   ├── domain/                # MovieEntity, MediaRepository, GetAllMediaUseCase
+│   │   │   └── presentation/          # MediaController
+│   │   ├── player/                    # Fitur pemutaran video
+│   │   │   ├── presentation/          # PlayerController
+│   │   │   └── video_player_screen.dart # Pemutar video kustom, gestur, & HUD
+│   │   └── search/                    # Pencarian katalog dan filter multi-dimensi
+│   ├── models/                        # Model data legacy & DTO
+│   ├── providers/                     # Adapter layer kompatibilitas
+│   └── shared/                        # Komponen widget UI bersama (AmbientGlow, GlassContainer, dsb.)
 └── test/                              # Pengujian unit dan widget
     ├── account_settings_test.dart
-    ├── ad_system_test.dart            # Pengujian komprehensif sistem iklan hybrid & VIP
-    ├── auth_milestone_test.dart       # Pengujian alur lupa/reset sandi, ganti sandi, dan kuota tier
+    ├── ad_system_test.dart
+    ├── auth_milestone_test.dart
     ├── notification_test.dart
     ├── vip_subscription_test.dart
     ├── widget_test.dart

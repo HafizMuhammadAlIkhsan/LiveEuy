@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/detail/content_detail_screen.dart';
 import '../../features/player/video_player_screen.dart';
@@ -358,8 +357,3 @@ class DeepLinkService {
     _controller.close();
   }
 }
-
-/// Provider singleton DeepLinkService
-final deepLinkServiceProvider = Provider<DeepLinkService>((ref) {
-  return DeepLinkService();
-});
