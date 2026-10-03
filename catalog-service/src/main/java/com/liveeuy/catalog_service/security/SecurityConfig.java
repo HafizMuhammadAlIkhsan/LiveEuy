@@ -1,6 +1,7 @@
 package com.liveeuy.catalog_service.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.liveeuy.catalog_service.config.MessageConstants;
 import com.liveeuy.catalog_service.dto.ApiResponse;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
@@ -67,11 +68,16 @@ public class SecurityConfig {
                     "/webjars/**"
                 ).permitAll()
 
-                // Health check & Actuator
-                .requestMatchers("/actuator/**", "/health/**").permitAll()
+                // Health check & Info Actuator publik untuk monitoring liveness/readiness
+                .requestMatchers("/actuator/health", "/actuator/info", "/health/**").permitAll()
 
-                // H2 Console (dev & test)
-                .requestMatchers("/h2-console/**").permitAll()
+                // Endpoint Actuator sensitif (heapdump, env, beans, dll) wajib memiliki role ADMIN
+                .requestMatchers("/actuator/**")
+                    .hasAnyAuthority("ROLE_ADMIN", "ROLE_admin", "SCOPE_admin", "admin")
+
+                // H2 Console (dev & test) wajib memiliki role ADMIN
+                .requestMatchers("/h2-console/**")
+                    .hasAnyAuthority("ROLE_ADMIN", "ROLE_admin", "SCOPE_admin", "admin")
 
                 // Feed kurasi personalisasi user terautentikasi (berdasarkan JWT tier & profile)
                 .requestMatchers(HttpMethod.GET, "/media/feed", "/api/v1/media/feed").authenticated()
@@ -184,7 +190,7 @@ public class SecurityConfig {
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             ApiResponse<Void> apiResponse = ApiResponse.error(
                 HttpServletResponse.SC_UNAUTHORIZED,
-                "Unauthorized: Token autentikasi tidak valid atau tidak disertakan (" + authException.getMessage() + ")"
+                MessageConstants.Security.unauthorized(authException.getMessage())
             );
             response.getWriter().write(objectMapper.writeValueAsString(apiResponse));
         };
@@ -197,7 +203,7 @@ public class SecurityConfig {
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             ApiResponse<Void> apiResponse = ApiResponse.error(
                 HttpServletResponse.SC_FORBIDDEN,
-                "Forbidden: Anda tidak memiliki wewenang (role) untuk mengakses resource ini"
+                MessageConstants.Security.FORBIDDEN
             );
             response.getWriter().write(objectMapper.writeValueAsString(apiResponse));
         };

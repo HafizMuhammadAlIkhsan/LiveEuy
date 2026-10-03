@@ -6,6 +6,7 @@ import com.liveeuy.catalog_service.dto.request.SeasonRequestDTO;
 import com.liveeuy.catalog_service.dto.response.EpisodeResponseDTO;
 import com.liveeuy.catalog_service.dto.response.SeasonResponseDTO;
 import com.liveeuy.catalog_service.service.TvHierarchyService;
+import com.liveeuy.catalog_service.config.MessageConstants;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -26,7 +27,7 @@ public class TvHierarchyController {
         
         SeasonResponseDTO createdSeason = tvHierarchyService.addSeasonToTvSeries(tvId, requestDTO);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(createdSeason, "Season berhasil ditambahkan ke TV Series"));
+                .body(ApiResponse.success(createdSeason, MessageConstants.TvHierarchy.SEASON_ADDED));
     }
 
     @PostMapping("/seasons/{seasonId}/episodes")
@@ -36,6 +37,6 @@ public class TvHierarchyController {
         
         EpisodeResponseDTO createdEpisode = tvHierarchyService.addEpisodeToSeason(seasonId, requestDTO);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(createdEpisode, "Episode berhasil ditambahkan ke Season"));
+                .body(ApiResponse.success(createdEpisode, MessageConstants.TvHierarchy.EPISODE_ADDED));
     }
 }

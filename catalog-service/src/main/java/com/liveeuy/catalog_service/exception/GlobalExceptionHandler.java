@@ -1,6 +1,7 @@
 package com.liveeuy.catalog_service.exception;
 
 import com.liveeuy.catalog_service.dto.ApiResponse;
+import com.liveeuy.catalog_service.config.MessageConstants;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -39,6 +40,6 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Terjadi kesalahan internal pada server."));
+                .body(ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR.value(), MessageConstants.Error.INTERNAL_SERVER_ERROR));
     }
 }

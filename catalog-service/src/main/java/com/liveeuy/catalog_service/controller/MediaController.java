@@ -5,8 +5,9 @@ import com.liveeuy.catalog_service.dto.request.MediaRequestDTO;
 import com.liveeuy.catalog_service.dto.request.LinkTranscodeJobRequestDTO;
 import com.liveeuy.catalog_service.dto.response.MediaResponseDTO;
 import com.liveeuy.catalog_service.service.MediaService;
+import com.liveeuy.catalog_service.config.MessageConstants;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
+import lombok.RequiredArgsConstructor;          
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -28,9 +29,9 @@ public class MediaController {
     public ResponseEntity<ApiResponse<MediaResponseDTO>> getFeaturedMedia() {
         MediaResponseDTO featured = mediaService.getFeaturedMedia();
         if (featured == null) {
-            return ResponseEntity.ok(ApiResponse.success(null, "Catalog Service is Online (no featured media yet)"));
+            return ResponseEntity.ok(ApiResponse.success(null, MessageConstants.Media.FEATURED_EMPTY));
         }
-        return ResponseEntity.ok(ApiResponse.success(featured, "Featured media berhasil diambil"));
+        return ResponseEntity.ok(ApiResponse.success(featured, MessageConstants.Media.FEATURED_SUCCESS));
     }
 
     @GetMapping("/feed")
@@ -42,8 +43,8 @@ public class MediaController {
         String tier = jwt != null ? jwt.getClaimAsString("tier") : null;
         Page<MediaResponseDTO> mediaPage = mediaService.getAllMedia(null, null, null, "rating", page, size);
         String message = (tier != null && !tier.isBlank())
-                ? "Feed kurasi katalog untuk member " + tier
-                : "Feed kurasi katalog media";
+                ? MessageConstants.Media.FEED_MEMBER_PREFIX + tier
+                : MessageConstants.Media.FEED_DEFAULT;
 
         return ResponseEntity.ok(ApiResponse.success(mediaPage, message));
     }
@@ -71,7 +72,7 @@ public class MediaController {
     public ResponseEntity<ApiResponse<MediaResponseDTO>> createMedia(@Valid @RequestBody MediaRequestDTO requestDTO) {
         MediaResponseDTO createdMedia = mediaService.createMedia(requestDTO);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(createdMedia, "Media berhasil ditambahkan"));
+                .body(ApiResponse.success(createdMedia, MessageConstants.Media.CREATED));
     }
 
     @PostMapping("/batch")
@@ -85,30 +86,29 @@ public class MediaController {
             @PathVariable String id,
             @Valid @RequestBody MediaRequestDTO requestDTO) {
         MediaResponseDTO updatedMedia = mediaService.updateMedia(id, requestDTO);
-        return ResponseEntity.ok(ApiResponse.success(updatedMedia, "Media berhasil diperbarui"));
+        return ResponseEntity.ok(ApiResponse.success(updatedMedia, MessageConstants.Media.UPDATED));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteMedia(@PathVariable String id) {
         mediaService.deleteMedia(id);
-        return ResponseEntity.ok(ApiResponse.success(null, "Media berhasil dihapus"));
+        return ResponseEntity.ok(ApiResponse.success(null, MessageConstants.Media.DELETED));
     }
 
-    // 1. Tautkan Job Transcoder ke Media
     @PatchMapping("/{id}/transcode-job")
     public ResponseEntity<ApiResponse<MediaResponseDTO>> linkTranscodeJob(
             @PathVariable String id,
             @Valid @RequestBody LinkTranscodeJobRequestDTO requestDTO,
             @RequestHeader(name = "Authorization", required = false) String bearerToken) {
         MediaResponseDTO response = mediaService.linkTranscodeJob(id, requestDTO.getJobId(), bearerToken);
-        return ResponseEntity.ok(ApiResponse.success(response, "Job transkoding berhasil ditautkan"));
+        return ResponseEntity.ok(ApiResponse.success(response, MessageConstants.Media.TRANSCODE_LINKED));
     }
-    // 2. Sync Status Transkoding Secara Manual
+    
     @PostMapping("/{id}/sync-transcode")
     public ResponseEntity<ApiResponse<MediaResponseDTO>> syncTranscodeStatus(
             @PathVariable String id,
             @RequestHeader(name = "Authorization", required = false) String bearerToken) {
         MediaResponseDTO response = mediaService.syncTranscodeStatus(id, bearerToken);
-        return ResponseEntity.ok(ApiResponse.success(response, "Status transkoding berhasil disinkronkan"));
+        return ResponseEntity.ok(ApiResponse.success(response, MessageConstants.Media.TRANSCODE_SYNCED));
     }
 }

@@ -15,6 +15,7 @@ import com.liveeuy.catalog_service.mapper.MediaMapper;
 import com.liveeuy.catalog_service.repository.MediaRepository;
 import com.liveeuy.catalog_service.repository.PersonRepository;
 import com.liveeuy.catalog_service.service.MediaService;
+import com.liveeuy.catalog_service.config.MessageConstants;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,7 +27,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 
-import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -55,7 +55,7 @@ public class MediaServiceImpl implements MediaService {
 
     @Override
     public Page<MediaResponseDTO> getAllMedia(String type, String genre, String search, String sortBy, int page, int size) {
-        Sort sort = Sort.unsorted();
+        Sort sort;
         if (SORT_BY_RATING.equalsIgnoreCase(sortBy)) {
             sort = Sort.by(Sort.Direction.DESC, "rating");
         } else if (SORT_BY_NEWEST.equalsIgnoreCase(sortBy)) {
@@ -75,7 +75,7 @@ public class MediaServiceImpl implements MediaService {
     @Override
     public MediaResponseDTO getMediaById(String id) {
         Media media = mediaRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Media dengan ID '" + id + "' tidak ditemukan."));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Error.mediaNotFound(id)));
         return mediaMapper.toDTO(media);
     }
 
@@ -124,11 +124,11 @@ public class MediaServiceImpl implements MediaService {
     @Transactional
     public MediaResponseDTO updateMedia(String id, MediaRequestDTO requestDTO) {
         Media existingMedia = mediaRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Media dengan ID '" + id + "' tidak ditemukan."));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Error.mediaNotFound(id)));
 
         if ((existingMedia instanceof Movie && !(requestDTO instanceof MovieRequestDTO)) ||
             (existingMedia instanceof TvSeries && !(requestDTO instanceof TvSeriesRequestDTO))) {
-            throw new IllegalArgumentException("Konflik Data: Tipe media pada database tidak sesuai dengan payload request.");
+            throw new IllegalArgumentException(MessageConstants.Error.TYPE_CONFLICT);
         }
 
         mediaMapper.updateEntityFromDto(requestDTO, existingMedia);
@@ -163,7 +163,7 @@ public class MediaServiceImpl implements MediaService {
     @Transactional
     public void deleteMedia(String id) {
         if (!mediaRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Media dengan ID '" + id + "' tidak ditemukan.");
+            throw new ResourceNotFoundException(MessageConstants.Error.mediaNotFound(id));
         }
         mediaRepository.deleteById(id);
     }
@@ -172,7 +172,7 @@ public class MediaServiceImpl implements MediaService {
     @Transactional
     public MediaResponseDTO linkTranscodeJob(String mediaId, String jobId, String bearerToken) {
         Media media = mediaRepository.findById(mediaId)
-                .orElseThrow(() -> new ResourceNotFoundException("Media dengan ID '" + mediaId + "' tidak ditemukan."));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Error.mediaNotFound(mediaId)));
 
         transcoderClient.updateActiveToken(bearerToken);
         media.markAsProcessing(jobId);
@@ -184,7 +184,7 @@ public class MediaServiceImpl implements MediaService {
     @Transactional
     public MediaResponseDTO syncTranscodeStatus(String mediaId, String bearerToken) {
         Media media = mediaRepository.findById(mediaId)
-                .orElseThrow(() -> new ResourceNotFoundException("Media dengan ID '" + mediaId + "' tidak ditemukan."));
+                .orElseThrow(() -> new ResourceNotFoundException(MessageConstants.Error.mediaNotFound(mediaId)));
 
         if (media.getTranscodedJobId() == null || media.getTranscodedJobId().isBlank()) {
             return mediaMapper.toDTO(media);
@@ -214,4 +214,5 @@ public class MediaServiceImpl implements MediaService {
             }
         });
     }
+
 }
