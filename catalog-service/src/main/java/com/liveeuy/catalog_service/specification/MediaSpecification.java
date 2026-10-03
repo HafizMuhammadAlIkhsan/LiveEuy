@@ -21,7 +21,12 @@ public static Specification<Media> buildFilter(String type, String genre, String
             query.distinct(true);
 
             if (StringUtils.hasText(search)) {
-                predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("title")), "%" + search.toLowerCase() + "%"));
+                String escapedSearch = escapeLikePattern(search.toLowerCase());
+                predicates.add(criteriaBuilder.like(
+                        criteriaBuilder.lower(root.get("title")),
+                        "%" + escapedSearch + "%",
+                        '\\'
+                ));
             }
 
             if (StringUtils.hasText(type) && !type.equalsIgnoreCase(TYPE_ALL)) {
@@ -42,5 +47,15 @@ public static Specification<Media> buildFilter(String type, String genre, String
 
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
+    }
+
+    public static String escapeLikePattern(String input) {
+        if (input == null) {
+            return null;
+        }
+        return input
+                .replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_");
     }
 }
