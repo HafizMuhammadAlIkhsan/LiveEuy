@@ -1,0 +1,1 @@
+export { AdsModule } from './AdsModule';

@@ -1,0 +1,11 @@
+export { HomePage } from './HomePage';
+export { MoviesPage } from './MoviesPage';
+export { SeriesPage } from './SeriesPage';
+export { TrendingPage } from './TrendingPage';
+export { WatchlistPage } from './WatchlistPage';
+export { SearchPage } from './SearchPage';
+export { AdminPage } from './AdminPage';
+export { DetailPage } from './DetailPage';
+export { NotFoundPage, ForbiddenPage, ServerErrorPage } from './ErrorPages';
+export { ResetPasswordPage } from './ResetPasswordPage';
+export { VerifyEmailPage } from './VerifyEmailPage';

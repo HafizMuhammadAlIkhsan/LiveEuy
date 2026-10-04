@@ -1,0 +1,70 @@
+{
+  "name": "LiveEuy - Sinema 4K & Serial Pilihan",
+  "short_name": "LiveEuy",
+  "description": "Platform streaming film bioskop 4K UHD, serial TV orisinal, dan kurasi sinema berkualitas tinggi di laptop dan smartphone tanpa jeda iklan.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#08090d",
+  "theme_color": "#08090d",
+  "lang": "id-ID",
+  "dir": "ltr",
+  "categories": ["entertainment", "multimedia", "movies"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Film Bioskop",
+      "short_name": "Film",
+      "description": "Jelajahi koleksi film layar lebar 4K UHD",
+      "url": "/movies",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Serial TV",
+      "short_name": "Serial",
+      "description": "Tonton serial drama dan episode lengkap",
+      "url": "/tv",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Daftar Tontonan",
+      "short_name": "Daftar Saya",
+      "description": "Buka daftar film yang telah disimpan",
+      "url": "/watchlist",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Pencarian Sinema",
+      "short_name": "Cari",
+      "description": "Cari judul, genre, atau aktor favorit",
+      "url": "/search",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
