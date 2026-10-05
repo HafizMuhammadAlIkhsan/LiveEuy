@@ -15,9 +15,10 @@ type User struct {
 	Email      string    `gorm:"uniqueIndex;not null" json:"email"`
 	Password   string    `json:"-"`
 	Provider   string    `gorm:"default:'local'" json:"provider"`
+	IsVerified bool		 `gorm:"default:false" json:"is_verified"`
 	Picture    string    `gorm:"column:picture" json:"picture"`
 	Role       string    `gorm:"default:'user'" json:"role"`
-	Stage       string    `gorm:"default:'guest'" json:"stage"`
+	Stage       string   `gorm:"default:'guest'" json:"stage"`
 	WatchHours float64   `gorm:"default:0.0" json:"watch_hours"`
 	Devices    int       `gorm:"default:2" json:"devices"`
 	CreatedAt  time.Time `gorm:"autoCreateTime" json:"created_at"`
@@ -35,11 +36,14 @@ func (u *User) BeforeCreate(tx *gorm.DB) error {
 	if u.Provider == "" {
 		u.Provider = "local"
 	}
+	if u.IsVerified {
+		u.IsVerified = false
+	}
 	if u.Role == "" {
 		u.Role = "user"
 	}
 	if u.Stage == "" {
-		u.Stage = "VIP Standard"
+		u.Stage = "standard"
 	}
 	if u.Devices == 0 {
 		u.Devices = 2
@@ -64,6 +68,7 @@ func (u *User) ToDomain() *models.User {
 		Password:   u.Password,
 		Provider:   u.Provider,
 		Picture:    u.Picture,
+		IsVerified:	u.IsVerified,
 		Role:       u.Role,
 		Stage:       u.Stage,
 		WatchHours: u.WatchHours,

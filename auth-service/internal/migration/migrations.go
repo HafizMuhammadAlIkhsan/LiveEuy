@@ -86,6 +86,18 @@ func SetupMigrations(migrator *Migrator) {
 			return db.Exec(sql).Error
 		},
 	)
+
+	// Migration 005 - Add is_verified field
+    migrator.RegisterMigration(
+        "005",
+        "add_is_verified_to_users",
+        func(db *gorm.DB) error {
+            return db.Exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT FALSE").Error
+        },
+        func(db *gorm.DB) error {
+            return db.Exec("ALTER TABLE users DROP COLUMN IF EXISTS is_verified").Error
+        },
+    )
 }
 
 // RunMigrations executes all pending migrations

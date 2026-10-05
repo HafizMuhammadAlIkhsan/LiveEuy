@@ -3,6 +3,8 @@ package domain
 import (
 	"context"
 	"time"
+
+	"github.com/DXR3IN/auth-service/internal/config"
 )
 
 // RefreshTokenSession represents an active session grant bound to a device.
@@ -24,6 +26,21 @@ type GuestSession struct {
 	ExpiresAt			time.Time	`json:"expires_at"`
 }
 
+type PinType string
+
+const (
+	PinRegister			PinType		=	config.PIN_TYPE_REGISTER
+	PinForgotPassword	PinType		=	config.PIN_TYPE_FORGOT_PASS
+)
+
+type PinSession struct {
+	Email				string		`json:"email"`
+	CreatedAt			time.Time	`json:"created_at"`
+	ExpiresAt			time.Time	`json:"expires_at"`
+	Pin 				int16		`json:"pin"`
+	PinType				PinType		`json:"pin_type"`	
+}
+
 // NewRefreshTokenSession constructs a new RefreshTokenSession.
 func NewRefreshTokenSession(token, userID, deviceName string, ttl time.Duration) *RefreshTokenSession {
 	now := time.Now()
@@ -34,6 +51,16 @@ func NewRefreshTokenSession(token, userID, deviceName string, ttl time.Duration)
 		ExpiresAt:  now.Add(ttl),
 		IsRevoked:  false,
 		DeviceName: deviceName,
+	}
+}
+
+func NewPinSession(email string, pin int16) *PinSession {
+	now := time.Now()
+	return &PinSession{
+		Email: email,
+		CreatedAt: time.Now(),
+		ExpiresAt: now.Add(15*time.Minute),
+		Pin: pin,
 	}
 }
 
@@ -73,12 +100,16 @@ func (g *GuestSession) RemainingSeconds() int {
 
 // SessionRepository is the Domain Port for storing and querying active sessions.
 type SessionRepository interface {
-	Save(ctx context.Context, session *RefreshTokenSession) error
+	Save(ctx context.Context, session *RefreshTokenSession) error	
 	Get(ctx context.Context, token string) (*RefreshTokenSession, error)
 	Revoke(ctx context.Context, token string) error
 	RevokeAllUserTokens(ctx context.Context, userID string) error
 	GetActiveSessions(ctx context.Context, userID string) ([]*RefreshTokenSession, error)
 	EnforceMaxDevices(ctx context.Context, userID string, maxDevices int) error
+}
+
+type PinSessionRepository interface {
+	SavePinOtp(ctx context.Context, pin *PinSession) error
 }
 
 // GuestSession is

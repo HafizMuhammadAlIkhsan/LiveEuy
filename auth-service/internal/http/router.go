@@ -12,7 +12,7 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-func NewRouter(cfg *config.Config, userRepo domain.UserRepository, jwtMgr domain.TokenManager, sessionRepo domain.SessionRepository, oauthProvider domain.OAuthProvider) *ginpkg.Engine {
+func NewRouter(cfg *config.Config, userRepo domain.UserRepository, jwtMgr domain.TokenManager, sessionRepo domain.SessionRepository, pinSessionRepo domain.PinSessionRepository, oauthProvider domain.OAuthProvider) *ginpkg.Engine {
 	r := ginpkg.Default()
 
 	// Swagger documentation route
@@ -23,7 +23,7 @@ func NewRouter(cfg *config.Config, userRepo domain.UserRepository, jwtMgr domain
 		h.NewAuthHandler(nil, jwtMgr).JWKS(c)
 	})
 
-	authSvc := service.NewAuthService(userRepo, jwtMgr, sessionRepo)
+	authSvc := service.NewAuthService(userRepo, jwtMgr, sessionRepo, pinSessionRepo)
 	oauthSvc := service.NewOAuthService(oauthProvider, userRepo, jwtMgr, sessionRepo)
 	authHandler := h.NewAuthHandler(authSvc, jwtMgr)
 	oauthHandler := h.NewOAuthHandler(oauthSvc)

@@ -1,6 +1,10 @@
 package domain
 
-import "time"
+import (
+	"time"
+
+	"github.com/DXR3IN/auth-service/internal/config"
+)
 
 // DomainEvent is the common interface for domain events emitted by aggregates.
 type DomainEvent interface {
@@ -18,7 +22,7 @@ type UserRegisteredEvent struct {
 	Timestamp  time.Time `json:"timestamp"`
 }
 
-func (e UserRegisteredEvent) EventName() string   { return "UserRegistered" }
+func (e UserRegisteredEvent) EventName() string   { return config.USER_REGISTERED_EVENT_NAME }
 func (e UserRegisteredEvent) OccurredAt() time.Time { return e.Timestamp }
 
 // UserLoggedInEvent is dispatched when a user successfully authenticates.
@@ -29,7 +33,7 @@ type UserLoggedInEvent struct {
 	Timestamp  time.Time `json:"timestamp"`
 }
 
-func (e UserLoggedInEvent) EventName() string   { return "UserLoggedIn" }
+func (e UserLoggedInEvent) EventName() string   { return config.USER_LOGGED_IN_EVENT_NAME }
 func (e UserLoggedInEvent) OccurredAt() time.Time { return e.Timestamp }
 
 // PasswordChangedEvent is dispatched when a user updates their security credential.
@@ -38,7 +42,7 @@ type PasswordChangedEvent struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
-func (e PasswordChangedEvent) EventName() string   { return "PasswordChanged" }
+func (e PasswordChangedEvent) EventName() string   { return config.USER_PASSWORD_CHANGED_EVENT_NAME }
 func (e PasswordChangedEvent) OccurredAt() time.Time { return e.Timestamp }
 
 // SessionRevokedEvent is dispatched when a token session is terminated.
@@ -48,5 +52,5 @@ type SessionRevokedEvent struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
-func (e SessionRevokedEvent) EventName() string   { return "SessionRevoked" }
+func (e SessionRevokedEvent) EventName() string   { return config.USER_SESSION_REVOKED_EVENT_NAME }
 func (e SessionRevokedEvent) OccurredAt() time.Time { return e.Timestamp }

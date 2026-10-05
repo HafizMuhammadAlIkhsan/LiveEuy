@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/DXR3IN/auth-service/internal/config"
 	"github.com/DXR3IN/auth-service/internal/domain"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -46,11 +47,11 @@ func (j *JWTManager) GenerateAccessToken(user *domain.User) (string, error) {
 	now := time.Now()
 	role := user.Role
 	if role == "" {
-		role = string(domain.RoleUser)
+		role = string(config.USER_ROLE)
 	}
 	stage := user.Stage
 	if stage == "" {
-		stage = string(domain.StageGuest)
+		stage = string(config.USER_STANDARD)
 	}
 
 	claims := &jwtCustomClaims{

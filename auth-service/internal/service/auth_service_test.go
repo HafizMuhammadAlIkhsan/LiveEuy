@@ -152,6 +152,17 @@ func (m *mockSessionRepository) EnforceMaxDevices(ctx context.Context, userID st
 	return nil
 }
 
+type mockPinSessionRepository struct {
+	SavePinFunc					func(ctx context.Context, pinSession *domain.PinSession) error
+}
+
+func (m *mockPinSessionRepository) SavePinOtp(ctx context.Context, pinSession *domain.PinSession) error {
+	if m.SavePinFunc != nil {
+		return m.SavePinFunc(ctx, pinSession)
+	}
+	return nil
+}
+
 func TestAuthService_DemoLogin(t *testing.T) {
 	ctx := context.Background()
 
@@ -159,8 +170,9 @@ func TestAuthService_DemoLogin(t *testing.T) {
 		userRepo := &mockUserRepository{}
 		jwtMgr := &mockTokenManager{}
 		sessionRepo := &mockSessionRepository{}
+		pinSessionRepo := &mockPinSessionRepository{}
 
-		svc := NewAuthService(userRepo, jwtMgr, sessionRepo)
+		svc := NewAuthService(userRepo, jwtMgr, sessionRepo, pinSessionRepo)
 		res, err := svc.DemoLogin(ctx, "hafiz", "test-agent")
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
@@ -177,8 +189,9 @@ func TestAuthService_DemoLogin(t *testing.T) {
 		userRepo := &mockUserRepository{}
 		jwtMgr := &mockTokenManager{}
 		sessionRepo := &mockSessionRepository{}
+		pinSessionRepo := &mockPinSessionRepository{}
 
-		svc := NewAuthService(userRepo, jwtMgr, sessionRepo)
+		svc := NewAuthService(userRepo, jwtMgr, sessionRepo, pinSessionRepo)
 		res, err := svc.DemoLogin(ctx, "budi", "test-agent")
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
@@ -192,7 +205,7 @@ func TestAuthService_DemoLogin(t *testing.T) {
 	})
 
 	t.Run("invalid persona", func(t *testing.T) {
-		svc := NewAuthService(&mockUserRepository{}, &mockTokenManager{}, &mockSessionRepository{})
+		svc := NewAuthService(&mockUserRepository{}, &mockTokenManager{}, &mockSessionRepository{}, &mockPinSessionRepository{})
 		_, err := svc.DemoLogin(ctx, "unknown_persona", "test-agent")
 		if err == nil {
 			t.Fatalf("expected error for unknown persona, got nil")
@@ -217,8 +230,9 @@ func TestAuthService_RegisterAndLogin(t *testing.T) {
 				return nil
 			},
 		}
+		pinSessionRepo := &mockPinSessionRepository{}
 
-		svc := NewAuthService(userRepo, jwtMgr, sessionRepo)
+		svc := NewAuthService(userRepo, jwtMgr, sessionRepo, pinSessionRepo)
 		res, err := svc.Register(ctx, "John", "john@example.com", "secret123", "VIP Cinema Ultra", "agent")
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
@@ -256,8 +270,9 @@ func TestAuthService_RegisterAndLogin(t *testing.T) {
 				return nil
 			},
 		}
+		pinSessionRepo := &mockPinSessionRepository{}
 
-		svc := NewAuthService(userRepo, jwtMgr, sessionRepo)
+		svc := NewAuthService(userRepo, jwtMgr, sessionRepo, pinSessionRepo)
 		res, err := svc.Login(ctx, "john@example.com", "secret123", "agent")
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
@@ -285,7 +300,7 @@ func TestAuthService_ChangePassword(t *testing.T) {
 		},
 	}
 
-	svc := NewAuthService(userRepo, &mockTokenManager{}, &mockSessionRepository{})
+	svc := NewAuthService(userRepo, &mockTokenManager{}, &mockSessionRepository{}, &mockPinSessionRepository{})
 
 	t.Run("success change password", func(t *testing.T) {
 		err := svc.ChangePassword("user-1", "OldPassword123", "NewPassword123")
@@ -322,7 +337,7 @@ func TestAuthService_Logout(t *testing.T) {
 			},
 		}
 
-		svc := NewAuthService(&mockUserRepository{}, &mockTokenManager{}, sessionRepo)
+		svc := NewAuthService(&mockUserRepository{}, &mockTokenManager{}, sessionRepo, &mockPinSessionRepository{})
 		err := svc.Logout(ctx, "valid-token")
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
@@ -339,7 +354,7 @@ func TestAuthService_Logout(t *testing.T) {
 			},
 		}
 
-		svc := NewAuthService(&mockUserRepository{}, &mockTokenManager{}, sessionRepo)
+		svc := NewAuthService(&mockUserRepository{}, &mockTokenManager{}, sessionRepo, &mockPinSessionRepository{})
 		err := svc.Logout(ctx, "nonexistent-token")
 		if err == nil {
 			t.Fatalf("expected error, got nil")
@@ -362,7 +377,7 @@ func TestAuthService_LogoutAll(t *testing.T) {
 			},
 		}
 
-		svc := NewAuthService(&mockUserRepository{}, &mockTokenManager{}, sessionRepo)
+		svc := NewAuthService(&mockUserRepository{}, &mockTokenManager{}, sessionRepo, &mockPinSessionRepository{})
 		err := svc.LogoutAll(ctx, "user-123")
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)

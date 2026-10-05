@@ -2,18 +2,14 @@ package domain
 
 import (
 	"errors"
-	"regexp"
 	"strings"
+
+	"github.com/DXR3IN/auth-service/internal/config"
 )
 
 // SubscriptionTier is a Value Object representing the streaming membership tier.
 type AuthStage string
 
-const (
-	StageGuest      AuthStage = "guest"
-	StageStandard       AuthStage = "standard"
-	StageVIP    	   AuthStage = "vip"
-)
 
 type Entitlements struct {
 	Stage 				AuthStage	`json:"stage"`
@@ -28,66 +24,54 @@ type Entitlements struct {
 // ParseSubscriptionTier converts a raw string into a valid SubscriptionTier with fallback.
 func ParseStageTier(s string) AuthStage {
 	switch strings.TrimSpace(s) {
-	case string(StageGuest):
-		return StageGuest
-	case string(StageStandard):
-		return StageStandard
-	case string(StageVIP):
-		return StageVIP
+	case string(config.USER_STANDARD):
+		return config.USER_STANDARD
+	case string(config.USER_VIP):
+		return config.USER_VIP
 	default:
-		return StageGuest
+		return config.USER_GUEST
 	}
 }
 
 // String returns the string representation of the tier.
 func (t AuthStage) String() string {
 	if t == "" {
-		return string(StageGuest)
+		return string(config.USER_GUEST)
 	}
 	return string(t)
 }
 
 func (t AuthStage) MaxDevices() int {
 	switch t {
-		case StageGuest:
-			return 1
-		case StageStandard:
-			return 2
-		case StageVIP:
-			return 4
+		case config.USER_GUEST:
+			return config.USER_GUEST_MAX_DEVICE
+		case config.USER_STANDARD:
+			return config.USER_STANDARD_MAX_DEVICE
+		case config.USER_VIP:
+			return config.USER_VIP_MAX_DEVICE
 		default:
-			return 1
+			return config.USER_GUEST_MAX_DEVICE
 	
 	}
 }
 
 func (t AuthStage) Entitlements() Entitlements {
 	switch t {
-		case StageGuest:
+		case config.USER_STANDARD:
 			return Entitlements{
-				Stage: StageGuest,
-				MaxWatchSeconds: 1800,
-				MaxResolution: "480p",
+				Stage: config.USER_STANDARD,
+				MaxWatchSeconds: 0,
+				MaxResolution: config.USER_STANDARD_MAX_RESOLUTION,
 				AdsEnabled: true,
 				MaxDevices: t.MaxDevices(),
 				CanDownload: false,
 				ExclusiveAccess: false,
 			}
-		case StageStandard:
+		case config.USER_VIP:
 			return Entitlements{
-				Stage: StageStandard,
+				Stage: config.USER_VIP,
 				MaxWatchSeconds: 0,
-				MaxResolution: "720p",
-				AdsEnabled: true,
-				MaxDevices: t.MaxDevices(),
-				CanDownload: false,
-				ExclusiveAccess: false,
-			}
-		case StageVIP:
-			return Entitlements{
-				Stage: StageVIP,
-				MaxWatchSeconds: 0,
-				MaxResolution: "1080p",
+				MaxResolution: config.USER_VIP_MAX_RESOLUTION,
 				AdsEnabled: true,
 				MaxDevices: t.MaxDevices(),
 				CanDownload: true,
@@ -95,9 +79,9 @@ func (t AuthStage) Entitlements() Entitlements {
 			}
 		default:
 			return Entitlements{
-				Stage: StageGuest,
+				Stage: config.USER_GUEST,
 				MaxWatchSeconds: 1800,
-				MaxResolution: "480p",
+				MaxResolution: config.USER_GUEST_MAX_RESOLUTION,
 				AdsEnabled: true,
 				MaxDevices: t.MaxDevices(),
 				CanDownload: false,
@@ -109,7 +93,7 @@ func (t AuthStage) Entitlements() Entitlements {
 // IsValid checks if the tier is an official supported subscription plan.
 func (t AuthStage) IsValid() bool {
 	switch t {
-	case StageGuest, StageStandard, StageVIP:
+	case config.USER_GUEST, config.USER_STANDARD, config.USER_VIP:
 		return true
 	default:
 		return false
@@ -119,47 +103,40 @@ func (t AuthStage) IsValid() bool {
 // UserRole is a Value Object representing authorization role in the domain.
 type UserRole string
 
-const (
-	RoleUser  UserRole = "user"
-	RoleAdmin UserRole = "admin"
-)
-
 // ParseUserRole converts raw string to UserRole.
 func ParseUserRole(s string) UserRole {
 	switch strings.ToLower(strings.TrimSpace(s)) {
-	case string(RoleAdmin):
-		return RoleAdmin
+	case string(config.ADMIN_ROLE):
+		return config.ADMIN_ROLE
 	default:
-		return RoleUser
+		return config.USER_ROLE
 	}
 }
 
 // String returns the string representation of UserRole.
 func (r UserRole) String() string {
 	if r == "" {
-		return string(RoleUser)
+		return string(config.USER_ROLE)
 	}
 	return string(r)
 }
 
 // IsAdmin returns true if the role has admin privileges.
 func (r UserRole) IsAdmin() bool {
-	return r == RoleAdmin
+	return r == config.ADMIN_ROLE
 }
 
 // EmailAddress is an immutable Value Object encapsulating email validation and normalization.
 type EmailAddress string
 
-var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
-
 // NewEmailAddress validates and normalizes an email address.
 func NewEmailAddress(raw string) (EmailAddress, error) {
 	cleaned := strings.ToLower(strings.TrimSpace(raw))
 	if cleaned == "" {
-		return "", errors.New("email tidak boleh kosong")
+		return "", errors.New(config.ERR_EMPTY_USER_EMAIL)
 	}
-	if !emailRegex.MatchString(cleaned) {
-		return "", errors.New("format email tidak valid")
+	if !config.EMAIL_REGEX.MatchString(cleaned) {
+		return "", errors.New(config.ERR_INVALID_EMAIL_FORMAT)
 	}
 	return EmailAddress(cleaned), nil
 }

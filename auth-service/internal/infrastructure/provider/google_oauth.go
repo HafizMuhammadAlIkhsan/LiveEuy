@@ -22,10 +22,7 @@ func NewGoogleOAuthProvider(cfg *config.Config) *GoogleOAuthProvider {
 		ClientID:     cfg.WebOAuth.GoogleClientID,
 		ClientSecret: cfg.WebOAuth.GoogleClientSecret,
 		RedirectURL:  cfg.WebOAuth.GoogleRedirectURL,
-		Scopes: []string{
-			"https://www.googleapis.com/auth/userinfo.email",
-			"https://www.googleapis.com/auth/userinfo.profile",
-		},
+		Scopes: config.GOOGLE_OAUTH,
 		Endpoint: google.Endpoint,
 	}
 
@@ -46,7 +43,7 @@ func (p *GoogleOAuthProvider) ExchangeCodeForUser(ctx context.Context, code stri
 
 	client := p.googleConfig.Client(ctx, token)
 
-	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
+	resp, err := client.Get(config.URL_USER_INFO_GOOGLE)
 	if err != nil {
 		return nil, fmt.Errorf("gagal mengambil profil user: %w", err)
 	}

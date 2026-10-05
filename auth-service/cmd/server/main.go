@@ -51,7 +51,7 @@ func main() {
 
 	db, err := gorm.Open(postgres.New(postgres.Config{
 		DSN:                  cfg.DBURL,
-		PreferSimpleProtocol: true, // Disables prepared statement caching for Neon Pooler / PgBouncer compatibility
+		PreferSimpleProtocol: true, 
 	}), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
 	})
@@ -82,6 +82,7 @@ func main() {
 	// Repositories and Providers
 	userRepo := repo.NewUserRepository(db)
 	sessionRepo := repo.NewRedisSessionRepository(rdb)
+	redisSessionRepo := repo.NewRedisPinRepository(rdb)
 
 	// Initialize RSA Keypair & JWT Manager (Asymmetric RS256)
 	privKey, pubKey, err := utils.LoadOrGenerateRSAKeys(
@@ -96,7 +97,7 @@ func main() {
 	jwtMgr := utils.NewJWTManager(privKey, pubKey, cfg.JWTConfig.KeyID, cfg.JWTConfig.TTL)
 	oauthProvider := provider.NewGoogleOAuthProvider(cfg)
 
-	r := http.NewRouter(cfg, userRepo, jwtMgr, sessionRepo, oauthProvider)
+	r := http.NewRouter(cfg, userRepo, jwtMgr, sessionRepo, redisSessionRepo, oauthProvider)
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
 	log.Printf("Starting server at %s", addr)

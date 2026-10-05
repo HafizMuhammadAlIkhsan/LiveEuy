@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/DXR3IN/auth-service/internal/config"
 	models "github.com/DXR3IN/auth-service/internal/domain"
 	"github.com/DXR3IN/auth-service/internal/utils"
 	"github.com/DXR3IN/auth-service/pkg/logger"
@@ -23,13 +24,14 @@ var (
 
 const (
 	refreshTokenDuration = 30 * 24 * time.Hour
-	defaultPicture       = models.DefaultPicture
+	defaultPicture       = config.DEFAULT_PICTURE_IMAGE_LINK
 )
 
 type AuthService struct {
-	repo        models.UserRepository
-	jwt         models.TokenManager
-	sessionRepo models.SessionRepository
+	repo        	models.UserRepository
+	jwt         	models.TokenManager
+	sessionRepo 	models.SessionRepository
+	pinSessionRepo	models.PinSessionRepository
 }
 
 type AuthResult struct {
@@ -38,7 +40,7 @@ type AuthResult struct {
 	RefreshToken string
 }
 
-func NewAuthService(r models.UserRepository, jwt models.TokenManager, sessionRepo models.SessionRepository) *AuthService {
+func NewAuthService(r models.UserRepository, jwt models.TokenManager, sessionRepo models.SessionRepository, pinSessionRepo models.PinSessionRepository) *AuthService {
 	return &AuthService{repo: r, jwt: jwt, sessionRepo: sessionRepo}
 }
 
@@ -58,8 +60,12 @@ func (s *AuthService) Register(ctx context.Context, name, email, password, tier 
 		return nil, err
 	}
 	if ex != nil {
+		if !ex.IsVerified {
+			return nil, errors.New("Email belum terverifikasi, silahkan verifikasi dulu")
+		}
 		return nil, ErrUserExists
 	}
+	
 
 	hashed, err := utils.HashPassword(password)
 	if err != nil {
@@ -71,6 +77,7 @@ func (s *AuthService) Register(ctx context.Context, name, email, password, tier 
 	if err != nil {
 		return nil, err
 	}
+	newUser.IsVerified = false
 
 	if err := s.repo.Create(newUser); err != nil {
 		return nil, err

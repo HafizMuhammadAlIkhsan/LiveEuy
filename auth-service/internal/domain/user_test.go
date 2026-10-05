@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/DXR3IN/auth-service/internal/config"
 	"github.com/DXR3IN/auth-service/internal/domain"
 )
 
@@ -75,7 +76,7 @@ func TestUserRole_Behavior(t *testing.T) {
 
 func TestNewUser_AggregateFactory(t *testing.T) {
 	t.Run("Valid User Creation", func(t *testing.T) {
-		u, err := domain.NewUser("", "Hafiz Muhammad", "Hafiz@LiveEuy.ID", "$2a$10$hashedpass", domain.StageVIP, "local")
+		u, err := domain.NewUser("", "Hafiz Muhammad", "Hafiz@LiveEuy.ID", "$2a$10$hashedpass", config.USER_VIP, "local")
 		if err != nil {
 			t.Fatalf("unexpected error creating user: %v", err)
 		}
@@ -95,20 +96,20 @@ func TestNewUser_AggregateFactory(t *testing.T) {
 		if u.Devices != 4 {
 			t.Errorf("expected 4 devices for VIP Cinema Ultra, got %d", u.Devices)
 		}
-		if u.Picture != domain.DefaultPicture {
+		if u.Picture != config.DEFAULT_PICTURE_IMAGE_LINK {
 			t.Errorf("expected default picture, got '%s'", u.Picture)
 		}
 	})
 
 	t.Run("Empty Name Rejected", func(t *testing.T) {
-		_, err := domain.NewUser("", "   ", "valid@email.com", "hash", domain.StageStandard, "local")
+		_, err := domain.NewUser("", "   ", "valid@email.com", "hash", config.USER_STANDARD, "local")
 		if err == nil {
 			t.Fatal("expected error for empty name, got nil")
 		}
 	})
 
 	t.Run("Invalid Email Rejected", func(t *testing.T) {
-		_, err := domain.NewUser("", "Budi", "invalid-email", "hash", domain.StageStandard, "local")
+		_, err := domain.NewUser("", "Budi", "invalid-email", "hash",	config.USER_STANDARD, "local")
 		if err == nil {
 			t.Fatal("expected error for invalid email, got nil")
 		}
@@ -116,7 +117,7 @@ func TestNewUser_AggregateFactory(t *testing.T) {
 }
 
 func TestUser_AggregateMethods(t *testing.T) {
-	u, err := domain.NewUser("usr-1", "Budi Santoso", "budi@liveeuy.id", "$2a$10$oldhash", domain.StageStandard, "local")
+	u, err := domain.NewUser("usr-1", "Budi Santoso", "budi@liveeuy.id", "$2a$10$oldhash", config.USER_STANDARD, "local")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -133,7 +134,7 @@ func TestUser_AggregateMethods(t *testing.T) {
 	}
 
 	// 2. Upgrade Tier to vip
-	u.UpgradeTier(domain.StageGuest)
+	u.UpgradeTier(config.USER_STANDARD)
 	if u.Stage != "vip" {
 		t.Errorf("expected updated tier 'vip', got '%s'", u.Stage)
 	}
